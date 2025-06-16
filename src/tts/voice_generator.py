@@ -14,12 +14,30 @@ except ImportError:
     print("⚠️ pydub không available, chức năng ghép audio sẽ bị giới hạn")
     PYDUB_AVAILABLE = False
 
+# Import Chatterbox TTS Provider
+try:
+    from .chatterbox_tts_provider import ChatterboxTTSProvider
+    CHATTERBOX_PROVIDER_AVAILABLE = True
+    print("✅ ChatterboxTTSProvider imported successfully")
+except ImportError as e:
+    CHATTERBOX_PROVIDER_AVAILABLE = False
+    print(f"⚠️ ChatterboxTTSProvider not available: {e}")
+
 load_dotenv('config.env')
 
 class VoiceGenerator:
     def __init__(self):
         self.elevenlabs_api_key = os.getenv('ELEVENLABS_API_KEY')
         self.google_api_key = os.getenv('GOOGLE_TTS_API_KEY')
+        
+        # Initialize Chatterbox TTS Provider
+        self.chatterbox_provider = None
+        if CHATTERBOX_PROVIDER_AVAILABLE:
+            try:
+                self.chatterbox_provider = ChatterboxTTSProvider()
+                print(f"🎙️ Chatterbox TTS Status: {self.chatterbox_provider.get_device_info()}")
+            except Exception as e:
+                print(f"⚠️ Failed to initialize Chatterbox TTS: {e}")
         
         # Danh sách giọng Google TTS
         self.google_voices = {
@@ -32,6 +50,141 @@ class VoiceGenerator:
             "vi-VN-Wavenet-C": {"gender": "FEMALE", "name": "vi-VN-Wavenet-C"},
             "vi-VN-Wavenet-D": {"gender": "MALE", "name": "vi-VN-Wavenet-D"}
         }
+    
+    def get_available_tts_providers(self):
+        """Lấy danh sách TTS providers có sẵn"""
+        providers = []
+        
+        if self.elevenlabs_api_key:
+            providers.append({
+                "id": "elevenlabs",
+                "name": "ElevenLabs",
+                "status": "✅ Available",
+                "languages": ["English", "Multi-language"],
+                "features": ["Voice cloning", "High quality"]
+            })
+        
+        if self.google_api_key:
+            providers.append({
+                "id": "google_cloud",
+                "name": "Google Cloud TTS",
+                "status": "✅ Available",
+                "languages": ["Vietnamese", "Multi-language"],
+                "features": ["Standard & Wavenet voices", "SSML support"]
+            })
+        
+        providers.append({
+            "id": "google_free",
+            "name": "Google TTS (Free)",
+            "status": "✅ Available",
+            "languages": ["Vietnamese", "Multi-language"],
+            "features": ["Free", "Basic quality"]
+        })
+        
+        if self.chatterbox_provider and self.chatterbox_provider.is_initialized:
+            device_info = self.chatterbox_provider.get_device_info()
+            providers.append({
+                "id": "chatterbox",
+                "name": "Chatterbox TTS",
+                "status": f"✅ Available ({device_info['device_name']})",
+                "languages": ["English"],
+                "features": ["SoTA quality", "Emotion control", "Voice cloning", f"Device: {device_info['device_name']}"]
+            })
+        elif CHATTERBOX_PROVIDER_AVAILABLE:
+            providers.append({
+                "id": "chatterbox",
+                "name": "Chatterbox TTS",
+                "status": "❌ Failed to initialize",
+                "languages": ["English"],
+                "features": ["SoTA quality", "Emotion control", "Voice cloning"]
+            })
+        
+        return providers
+    
+    def generate_voice_chatterbox(self, text, save_path, voice_sample_path=None, emotion_exaggeration=1.0, speed=1.0):
+        """Tạo giọng nói bằng Chatterbox TTS với emotion control"""
+        if not self.chatterbox_provider or not self.chatterbox_provider.is_initialized:
+            return {"success": False, "error": "Chatterbox TTS not available or not initialized"}
+        
+        return self.chatterbox_provider.generate_voice(
+            text=text,
+            save_path=save_path,
+            voice_sample_path=voice_sample_path,
+            emotion_exaggeration=emotion_exaggeration,
+            speed=speed
+        )
+    
+    def generate_voice_auto_v2(self, text, save_path, provider="auto", language="vi", **kwargs):
+        """
+        Auto TTS với provider selection và language detection
+        
+        Args:
+            text: Text to synthesize
+            save_path: Output file path
+            provider: "auto", "google", "elevenlabs", "chatterbox", "google_free"
+            language: "vi", "en", "auto"
+            **kwargs: Provider-specific options
+        """
+        # Auto-detect language nếu cần
+        if language == "auto":
+            language = self._detect_language(text)
+        
+        # Auto-select provider dựa trên language và availability
+        if provider == "auto":
+            if language == "vi":
+                # Vietnamese: Ưu tiên Google Cloud TTS
+                if self.google_api_key:
+                    provider = "google"
+                else:
+                    provider = "google_free"
+            elif language == "en":
+                # English: Ưu tiên Chatterbox nếu có, otherwise ElevenLabs
+                if self.chatterbox_provider and self.chatterbox_provider.is_initialized:
+                    provider = "chatterbox"
+                elif self.elevenlabs_api_key:
+                    provider = "elevenlabs"
+                else:
+                    provider = "google_free"
+            else:
+                # Other languages: Google services
+                provider = "google" if self.google_api_key else "google_free"
+        
+        # Generate với provider được chọn
+        if provider == "chatterbox":
+            return self.generate_voice_chatterbox(text, save_path, **kwargs)
+        elif provider == "elevenlabs":
+            voice_id = kwargs.get("voice_id", "21m00Tcm4TlvDq8ikWAM")
+            return self.generate_voice_elevenlabs(text, voice_id, save_path)
+        elif provider == "google":
+            voice_name = kwargs.get("voice_name", "vi-VN-Standard-A")
+            return self.generate_voice_google_with_voice(text, voice_name, save_path)
+        elif provider == "google_free":
+            lang = "vi" if language == "vi" else "en"
+            return self.generate_voice_google_free(text, save_path, lang)
+        else:
+            return {"success": False, "error": f"Unknown provider: {provider}"}
+    
+    def _detect_language(self, text):
+        """Simple language detection"""
+        # Check for Vietnamese characters
+        vietnamese_chars = "àáãạảăắằẳẵặâấầẩẫậđèéẹẻẽêềếểễệìíĩỉịòóõọỏôốồổỗộơớờởỡợùúũụủưứừửữựỳýỵỷỹ"
+        vietnamese_count = sum(1 for char in text.lower() if char in vietnamese_chars)
+        
+        if vietnamese_count > len(text) * 0.1:  # 10% threshold
+            return "vi"
+        else:
+            return "en"
+    
+    def get_chatterbox_device_info(self):
+        """Lấy thông tin device của Chatterbox TTS"""
+        if self.chatterbox_provider:
+            return self.chatterbox_provider.get_device_info()
+        return {"available": False, "error": "Chatterbox TTS not initialized"}
+    
+    def cleanup_chatterbox(self):
+        """Cleanup Chatterbox TTS resources"""
+        if self.chatterbox_provider:
+            self.chatterbox_provider.cleanup()
     
     def generate_voice_elevenlabs(self, text, voice_id="21m00Tcm4TlvDq8ikWAM", save_path="output.mp3"):
         """Tạo giọng nói bằng ElevenLabs"""
@@ -347,13 +500,4 @@ class VoiceGenerator:
             combined.export(output_path, format="mp3")
             return {"success": True, "path": output_path}
         except Exception as e:
-            return {"success": False, "error": f"Lỗi ghép audio: {str(e)}"}
-    
-    def generate_voice_auto(self, text, save_path, voice_name="vi-VN-Standard-A", prefer_elevenlabs=True):
-        """Tự động chọn TTS service (ưu tiên ElevenLabs nếu có key)"""
-        if prefer_elevenlabs and self.elevenlabs_api_key:
-            return self.generate_voice_elevenlabs(text, save_path=save_path)
-        elif self.google_api_key:
-            return self.generate_voice_google_with_voice(text, voice_name, save_path)
-        else:
-            return self.generate_voice_google_free(text, save_path) 
+            return {"success": False, "error": f"Lỗi ghép audio: {str(e)}"} 

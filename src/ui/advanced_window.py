@@ -2,11 +2,14 @@ from PySide6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                                QTabWidget, QLabel, QPushButton, QLineEdit, QTextEdit,
                                QProgressBar, QListWidget, QComboBox, QSpinBox, 
                                QCheckBox, QFileDialog, QMessageBox, QScrollArea,
-                               QDialog, QRadioButton, QButtonGroup)
-from PySide6.QtCore import QThread, Signal
+                               QDialog, QRadioButton, QButtonGroup, QSplitter,
+                               QGroupBox, QGridLayout)
+from PySide6.QtCore import QThread, Signal, Qt
+from PySide6.QtGui import QFont
 import sys
 import os
 import subprocess
+import platform
 
 # Import pipeline
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
@@ -14,8 +17,10 @@ from core.video_pipeline import VideoPipeline
 from video.effects_presets import EffectsPresets
 from ai.prompt_templates import PromptTemplates
 from core.api_manager import APIManager
+from tts.voice_generator import VoiceGenerator
 from .character_voice_dialog import CharacterVoiceDialog
 from .manual_voice_setup_dialog import ManualVoiceSetupDialog
+from .macos_styles import get_macos_stylesheet, get_macos_window_size
 
 class VideoGenerationThread(QThread):
     progress_updated = Signal(int, str)
@@ -54,19 +59,32 @@ class AdvancedMainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("AI Video Generator - Advanced")
-        self.setGeometry(100, 100, 1000, 700)
+        
+        # Tối ưu kích thước cho MacOS 13 inch
+        if platform.system() == "Darwin":  # macOS
+            window_size = get_macos_window_size()
+            self.setGeometry(50, 50, window_size['default_width'], window_size['default_height'])
+            self.setMinimumSize(window_size['min_width'], window_size['min_height'])
+            self.setMaximumSize(window_size['max_width'], window_size['max_height'])
+        else:
+            self.setGeometry(100, 100, 1000, 700)
         
         # Khởi tạo pipeline và API manager
         self.pipeline = VideoPipeline()
         self.api_manager = APIManager()
+        self.voice_generator = VoiceGenerator()
         self.current_project_id = None
         self.current_script_data = None  # Store generated script data
+        
+        # Thiết lập style cho macOS
+        self.setup_macos_style()
         
         # Widget trung tâm với tabs
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
         
         layout = QVBoxLayout()
+        layout.setContentsMargins(10, 10, 10, 10)  # Giảm margin
         central_widget.setLayout(layout)
         
         # Tab widget
@@ -77,166 +95,290 @@ class AdvancedMainWindow(QMainWindow):
         self.create_video_tab()
         self.create_projects_tab()
         self.create_settings_tab()
+        
+        # Tạo status bar
+        self.create_status_bar()
+    
+    def create_status_bar(self):
+        """Tạo status bar với thông tin hệ thống"""
+        status_bar = self.statusBar()
+        
+        # Status text chính
+        self.status_text = "✅ Sẵn sàng"
+        status_bar.showMessage(self.status_text)
+        
+        # API status indicator
+        self.api_status_label = QLabel("🔑 API: Checking...")
+        status_bar.addPermanentWidget(self.api_status_label)
+        
+        # Kiểm tra API status ngay khi khởi động
+        self.update_api_status_indicator()
+    
+    def update_api_status_indicator(self):
+        """Cập nhật chỉ báo trạng thái API"""
+        # Kiểm tra xem api_status_label đã được tạo chưa
+        if not hasattr(self, 'api_status_label'):
+            return
+            
+        try:
+            status = self.api_manager.get_provider_status()
+            
+            # Đếm số API available
+            content_available = sum(status['content_providers'].values())
+            image_available = sum(status['image_providers'].values()) 
+            tts_available = sum(status['tts_providers'].values())
+            
+            total_available = content_available + image_available + tts_available
+            
+            if total_available >= 3:
+                self.api_status_label.setText("🟢 API: Đầy đủ")
+            elif total_available >= 1:
+                self.api_status_label.setText("🟡 API: Một phần")
+            else:
+                self.api_status_label.setText("🔴 API: Chưa cấu hình")
+                
+        except Exception:
+            if hasattr(self, 'api_status_label'):
+                self.api_status_label.setText("⚠️ API: Lỗi")
+    
+    def setup_macos_style(self):
+        """Thiết lập style phù hợp với macOS"""
+        if platform.system() == "Darwin":
+            # Font system của macOS
+            font = QFont("-apple-system", 13)  # macOS system font
+            self.setFont(font)
+            
+            # Sử dụng stylesheet từ file riêng
+            self.setStyleSheet(get_macos_stylesheet())
     
     def create_video_tab(self):
-        """Tab tạo video mới"""
+        """Tab tạo video mới với layout tối ưu cho MacOS"""
         tab = QWidget()
-        layout = QVBoxLayout()
-        tab.setLayout(layout)
         
-        # Gợi ý prompt
-        prompt_suggestions_layout = QHBoxLayout()
-        prompt_suggestions_layout.addWidget(QLabel("Gợi ý prompt:"))
+        # Sử dụng scroll area để tránh tràn màn hình
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        
+        content_widget = QWidget()
+        layout = QVBoxLayout()
+        layout.setSpacing(8)  # Giảm spacing
+        content_widget.setLayout(layout)
+        
+        # Group 1: Prompt và gợi ý
+        prompt_group = QGroupBox("📝 Nội dung video")
+        prompt_layout = QVBoxLayout()
+        prompt_layout.setSpacing(6)
+        
+        # Gợi ý prompt - layout compact
+        suggestions_layout = QGridLayout()
+        suggestions_layout.addWidget(QLabel("Danh mục:"), 0, 0)
+        
         self.category_combo = QComboBox()
         categories = PromptTemplates.get_all_categories()
         self.category_combo.addItem("-- Chọn danh mục --", "")
         for key, value in categories.items():
             self.category_combo.addItem(value["category"], key)
         self.category_combo.currentTextChanged.connect(self.load_prompt_suggestions)
-        prompt_suggestions_layout.addWidget(self.category_combo)
+        suggestions_layout.addWidget(self.category_combo, 0, 1)
         
-        self.random_prompt_btn = QPushButton("Prompt ngẫu nhiên")
+        self.random_prompt_btn = QPushButton("🎲 Ngẫu nhiên")
         self.random_prompt_btn.clicked.connect(self.get_random_prompt)
-        prompt_suggestions_layout.addWidget(self.random_prompt_btn)
-        layout.addLayout(prompt_suggestions_layout)
+        suggestions_layout.addWidget(self.random_prompt_btn, 0, 2)
+        
+        prompt_layout.addLayout(suggestions_layout)
         
         # Danh sách prompt gợi ý
         self.prompt_suggestions_list = QComboBox()
         self.prompt_suggestions_list.addItem("-- Chọn prompt mẫu --")
         self.prompt_suggestions_list.currentTextChanged.connect(self.use_suggested_prompt)
-        layout.addWidget(self.prompt_suggestions_list)
+        prompt_layout.addWidget(self.prompt_suggestions_list)
         
-        # Nhập prompt
-        layout.addWidget(QLabel("Prompt nội dung video:"))
+        # Nhập prompt - giảm chiều cao
         self.prompt_input = QTextEdit()
         self.prompt_input.setPlaceholderText("Ví dụ: Tạo video giới thiệu về du lịch Việt Nam với 5 điểm đến nổi tiếng...")
-        self.prompt_input.setMaximumHeight(100)
-        layout.addWidget(self.prompt_input)
+        self.prompt_input.setMaximumHeight(80)  # Giảm từ 100 xuống 80
+        prompt_layout.addWidget(self.prompt_input)
+        
+        prompt_group.setLayout(prompt_layout)
+        layout.addWidget(prompt_group)
+        
+        # Group 2: Cài đặt dự án
+        project_group = QGroupBox("⚙️ Cài đặt dự án")
+        project_layout = QGridLayout()
+        project_layout.setSpacing(6)
         
         # Tên project
-        layout.addWidget(QLabel("Tên project:"))
+        project_layout.addWidget(QLabel("Tên dự án:"), 0, 0)
         self.project_name_input = QLineEdit()
         self.project_name_input.setPlaceholderText("video_project")
-        layout.addWidget(self.project_name_input)
+        project_layout.addWidget(self.project_name_input, 0, 1, 1, 2)
         
-        # Chọn thư mục dự án
-        project_folder_layout = QHBoxLayout()
-        project_folder_layout.addWidget(QLabel("Thư mục dự án:"))
+        # Thư mục dự án
+        project_layout.addWidget(QLabel("Thư mục:"), 1, 0)
         self.project_folder_input = QLineEdit()
         self.project_folder_input.setPlaceholderText("Mặc định: ./projects/")
         self.project_folder_input.setReadOnly(True)
-        project_folder_layout.addWidget(self.project_folder_input)
+        project_layout.addWidget(self.project_folder_input, 1, 1)
         
-        self.select_project_folder_btn = QPushButton("📁 Chọn")
+        self.select_project_folder_btn = QPushButton("📁")
         self.select_project_folder_btn.clicked.connect(self.select_project_folder)
-        project_folder_layout.addWidget(self.select_project_folder_btn)
+        self.select_project_folder_btn.setMaximumWidth(40)
+        project_layout.addWidget(self.select_project_folder_btn, 1, 2)
         
-        layout.addLayout(project_folder_layout)
+        project_group.setLayout(project_layout)
+        layout.addWidget(project_group)
         
-        # Tùy chọn tạo ảnh
-        layout.addWidget(QLabel("Tùy chọn tạo ảnh:"))
+        # Group 3: Tùy chọn ảnh
+        image_group = QGroupBox("🖼️ Tùy chọn ảnh")
+        image_layout = QVBoxLayout()
+        image_layout.setSpacing(6)
+        
+        # Radio buttons trong layout ngang
         image_options_layout = QHBoxLayout()
         self.auto_generate_radio = QCheckBox("Tự động tạo ảnh AI")
         self.auto_generate_radio.setChecked(True)
         self.manual_images_radio = QCheckBox("Chọn ảnh thủ công")
         image_options_layout.addWidget(self.auto_generate_radio)
         image_options_layout.addWidget(self.manual_images_radio)
+        image_layout.addLayout(image_options_layout)
         
-        self.select_images_btn = QPushButton("Chọn thư mục ảnh")
+        # Chọn thư mục ảnh
+        folder_layout = QHBoxLayout()
+        self.select_images_btn = QPushButton("📁 Chọn thư mục ảnh")
         self.select_images_btn.clicked.connect(self.select_images_folder)
         self.select_images_btn.setEnabled(False)
-        image_options_layout.addWidget(self.select_images_btn)
-        layout.addLayout(image_options_layout)
+        folder_layout.addWidget(self.select_images_btn)
+        
+        self.selected_images_label = QLabel("Chưa chọn thư mục ảnh")
+        self.selected_images_label.setStyleSheet("color: gray; font-style: italic; font-size: 11px;")
+        folder_layout.addWidget(self.selected_images_label)
+        image_layout.addLayout(folder_layout)
         
         # Kết nối sự kiện
         self.manual_images_radio.toggled.connect(self.toggle_image_mode)
         
-        # Hiển thị thư mục ảnh đã chọn
-        self.selected_images_label = QLabel("Chưa chọn thư mục ảnh")
-        self.selected_images_label.setStyleSheet("color: gray; font-style: italic;")
-        layout.addWidget(self.selected_images_label)
+        image_group.setLayout(image_layout)
+        layout.addWidget(image_group)
+        
+        # Group 4: Hiệu ứng
+        effects_group = QGroupBox("✨ Hiệu ứng")
+        effects_layout = QVBoxLayout()
+        effects_layout.setSpacing(6)
         
         # Preset hiệu ứng
-        layout.addWidget(QLabel("Preset hiệu ứng:"))
+        preset_layout = QHBoxLayout()
+        preset_layout.addWidget(QLabel("Preset:"))
         self.effects_preset_combo = QComboBox()
         presets = EffectsPresets.get_all_presets()
         for key, preset in presets.items():
             self.effects_preset_combo.addItem(f"{preset['name']} - {preset['description']}", key)
         self.effects_preset_combo.setCurrentText("Năng động")
-        layout.addWidget(self.effects_preset_combo)
+        preset_layout.addWidget(self.effects_preset_combo)
+        effects_layout.addLayout(preset_layout)
         
         # Cài đặt hiệu ứng tùy chỉnh
-        effects_layout = QHBoxLayout()
+        custom_effects_layout = QHBoxLayout()
         self.zoom_checkbox = QCheckBox("Hiệu ứng zoom")
         self.zoom_checkbox.setChecked(True)
         self.transitions_checkbox = QCheckBox("Chuyển cảnh")
         self.transitions_checkbox.setChecked(True)
-        effects_layout.addWidget(self.zoom_checkbox)
-        effects_layout.addWidget(self.transitions_checkbox)
-        layout.addLayout(effects_layout)
+        custom_effects_layout.addWidget(self.zoom_checkbox)
+        custom_effects_layout.addWidget(self.transitions_checkbox)
+        effects_layout.addLayout(custom_effects_layout)
         
-        # Nút actions
-        actions_layout = QHBoxLayout()
+        effects_group.setLayout(effects_layout)
+        layout.addWidget(effects_group)
+        
+        # Group 5: Actions
+        actions_group = QGroupBox("🎬 Tạo video")
+        actions_layout = QGridLayout()
+        actions_layout.setSpacing(8)
         
         self.generate_story_btn = QPushButton("📝 Tạo câu chuyện")
         self.generate_story_btn.clicked.connect(self.generate_story_only)
-        actions_layout.addWidget(self.generate_story_btn)
+        self.generate_story_btn.setToolTip("Tạo kịch bản video từ prompt (Cmd+1)")
+        self.generate_story_btn.setShortcut("Cmd+1" if platform.system() == "Darwin" else "Ctrl+1")
+        actions_layout.addWidget(self.generate_story_btn, 0, 0)
         
         self.generate_audio_btn = QPushButton("🎵 Tạo Audio")
         self.generate_audio_btn.clicked.connect(self.generate_audio_only)
-        self.generate_audio_btn.setEnabled(False)  # Enabled after story creation
-        actions_layout.addWidget(self.generate_audio_btn)
+        self.generate_audio_btn.setEnabled(False)
+        self.generate_audio_btn.setToolTip("Tạo audio từ kịch bản đã có (Cmd+2)")
+        self.generate_audio_btn.setShortcut("Cmd+2" if platform.system() == "Darwin" else "Ctrl+2")
+        actions_layout.addWidget(self.generate_audio_btn, 0, 1)
         
-        self.generate_btn = QPushButton("🎬 Tạo video")
-        self.generate_btn.clicked.connect(self.start_video_generation)
-        actions_layout.addWidget(self.generate_btn)
+        # Nút tạo video hoàn chỉnh
+        self.generate_video_btn = QPushButton("🎬 Tạo Video Hoàn chỉnh")
+        self.generate_video_btn.clicked.connect(self.start_video_generation)
+        self.generate_video_btn.setToolTip("Tạo video hoàn chỉnh với ảnh và âm thanh (Cmd+3)")
+        self.generate_video_btn.setShortcut("Cmd+3" if platform.system() == "Darwin" else "Ctrl+3")
+        actions_layout.addWidget(self.generate_video_btn, 1, 0, 1, 2)
         
-        layout.addLayout(actions_layout)
+        # Nút cấu hình giọng nói thủ công (luôn hiển thị)
+        self.manual_voice_setup_btn = QPushButton("🎭 Cấu hình giọng theo nhân vật")
+        self.manual_voice_setup_btn.clicked.connect(self.show_manual_voice_setup)
+        self.manual_voice_setup_btn.setToolTip("Tạo và cấu hình giọng nói cho các nhân vật thủ công (Cmd+4)")
+        self.manual_voice_setup_btn.setShortcut("Cmd+4" if platform.system() == "Darwin" else "Ctrl+4")
+        actions_layout.addWidget(self.manual_voice_setup_btn, 2, 0, 1, 2)
+
+        
+        actions_group.setLayout(actions_layout)
+        layout.addWidget(actions_group)
+        
+        # Group 6: Progress và Status
+        progress_group = QGroupBox("📊 Tiến trình")
+        progress_layout = QVBoxLayout()
+        progress_layout.setSpacing(6)
         
         # Progress bar
         self.progress_bar = QProgressBar()
         self.progress_bar.setVisible(False)
-        layout.addWidget(self.progress_bar)
+        progress_layout.addWidget(self.progress_bar)
         
-        # Status label
+        # Progress label
+        self.progress_label = QLabel("")
+        self.progress_label.setVisible(False)
+        self.progress_label.setStyleSheet("color: #666; font-size: 11px;")
+        progress_layout.addWidget(self.progress_label)
+        
+        # Status và preview area
         self.status_label = QLabel("")
-        layout.addWidget(self.status_label)
+        self.status_label.setStyleSheet("color: #007AFF; font-weight: 500;")
+        progress_layout.addWidget(self.status_label)
         
-        # Preview content area
-        layout.addWidget(QLabel("Preview nội dung:"))
+        # Preview content area - compact
+        preview_label = QLabel("📄 Xem trước nội dung:")
+        preview_label.setStyleSheet("font-weight: 600; margin-top: 8px;")
+        progress_layout.addWidget(preview_label)
+        
         self.content_preview = QTextEdit()
         self.content_preview.setReadOnly(True)
-        self.content_preview.setMaximumHeight(150)
+        self.content_preview.setMaximumHeight(120)  # Compact height
+        self.content_preview.setPlaceholderText("Nội dung câu chuyện sẽ hiển thị ở đây sau khi tạo...")
+        progress_layout.addWidget(self.content_preview)
         
-        # Audio controls
-        audio_controls_layout = QHBoxLayout()
+        # Audio controls - compact layout
+        audio_controls_layout = QGridLayout()
+        audio_controls_layout.setSpacing(6)
         
-        self.manual_voice_setup_btn = QPushButton("🎭 Cấu hình giọng thủ công")
-        self.manual_voice_setup_btn.clicked.connect(self.show_manual_voice_setup)
-        audio_controls_layout.addWidget(self.manual_voice_setup_btn)
-        
-        self.open_audio_folder_btn = QPushButton("📁 Mở thư mục Audio")
+        self.open_audio_folder_btn = QPushButton("📁 Thư mục Audio")
         self.open_audio_folder_btn.clicked.connect(self.open_audio_folder)
         self.open_audio_folder_btn.setEnabled(False)
-        audio_controls_layout.addWidget(self.open_audio_folder_btn)
+        self.open_audio_folder_btn.setToolTip("Mở thư mục chứa các file audio đã tạo")
+        audio_controls_layout.addWidget(self.open_audio_folder_btn, 0, 0)
         
-        self.play_final_audio_btn = QPushButton("▶️ Nghe Audio hoàn chỉnh")
+        self.play_final_audio_btn = QPushButton("▶️ Nghe Audio")
         self.play_final_audio_btn.clicked.connect(self.play_final_audio)
         self.play_final_audio_btn.setEnabled(False)
-        audio_controls_layout.addWidget(self.play_final_audio_btn)
+        self.play_final_audio_btn.setToolTip("Phát file audio hoàn chỉnh đã ghép")
+        audio_controls_layout.addWidget(self.play_final_audio_btn, 0, 1)
         
-        audio_controls_layout.addStretch()
-        layout.addLayout(audio_controls_layout)
+        progress_layout.addLayout(audio_controls_layout)
         
-        # Store audio paths
-        self.last_audio_output_dir = None
-        self.last_final_audio_path = None
-        self.content_preview.setPlaceholderText("Nội dung câu chuyện sẽ hiển thị ở đây sau khi tạo...")
-        layout.addWidget(self.content_preview)
-        
-        # Voice settings
+        # Voice settings - compact
         voice_layout = QHBoxLayout()
-        voice_layout.addWidget(QLabel("Giọng đọc Google TTS:"))
+        voice_layout.addWidget(QLabel("Giọng TTS:"))
         self.voice_combo = QComboBox()
         vietnamese_voices = [
             "vi-VN-Standard-A (Nữ)",
@@ -250,179 +392,299 @@ class AdvancedMainWindow(QMainWindow):
         ]
         self.voice_combo.addItems(vietnamese_voices)
         voice_layout.addWidget(self.voice_combo)
-        layout.addLayout(voice_layout)
+        progress_layout.addLayout(voice_layout)
         
-        self.tabs.addTab(tab, "Tạo Video")
+        progress_group.setLayout(progress_layout)
+        progress_group.setVisible(False)  # Ẩn ban đầu, hiện khi cần
+        layout.addWidget(progress_group)
+        
+        # Store references
+        self.progress_group = progress_group
+        self.last_audio_output_dir = None
+        self.last_final_audio_path = None
+        
+        # Thêm stretch để đẩy nội dung lên trên
+        layout.addStretch()
+        
+        scroll.setWidget(content_widget)
+        
+        # Layout chính của tab
+        tab_layout = QVBoxLayout()
+        tab_layout.setContentsMargins(0, 0, 0, 0)
+        tab_layout.addWidget(scroll)
+        tab.setLayout(tab_layout)
+        
+        self.tabs.addTab(tab, "🎬 Tạo Video")
     
     def create_projects_tab(self):
-        """Tab quản lý projects"""
+        """Tab quản lý projects với layout tối ưu cho MacOS"""
         tab = QWidget()
-        layout = QVBoxLayout()
-        tab.setLayout(layout)
         
-        # Nút refresh
-        refresh_btn = QPushButton("Làm mới danh sách")
+        # Sử dụng splitter để chia đôi màn hình
+        splitter = QSplitter(Qt.Horizontal)
+        
+        # Panel trái: Danh sách projects
+        left_panel = QWidget()
+        left_layout = QVBoxLayout()
+        left_layout.setContentsMargins(8, 8, 8, 8)
+        left_layout.setSpacing(8)
+        
+        # Header với nút refresh
+        header_layout = QHBoxLayout()
+        header_layout.addWidget(QLabel("📁 Danh sách dự án"))
+        header_layout.addStretch()
+        refresh_btn = QPushButton("🔄")
+        refresh_btn.setToolTip("Làm mới danh sách")
+        refresh_btn.setMaximumWidth(40)
         refresh_btn.clicked.connect(self.refresh_projects)
-        layout.addWidget(refresh_btn)
+        header_layout.addWidget(refresh_btn)
+        left_layout.addLayout(header_layout)
         
         # Danh sách projects
         self.projects_list = QListWidget()
         self.projects_list.itemClicked.connect(self.load_project_details)
-        layout.addWidget(self.projects_list)
+        left_layout.addWidget(self.projects_list)
         
-        # Chi tiết project
+        left_panel.setLayout(left_layout)
+        splitter.addWidget(left_panel)
+        
+        # Panel phải: Chi tiết project
+        right_panel = QWidget()
+        right_layout = QVBoxLayout()
+        right_layout.setContentsMargins(8, 8, 8, 8)
+        right_layout.setSpacing(8)
+        
+        # Header chi tiết
+        right_layout.addWidget(QLabel("📋 Chi tiết dự án"))
+        
+        # Chi tiết project với scroll
+        details_scroll = QScrollArea()
+        details_scroll.setWidgetResizable(True)
+        details_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        
         self.project_details = QTextEdit()
         self.project_details.setReadOnly(True)
-        self.project_details.setMaximumHeight(200)
-        layout.addWidget(self.project_details)
+        details_scroll.setWidget(self.project_details)
+        right_layout.addWidget(details_scroll)
         
         # Nút actions
-        actions_layout = QHBoxLayout()
-        self.open_folder_btn = QPushButton("Mở thư mục")
-        self.open_folder_btn.clicked.connect(self.open_project_folder)
-        self.delete_project_btn = QPushButton("Xóa project")
-        self.delete_project_btn.clicked.connect(self.delete_project)
-        actions_layout.addWidget(self.open_folder_btn)
-        actions_layout.addWidget(self.delete_project_btn)
-        layout.addLayout(actions_layout)
+        actions_group = QGroupBox("🛠️ Thao tác")
+        actions_layout = QGridLayout()
+        actions_layout.setSpacing(8)
         
-        self.tabs.addTab(tab, "Projects")
+        self.open_folder_btn = QPushButton("📁 Mở thư mục")
+        self.open_folder_btn.clicked.connect(self.open_project_folder)
+        actions_layout.addWidget(self.open_folder_btn, 0, 0)
+        
+        self.delete_project_btn = QPushButton("🗑️ Xóa dự án")
+        self.delete_project_btn.clicked.connect(self.delete_project)
+        self.delete_project_btn.setProperty("class", "danger")
+        actions_layout.addWidget(self.delete_project_btn, 0, 1)
+        
+        actions_group.setLayout(actions_layout)
+        right_layout.addWidget(actions_group)
+        
+        right_panel.setLayout(right_layout)
+        splitter.addWidget(right_panel)
+        
+        # Thiết lập tỷ lệ splitter (40% - 60%)
+        splitter.setSizes([400, 600])
+        
+        # Layout chính của tab
+        tab_layout = QVBoxLayout()
+        tab_layout.setContentsMargins(0, 0, 0, 0)
+        tab_layout.addWidget(splitter)
+        tab.setLayout(tab_layout)
+        
+        self.tabs.addTab(tab, "📁 Dự án")
         
         # Load projects khi khởi tạo
         self.refresh_projects()
     
     def create_settings_tab(self):
-        """Tab cài đặt"""
+        """Tab cài đặt với layout tối ưu cho MacOS"""
         tab = QWidget()
+        
+        # Sử dụng scroll area cho settings
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        
+        content_widget = QWidget()
         layout = QVBoxLayout()
-        tab.setLayout(layout)
+        layout.setSpacing(12)
+        layout.setContentsMargins(16, 16, 16, 16)
+        content_widget.setLayout(layout)
         
-        # API Keys
-        layout.addWidget(QLabel("🔑 Cài đặt API Keys:"))
+        # Group 1: API Keys cho AI Content
+        ai_content_group = QGroupBox("📝 AI Sinh nội dung")
+        ai_content_layout = QGridLayout()
+        ai_content_layout.setSpacing(8)
         
-        # AI Content Generation
-        layout.addWidget(QLabel("📝 AI Sinh nội dung:"))
-        
-        layout.addWidget(QLabel("OpenAI API Key (GPT-4):"))
+        ai_content_layout.addWidget(QLabel("OpenAI API Key (GPT-4):"), 0, 0)
         self.openai_key_input = QLineEdit()
         self.openai_key_input.setEchoMode(QLineEdit.Password)
         self.openai_key_input.setPlaceholderText("sk-...")
-        layout.addWidget(self.openai_key_input)
+        ai_content_layout.addWidget(self.openai_key_input, 0, 1)
         
-        layout.addWidget(QLabel("Claude API Key (Anthropic):"))
+        ai_content_layout.addWidget(QLabel("Claude API Key:"), 1, 0)
         self.claude_key_input = QLineEdit()
         self.claude_key_input.setEchoMode(QLineEdit.Password)
         self.claude_key_input.setPlaceholderText("sk-ant-...")
-        layout.addWidget(self.claude_key_input)
+        ai_content_layout.addWidget(self.claude_key_input, 1, 1)
         
-        layout.addWidget(QLabel("DeepSeek API Key:"))
+        ai_content_layout.addWidget(QLabel("DeepSeek API Key:"), 2, 0)
         self.deepseek_key_input = QLineEdit()
         self.deepseek_key_input.setEchoMode(QLineEdit.Password)
         self.deepseek_key_input.setPlaceholderText("sk-...")
-        layout.addWidget(self.deepseek_key_input)
+        ai_content_layout.addWidget(self.deepseek_key_input, 2, 1)
         
-        # Image Generation
-        layout.addWidget(QLabel("🎨 AI Tạo ảnh:"))
+        ai_content_group.setLayout(ai_content_layout)
+        layout.addWidget(ai_content_group)
         
-        layout.addWidget(QLabel("DALL-E (OpenAI) - dùng chung key OpenAI"))
+        # Group 2: API Keys cho Image Generation
+        image_gen_group = QGroupBox("🎨 AI Tạo ảnh")
+        image_gen_layout = QGridLayout()
+        image_gen_layout.setSpacing(8)
         
-        layout.addWidget(QLabel("Midjourney API Key:"))
+        # DALL-E info
+        dalle_info = QLabel("DALL-E (OpenAI) - dùng chung key OpenAI")
+        dalle_info.setStyleSheet("color: #666; font-style: italic; font-size: 11px;")
+        image_gen_layout.addWidget(dalle_info, 0, 0, 1, 2)
+        
+        image_gen_layout.addWidget(QLabel("Midjourney API Key:"), 1, 0)
         self.midjourney_key_input = QLineEdit()
         self.midjourney_key_input.setEchoMode(QLineEdit.Password)
-        layout.addWidget(self.midjourney_key_input)
+        image_gen_layout.addWidget(self.midjourney_key_input, 1, 1)
         
-        layout.addWidget(QLabel("Stability AI Key (Stable Diffusion):"))
+        image_gen_layout.addWidget(QLabel("Stability AI Key:"), 2, 0)
         self.stability_key_input = QLineEdit()
         self.stability_key_input.setEchoMode(QLineEdit.Password)
         self.stability_key_input.setPlaceholderText("sk-...")
-        layout.addWidget(self.stability_key_input)
+        image_gen_layout.addWidget(self.stability_key_input, 2, 1)
         
-        # Text-to-Speech
-        layout.addWidget(QLabel("🎤 Text-to-Speech:"))
+        image_gen_group.setLayout(image_gen_layout)
+        layout.addWidget(image_gen_group)
         
-        layout.addWidget(QLabel("ElevenLabs API Key:"))
+        # Group 3: API Keys cho Text-to-Speech
+        tts_group = QGroupBox("🎤 Text-to-Speech")
+        tts_layout = QGridLayout()
+        tts_layout.setSpacing(8)
+        
+        tts_layout.addWidget(QLabel("ElevenLabs API Key:"), 0, 0)
         self.elevenlabs_key_input = QLineEdit()
         self.elevenlabs_key_input.setEchoMode(QLineEdit.Password)
         self.elevenlabs_key_input.setPlaceholderText("sk_...")
-        layout.addWidget(self.elevenlabs_key_input)
+        tts_layout.addWidget(self.elevenlabs_key_input, 0, 1)
         
-        layout.addWidget(QLabel("Google Cloud TTS Key:"))
+        tts_layout.addWidget(QLabel("Google Cloud TTS Key:"), 1, 0)
         self.google_tts_key_input = QLineEdit()
         self.google_tts_key_input.setEchoMode(QLineEdit.Password)
-        layout.addWidget(self.google_tts_key_input)
+        tts_layout.addWidget(self.google_tts_key_input, 1, 1)
         
-        layout.addWidget(QLabel("Azure Speech Key:"))
+        tts_layout.addWidget(QLabel("Azure Speech Key:"), 2, 0)
         self.azure_speech_key_input = QLineEdit()
         self.azure_speech_key_input.setEchoMode(QLineEdit.Password)
-        layout.addWidget(self.azure_speech_key_input)
+        tts_layout.addWidget(self.azure_speech_key_input, 2, 1)
         
-        # Provider Selection
-        layout.addWidget(QLabel("⚙️ Chọn nhà cung cấp:"))
+        # Chatterbox TTS Device Info
+        chatterbox_info = QLabel("🤖 Chatterbox TTS: Auto-detect CUDA/MPS/CPU")
+        chatterbox_info.setStyleSheet("color: #007AFF; font-weight: bold; font-size: 12px;")
+        tts_layout.addWidget(chatterbox_info, 3, 0, 1, 2)
         
-        # AI Content Provider
-        content_provider_layout = QHBoxLayout()
-        content_provider_layout.addWidget(QLabel("AI Sinh nội dung:"))
+        # Device status button
+        self.chatterbox_device_btn = QPushButton("📱 Kiểm tra Device")
+        self.chatterbox_device_btn.clicked.connect(self.show_chatterbox_device_info)
+        tts_layout.addWidget(self.chatterbox_device_btn, 4, 0)
+        
+        # Clear cache button
+        self.chatterbox_clear_btn = QPushButton("🧹 Xóa Cache")
+        self.chatterbox_clear_btn.clicked.connect(self.clear_chatterbox_cache)
+        tts_layout.addWidget(self.chatterbox_clear_btn, 4, 1)
+        
+        tts_group.setLayout(tts_layout)
+        layout.addWidget(tts_group)
+        
+        # Group 4: Provider Selection
+        providers_group = QGroupBox("⚙️ Chọn nhà cung cấp")
+        providers_layout = QGridLayout()
+        providers_layout.setSpacing(8)
+        
+        providers_layout.addWidget(QLabel("AI Sinh nội dung:"), 0, 0)
         self.content_provider_combo = QComboBox()
         self.content_provider_combo.addItems(self.api_manager.get_available_content_providers())
-        content_provider_layout.addWidget(self.content_provider_combo)
-        layout.addLayout(content_provider_layout)
+        providers_layout.addWidget(self.content_provider_combo, 0, 1)
         
-        # Image Generation Provider
-        image_provider_layout = QHBoxLayout()
-        image_provider_layout.addWidget(QLabel("AI Tạo ảnh:"))
+        providers_layout.addWidget(QLabel("AI Tạo ảnh:"), 1, 0)
         self.image_provider_combo = QComboBox()
         self.image_provider_combo.addItems(self.api_manager.get_available_image_providers())
-        image_provider_layout.addWidget(self.image_provider_combo)
-        layout.addLayout(image_provider_layout)
+        providers_layout.addWidget(self.image_provider_combo, 1, 1)
         
-        # TTS Provider
-        tts_provider_layout = QHBoxLayout()
-        tts_provider_layout.addWidget(QLabel("Text-to-Speech:"))
+        providers_layout.addWidget(QLabel("Text-to-Speech:"), 2, 0)
         self.tts_provider_combo = QComboBox()
         self.tts_provider_combo.addItems(self.api_manager.get_available_tts_providers())
-        tts_provider_layout.addWidget(self.tts_provider_combo)
-        layout.addLayout(tts_provider_layout)
+        providers_layout.addWidget(self.tts_provider_combo, 2, 1)
         
-        # Video settings
-        layout.addWidget(QLabel("🎬 Cài đặt Video:"))
+        providers_group.setLayout(providers_layout)
+        layout.addWidget(providers_group)
         
-        resolution_layout = QHBoxLayout()
-        resolution_layout.addWidget(QLabel("Độ phân giải:"))
+        # Group 5: Video Settings
+        video_group = QGroupBox("🎬 Cài đặt Video")
+        video_layout = QGridLayout()
+        video_layout.setSpacing(8)
+        
+        video_layout.addWidget(QLabel("Độ phân giải:"), 0, 0)
         self.resolution_combo = QComboBox()
         self.resolution_combo.addItems(["1920x1080", "1280x720", "1080x1080"])
-        resolution_layout.addWidget(self.resolution_combo)
-        layout.addLayout(resolution_layout)
+        video_layout.addWidget(self.resolution_combo, 0, 1)
         
-        fps_layout = QHBoxLayout()
-        fps_layout.addWidget(QLabel("FPS:"))
+        video_layout.addWidget(QLabel("FPS:"), 1, 0)
         self.fps_spinbox = QSpinBox()
         self.fps_spinbox.setRange(15, 60)
         self.fps_spinbox.setValue(25)
-        fps_layout.addWidget(self.fps_spinbox)
-        layout.addLayout(fps_layout)
+        video_layout.addWidget(self.fps_spinbox, 1, 1)
         
-        # Nút actions
-        settings_actions_layout = QHBoxLayout()
+        video_group.setLayout(video_layout)
+        layout.addWidget(video_group)
+        
+        # Group 6: Actions
+        actions_group = QGroupBox("🛠️ Thao tác")
+        actions_layout = QGridLayout()
+        actions_layout.setSpacing(8)
         
         save_settings_btn = QPushButton("💾 Lưu cài đặt")
         save_settings_btn.clicked.connect(self.save_settings)
-        settings_actions_layout.addWidget(save_settings_btn)
+        actions_layout.addWidget(save_settings_btn, 0, 0)
         
         check_api_btn = QPushButton("🔍 Kiểm tra API")
         check_api_btn.clicked.connect(self.check_api_status)
-        settings_actions_layout.addWidget(check_api_btn)
+        actions_layout.addWidget(check_api_btn, 0, 1)
         
         refresh_providers_btn = QPushButton("🔄 Làm mới")
         refresh_providers_btn.clicked.connect(self.refresh_providers)
-        settings_actions_layout.addWidget(refresh_providers_btn)
+        actions_layout.addWidget(refresh_providers_btn, 1, 0, 1, 2)
         
-        layout.addLayout(settings_actions_layout)
+        actions_group.setLayout(actions_layout)
+        layout.addWidget(actions_group)
         
+        # Thêm stretch để đẩy nội dung lên trên
         layout.addStretch()
-        self.tabs.addTab(tab, "Cài đặt")
+        
+        scroll.setWidget(content_widget)
+        
+        # Layout chính của tab
+        tab_layout = QVBoxLayout()
+        tab_layout.setContentsMargins(0, 0, 0, 0)
+        tab_layout.addWidget(scroll)
+        tab.setLayout(tab_layout)
+        
+        self.tabs.addTab(tab, "⚙️ Cài đặt")
         
         # Load cài đặt hiện tại từ file config.env
         self.load_current_settings()
+        
+        # Update API status when settings change (safe call)
+        self.update_api_status_indicator()
     
     def start_video_generation(self):
         """Bắt đầu tạo video"""
@@ -445,7 +707,7 @@ class AdvancedMainWindow(QMainWindow):
             }
         
         # Disable nút và hiện progress
-        self.generate_btn.setEnabled(False)
+        self.generate_video_btn.setEnabled(False)
         self.progress_bar.setVisible(True)
         self.progress_bar.setRange(0, 8)
         
@@ -472,21 +734,24 @@ class AdvancedMainWindow(QMainWindow):
     
     def update_progress(self, step, message):
         """Cập nhật progress"""
+        self.progress_group.setVisible(True)
+        self.progress_bar.setVisible(True)
+        self.progress_label.setVisible(True)
         self.progress_bar.setValue(step)
-        self.status_label.setText(message)
+        self.progress_label.setText(message)
     
     def generation_finished(self, result):
         """Hoàn thành tạo video"""
-        self.generate_btn.setEnabled(True)
+        self.generate_video_btn.setEnabled(True)
         self.progress_bar.setVisible(False)
         
         if result["success"]:
-            self.status_label.setText(f"Hoàn thành! Video: {result['final_video_path']}")
+            self.progress_label.setText(f"Hoàn thành! Video: {result['final_video_path']}")
             QMessageBox.information(self, "Thành công", 
                                   f"Video đã được tạo thành công!\nProject: {result['project_id']}\nĐường dẫn: {result['final_video_path']}")
             self.refresh_projects()
         else:
-            self.status_label.setText(f"Lỗi: {result['error']}")
+            self.progress_label.setText(f"Lỗi: {result['error']}")
             QMessageBox.critical(self, "Lỗi", f"Không thể tạo video:\n{result['error']}")
     
     def refresh_projects(self):
@@ -807,6 +1072,9 @@ Created: {data['created_at']}
         self.tts_provider_combo.addItems(self.api_manager.get_available_tts_providers())
         
         QMessageBox.information(self, "Thông báo", "Đã làm mới danh sách providers!")
+        
+        # Update API status indicator
+        self.update_api_status_indicator()
     
     def generate_story_only(self):
         """Chỉ tạo câu chuyện/kịch bản từ prompt"""
@@ -817,7 +1085,9 @@ Created: {data['created_at']}
         
         # Disable nút để tránh spam
         self.generate_story_btn.setEnabled(False)
-        self.status_label.setText("Đang tạo câu chuyện...")
+        self.progress_group.setVisible(True)
+        self.progress_label.setVisible(True)
+        self.progress_label.setText("Đang tạo câu chuyện...")
         
         try:
             # Lấy provider được chọn
@@ -828,7 +1098,7 @@ Created: {data['created_at']}
             
             if "error" in result:
                 QMessageBox.critical(self, "Lỗi", f"Không thể tạo câu chuyện:\n{result['error']}")
-                self.status_label.setText("Lỗi tạo câu chuyện")
+                self.progress_label.setText("Lỗi tạo câu chuyện")
             else:
                 # Store script data for audio generation
                 self.current_script_data = result
@@ -900,17 +1170,25 @@ Created: {data['created_at']}
                 layout.addLayout(buttons_layout)
                 
                 dialog.exec_()
-                self.status_label.setText("Đã tạo câu chuyện thành công!")
+                self.progress_label.setText("Đã tạo câu chuyện thành công!")
                 
                 # Hiển thị preview ngay trong ứng dụng
                 preview_text = ""
                 for i, segment in enumerate(result["segments"], 1):
-                    preview_text += f"ĐOẠN {i}: {segment['narration']}\n"
+                    # Handle both old and new format
+                    narration = segment.get('narration', '')
+                    if not narration and 'dialogues' in segment:
+                        # New format with dialogues
+                        narration = " ".join([d.get('text', '') for d in segment['dialogues']])
+                    preview_text += f"ĐOẠN {i}: {narration}\n"
                 self.content_preview.setPlainText(preview_text)
+                
+                # Show progress group
+                self.progress_group.setVisible(True)
                 
         except Exception as e:
             QMessageBox.critical(self, "Lỗi", f"Lỗi không xác định:\n{str(e)}")
-            self.status_label.setText("Lỗi tạo câu chuyện")
+            self.progress_label.setText("Lỗi tạo câu chuyện")
         finally:
             self.generate_story_btn.setEnabled(True)
     
@@ -959,7 +1237,7 @@ Created: {data['created_at']}
         
         if folder_path:
             self.project_folder_input.setText(folder_path)
-            self.status_label.setText(f"Đã chọn thư mục: {folder_path}")
+            self.progress_label.setText(f"Đã chọn thư mục: {folder_path}")
     
     def generate_audio_only(self):
         """Tạo audio từ script data đã có với character voice selection"""
@@ -984,7 +1262,7 @@ Created: {data['created_at']}
             # Disable button during generation
             self.generate_audio_btn.setEnabled(False)
             self.generate_audio_btn.setText("⏳ Đang tạo...")
-            self.status_label.setText("Đang tạo audio...")
+            self.progress_label.setText("Đang tạo audio...")
             
             try:
                 # Get project folder
@@ -1020,15 +1298,15 @@ Created: {data['created_at']}
                         message += f"  • {character}: {len(files)} file(s)\n"
                     
                     QMessageBox.information(self, "Thành công", message)
-                    self.status_label.setText("Đã tạo audio thành công!")
+                    self.progress_label.setText("Đã tạo audio thành công!")
                     
                 else:
                     QMessageBox.critical(self, "Lỗi", f"Lỗi tạo audio:\n{result.get('error', 'Unknown error')}")
-                    self.status_label.setText("Lỗi tạo audio")
+                    self.progress_label.setText("Lỗi tạo audio")
                     
             except Exception as e:
                 QMessageBox.critical(self, "Lỗi", f"Lỗi không xác định:\n{str(e)}")
-                self.status_label.setText("Lỗi tạo audio")
+                self.progress_label.setText("Lỗi tạo audio")
             finally:
                 self.generate_audio_btn.setEnabled(True)
                 self.generate_audio_btn.setText("🎵 Tạo Audio")
@@ -1036,16 +1314,26 @@ Created: {data['created_at']}
     def open_audio_folder(self):
         """Mở thư mục chứa audio đã tạo"""
         if self.last_audio_output_dir and os.path.exists(self.last_audio_output_dir):
-            # Open folder in file explorer (Windows)
-            subprocess.Popen(['explorer', self.last_audio_output_dir])
+            # Cross-platform folder opening
+            if platform.system() == "Darwin":  # macOS
+                subprocess.Popen(['open', self.last_audio_output_dir])
+            elif platform.system() == "Windows":
+                subprocess.Popen(['explorer', self.last_audio_output_dir])
+            else:  # Linux
+                subprocess.Popen(['xdg-open', self.last_audio_output_dir])
         else:
             QMessageBox.warning(self, "Cảnh báo", "Không tìm thấy thư mục audio!")
     
     def play_final_audio(self):
         """Phát audio hoàn chỉnh"""
         if self.last_final_audio_path and os.path.exists(self.last_final_audio_path):
-            # Play audio file (Windows)
-            os.system(f'start "" "{self.last_final_audio_path}"')
+            # Cross-platform audio playing
+            if platform.system() == "Darwin":  # macOS
+                subprocess.Popen(['open', self.last_final_audio_path])
+            elif platform.system() == "Windows":
+                os.system(f'start "" "{self.last_final_audio_path}"')
+            else:  # Linux
+                subprocess.Popen(['xdg-open', self.last_final_audio_path])
         else:
             QMessageBox.warning(self, "Cảnh báo", "Không tìm thấy file audio!")
     
@@ -1095,7 +1383,7 @@ Created: {data['created_at']}
         # Disable button during generation
         self.generate_audio_btn.setEnabled(False)
         self.generate_audio_btn.setText("⏳ Đang tạo...")
-        self.status_label.setText("Đang tạo audio...")
+        self.progress_label.setText("Đang tạo audio...")
         
         try:
             # Get project folder
@@ -1131,15 +1419,112 @@ Created: {data['created_at']}
                     message += f"  • {character}: {len(files)} file(s)\n"
                 
                 QMessageBox.information(self, "Thành công", message)
-                self.status_label.setText("Đã tạo audio thành công!")
+                self.progress_label.setText("Đã tạo audio thành công!")
                 
             else:
                 QMessageBox.critical(self, "Lỗi", f"Lỗi tạo audio:\n{result.get('error', 'Unknown error')}")
-                self.status_label.setText("Lỗi tạo audio")
+                self.progress_label.setText("Lỗi tạo audio")
                 
         except Exception as e:
             QMessageBox.critical(self, "Lỗi", f"Lỗi không xác định:\n{str(e)}")
-            self.status_label.setText("Lỗi tạo audio")
+            self.progress_label.setText("Lỗi tạo audio")
         finally:
             self.generate_audio_btn.setEnabled(True)
-            self.generate_audio_btn.setText("🎵 Tạo Audio") 
+            self.generate_audio_btn.setText("🎵 Tạo Audio")
+    
+    def show_chatterbox_device_info(self):
+        """Hiển thị thông tin device của Chatterbox TTS"""
+        try:
+            device_info = self.voice_generator.get_chatterbox_device_info()
+            providers = self.voice_generator.get_available_tts_providers()
+            
+            # Find Chatterbox provider info
+            chatterbox_info = None
+            for provider in providers:
+                if provider['id'] == 'chatterbox':
+                    chatterbox_info = provider
+                    break
+            
+            # Create info message
+            message = "🤖 **Chatterbox TTS Device Information**\n\n"
+            
+            if device_info.get('available'):
+                message += f"✅ **Status**: {device_info.get('initialized', False) and 'Initialized' or 'Available but not initialized'}\n"
+                message += f"📱 **Device**: {device_info.get('device_name', 'Unknown')}\n"
+                message += f"🔧 **Device Type**: {device_info.get('device', 'Unknown')}\n\n"
+                
+                # GPU specific info
+                if 'cuda_version' in device_info:
+                    message += f"🎯 **CUDA Version**: {device_info['cuda_version']}\n"
+                    message += f"💾 **GPU Memory**: {device_info.get('gpu_memory_total', 'Unknown')} GB total\n"
+                    message += f"🟢 **Available Memory**: {device_info.get('gpu_memory_available', 'Unknown')} GB\n\n"
+                
+                # Provider features
+                if chatterbox_info:
+                    message += f"🌍 **Languages**: {', '.join(chatterbox_info['languages'])}\n"
+                    message += f"✨ **Features**:\n"
+                    for feature in chatterbox_info['features']:
+                        message += f"   • {feature}\n"
+                
+                # Memory usage if available
+                memory_info = self.voice_generator.chatterbox_provider.get_memory_usage() if self.voice_generator.chatterbox_provider else {}
+                if memory_info:
+                    message += f"\n📊 **Current Memory Usage**:\n"
+                    if 'gpu_allocated' in memory_info:
+                        message += f"   • GPU Allocated: {memory_info['gpu_allocated']} MB\n"
+                        message += f"   • GPU Cached: {memory_info['gpu_cached']} MB\n"
+                    if 'cpu_memory_mb' in memory_info:
+                        message += f"   • CPU Memory: {memory_info['cpu_memory_mb']} MB ({memory_info.get('cpu_memory_percent', 0):.1f}%)\n"
+            else:
+                message += f"❌ **Status**: Not available\n"
+                message += f"🚫 **Reason**: {device_info.get('error', 'Unknown error')}\n\n"
+                message += f"💡 **Possible solutions**:\n"
+                message += f"   • Install PyTorch with CUDA support for GPU acceleration\n"
+                message += f"   • Update graphics drivers\n"
+                message += f"   • Ensure sufficient memory available\n"
+            
+            # Show dialog
+            msg_box = QMessageBox(self)
+            msg_box.setWindowTitle("Chatterbox TTS Device Info")
+            msg_box.setText(message)
+            msg_box.setIcon(QMessageBox.Information)
+            msg_box.exec_()
+            
+        except Exception as e:
+            QMessageBox.critical(self, "Lỗi", f"Không thể lấy thông tin device:\n{str(e)}")
+    
+    def clear_chatterbox_cache(self):
+        """Xóa cache của Chatterbox TTS"""
+        try:
+            if self.voice_generator.chatterbox_provider:
+                # Get memory info before clearing
+                memory_before = self.voice_generator.chatterbox_provider.get_memory_usage()
+                
+                # Clear cache
+                self.voice_generator.cleanup_chatterbox()
+                
+                # Get memory info after clearing
+                memory_after = self.voice_generator.chatterbox_provider.get_memory_usage() if self.voice_generator.chatterbox_provider else {}
+                
+                # Show result
+                message = "🧹 **Chatterbox TTS Cache Cleared**\n\n"
+                
+                if memory_before and memory_after:
+                    message += f"**Memory Usage Before/After**:\n"
+                    if 'gpu_allocated' in memory_before:
+                        gpu_freed = memory_before.get('gpu_allocated', 0) - memory_after.get('gpu_allocated', 0)
+                        message += f"   • GPU: {memory_before['gpu_allocated']} → {memory_after['gpu_allocated']} MB (freed: {gpu_freed} MB)\n"
+                    if 'cpu_memory_mb' in memory_before:
+                        cpu_freed = memory_before.get('cpu_memory_mb', 0) - memory_after.get('cpu_memory_mb', 0)
+                        message += f"   • CPU: {memory_before['cpu_memory_mb']} → {memory_after['cpu_memory_mb']} MB (freed: {cpu_freed} MB)\n"
+                else:
+                    message += "✅ Voice cloning cache cleared\n"
+                    message += "✅ GPU cache cleared (if applicable)\n"
+                    message += "✅ Memory resources freed\n"
+                
+                QMessageBox.information(self, "Thành công", message)
+            else:
+                QMessageBox.warning(self, "Cảnh báo", "Chatterbox TTS chưa được khởi tạo!")
+                
+        except Exception as e:
+            QMessageBox.critical(self, "Lỗi", f"Không thể xóa cache:\n{str(e)}") 
