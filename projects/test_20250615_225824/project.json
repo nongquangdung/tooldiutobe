@@ -1,0 +1,16 @@
+{
+  "id": "test_20250615_225824",
+  "name": "test",
+  "prompt": "Câu chuyện cảm động về tình mẫu tử qua bức thư của người mẹ",
+  "created_at": "2025-06-15T22:58:25.093219",
+  "segments": [],
+  "status": "created",
+  "settings": {
+    "video_resolution": "1920x1080",
+    "fps": 25,
+    "effects": {
+      "zoom": true,
+      "transitions": true
+    }
+  }
+}

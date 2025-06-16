@@ -4,17 +4,24 @@ from image.image_generator import ImageGenerator
 from tts.voice_generator import VoiceGenerator
 from video.video_composer import VideoComposer
 from project.project_manager import ProjectManager
+from core.api_manager import APIManager
 
 class VideoPipeline:
     def __init__(self):
-        self.content_gen = ContentGenerator()
+        self.api_manager = APIManager()
+        self.content_gen = ContentGenerator(api_manager=self.api_manager)
         self.image_gen = ImageGenerator()
         self.voice_gen = VoiceGenerator()
         self.video_composer = VideoComposer()
         self.project_manager = ProjectManager()
+        
+        # Reload environment để đảm bảo API keys được đọc đúng
+        from dotenv import load_dotenv
+        load_dotenv('config.env', override=True)
     
     def create_video_from_prompt(self, prompt, project_name="video_project", 
-                                effects=None, progress_callback=None):
+                                 effects=None, progress_callback=None, 
+                                 voice_name="vi-VN-Standard-A", project_folder=None):
         """Pipeline chính: từ prompt → video hoàn chỉnh"""
         
         def update_progress(step, message):
@@ -24,7 +31,11 @@ class VideoPipeline:
         try:
             # Bước 1: Tạo project
             update_progress(1, "Tạo project...")
-            project_result = self.project_manager.create_project(project_name, prompt)
+            # Sử dụng project_folder nếu được cung cấp
+            if project_folder:
+                project_result = self.project_manager.create_project_in_folder(project_name, prompt, project_folder)
+            else:
+                project_result = self.project_manager.create_project(project_name, prompt)
             if not project_result["success"]:
                 return project_result
             
@@ -33,7 +44,8 @@ class VideoPipeline:
             
             # Bước 2: Sinh nội dung từ AI
             update_progress(2, "Sinh kịch bản từ AI...")
-            script_result = self.content_gen.generate_script_from_prompt(prompt)
+            content_provider = self.api_manager.get_provider_config('content')
+            script_result = self.content_gen.generate_script_from_prompt(prompt, provider=content_provider)
             if "error" in script_result:
                 return {"success": False, "error": script_result["error"]}
             
@@ -53,10 +65,10 @@ class VideoPipeline:
                 if not image_result["success"]:
                     return {"success": False, "error": f"Lỗi tạo ảnh đoạn {segment_id}: {image_result['error']}"}
                 
-                # Tạo giọng nói
+                # Tạo giọng nói với voice_name được chọn
                 audio_path = os.path.join(project_dir, "audio", f"segment_{segment_id}.mp3")
                 voice_result = self.voice_gen.generate_voice_auto(
-                    segment["narration"], audio_path
+                    segment["narration"], audio_path, voice_name=voice_name
                 )
                 if not voice_result["success"]:
                     return {"success": False, "error": f"Lỗi tạo giọng đoạn {segment_id}: {voice_result['error']}"}

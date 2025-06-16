@@ -1,0 +1,16 @@
+{
+  "id": "test_20250615_230458",
+  "name": "test",
+  "prompt": "Những bài học cuộc sống từ câu chuyện của người thành công",
+  "created_at": "2025-06-15T23:04:58.565627",
+  "segments": [],
+  "status": "created",
+  "settings": {
+    "video_resolution": "1920x1080",
+    "fps": 25,
+    "effects": {
+      "zoom": true,
+      "transitions": true
+    }
+  }
+}

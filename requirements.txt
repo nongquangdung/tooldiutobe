@@ -11,4 +11,6 @@ psutil>=5.9.0
 # Additional AI providers
 anthropic>=0.7.0
 azure-cognitiveservices-speech>=1.30.0
-stability-sdk>=0.8.0 
+stability-sdk>=0.8.0
+gtts>=2.4.0
+pydub>=0.25.1 

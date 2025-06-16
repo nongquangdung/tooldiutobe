@@ -89,6 +89,11 @@ class APIManager:
         
         # Kiểm tra format cơ bản
         invalid_keys = ['your_', 'test_', 'sk-test-', 'sk_test_']
+        
+        # DeepSeek keys có format khác
+        if provider == 'deepseek':
+            return key.startswith('sk-') and len(key) > 10 and not any(key.startswith(invalid) for invalid in invalid_keys)
+        
         return not any(key.startswith(invalid) for invalid in invalid_keys)
     
     def get_api_key(self, provider):

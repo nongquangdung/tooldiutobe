@@ -39,6 +39,41 @@ class ProjectManager:
         
         return {"success": True, "project_id": project_id, "project_dir": project_dir}
     
+    def create_project_in_folder(self, name, prompt, base_folder):
+        """Tạo project trong thư mục được chỉ định"""
+        project_id = f"{name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        project_dir = os.path.join(base_folder, project_id)
+        Path(project_dir).mkdir(parents=True, exist_ok=True)
+        
+        # Tạo các thư mục con
+        for subdir in ['images', 'audio', 'videos', 'segments']:
+            Path(os.path.join(project_dir, subdir)).mkdir(exist_ok=True)
+        
+        # Tạo file project.json
+        project_data = {
+            "id": project_id,
+            "name": name,
+            "prompt": prompt,
+            "created_at": datetime.now().isoformat(),
+            "segments": [],
+            "status": "created",
+            "custom_location": base_folder,
+            "settings": {
+                "video_resolution": "1920x1080",
+                "fps": 25,
+                "effects": {"zoom": True, "transitions": True}
+            }
+        }
+        
+        project_file = os.path.join(project_dir, "project.json")
+        with open(project_file, 'w', encoding='utf-8') as f:
+            json.dump(project_data, f, ensure_ascii=False, indent=2)
+        
+        # Cập nhật projects_dir để ProjectManager có thể track project này
+        self.projects_dir = base_folder
+        
+        return {"success": True, "project_id": project_id, "project_dir": project_dir}
+    
     def load_project(self, project_id):
         """Tải project từ file"""
         project_file = os.path.join(self.projects_dir, project_id, "project.json")
