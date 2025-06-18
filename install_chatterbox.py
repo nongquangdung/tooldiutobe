@@ -84,7 +84,6 @@ def install_chatterbox_alternative():
     
     alternatives = [
         ("pyttsx3", "Installing pyttsx3 (offline TTS)"),
-        ("edge-tts", "Installing Edge TTS (Microsoft)"),
         ("TTS", "Installing Coqui TTS")
     ]
     

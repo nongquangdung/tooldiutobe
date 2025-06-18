@@ -1,0 +1,6 @@
+REAL Chatterbox TTS Demo
+Text: Hello, this is a test of real Chatterbox TTS with cfg_weight!
+CFG Weight: 0.3 (REAL!)
+Emotion: 1.5 (REAL!)
+Speed: 1.0
+Voice Clone: None

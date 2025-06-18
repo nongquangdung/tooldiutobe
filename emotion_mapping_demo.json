@@ -1,0 +1,90 @@
+{
+  "title": "Emotion Mapping Demo",
+  "characters": [
+    {
+      "id": "narrator",
+      "name": "Narrator",
+      "suggested_voice": "vi-VN-Standard-A"
+    },
+    {
+      "id": "alice",
+      "name": "Alice",
+      "suggested_voice": "vi-VN-Standard-A"
+    },
+    {
+      "id": "bob",
+      "name": "Bob",
+      "suggested_voice": "vi-VN-Standard-B"
+    }
+  ],
+  "segments": [
+    {
+      "id": 1,
+      "script": "Emotion Demo - Neutral & Happy",
+      "image_prompt": "Characters showing different emotions",
+      "dialogues": [
+        {
+          "speaker": "narrator",
+          "text": "Chúng ta sẽ test các cảm xúc khác nhau trong câu chuyện này.",
+          "emotion": "neutral"
+        },
+        {
+          "speaker": "alice",
+          "text": "Tôi rất vui mừng được tham gia demo này!",
+          "emotion": "happy"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "script": "Excited & Dramatic",
+      "image_prompt": "Characters with intense emotions",
+      "dialogues": [
+        {
+          "speaker": "bob",
+          "text": "Wow! Công nghệ này thật tuyệt vời!",
+          "emotion": "excited"
+        },
+        {
+          "speaker": "alice",
+          "text": "Đây sẽ là một cuộc cách mạng trong lĩnh vực voice synthesis!",
+          "emotion": "dramatic"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "script": "Sad & Angry",
+      "image_prompt": "Characters showing negative emotions",
+      "dialogues": [
+        {
+          "speaker": "bob",
+          "text": "Thật tiếc khi demo sắp kết thúc rồi...",
+          "emotion": "sad"
+        },
+        {
+          "speaker": "alice",
+          "text": "Tại sao lại phải kết thúc sớm vậy chứ?!",
+          "emotion": "angry"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "script": "Surprised & Calm",
+      "image_prompt": "Characters with mixed emotions",
+      "dialogues": [
+        {
+          "speaker": "alice",
+          "text": "Ồ! Tôi không ngờ kết quả lại tốt đến vậy!",
+          "emotion": "surprised"
+        },
+        {
+          "speaker": "narrator",
+          "text": "Và như vậy, cuộc demo emotion mapping đã hoàn thành một cách thành công.",
+          "emotion": "calm"
+        }
+      ]
+    }
+  ]
+}

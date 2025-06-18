@@ -1,0 +1,151 @@
+{
+  "metadata": {
+    "title": "Gender Voice Optimization Demo",
+    "description": "Test script với characters có gender patterns khác nhau",
+    "total_segments": 4,
+    "total_characters": 6,
+    "voice_studio_optimized": true
+  },
+  "characters": [
+    {
+      "id": "character1",
+      "name": "Cô Anna",
+      "gender": "female",
+      "suggested_voice": "vi-VN-Standard-A",
+      "description": "Cô giáo trẻ"
+    },
+    {
+      "id": "character2",
+      "name": "Anh David",
+      "gender": "male",
+      "suggested_voice": "vi-VN-Standard-B",
+      "description": "Chàng trai trẻ"
+    },
+    {
+      "id": "character3",
+      "name": "Chị Maria",
+      "gender": "female",
+      "suggested_voice": "vi-VN-Standard-C",
+      "description": "Chị gái"
+    },
+    {
+      "id": "character4",
+      "name": "Chú Tommy",
+      "gender": "male",
+      "suggested_voice": "vi-VN-Standard-D",
+      "description": "Người chú"
+    },
+    {
+      "id": "narrator",
+      "name": "Narrator",
+      "gender": "neutral",
+      "suggested_voice": "vi-VN-Standard-A",
+      "description": "Người kể chuyện"
+    },
+    {
+      "id": "robot",
+      "name": "AI Assistant",
+      "gender": "neutral",
+      "suggested_voice": "vi-VN-Wavenet-B",
+      "description": "Trợ lý AI"
+    }
+  ],
+  "segments": [
+    {
+      "id": 1,
+      "title": "Buổi sáng tại trường",
+      "dialogues": [
+        {
+          "id": 1,
+          "character_id": "narrator",
+          "text": "Buổi sáng tại trường tiểu học, cô Anna đang chuẩn bị cho buổi học đầu tiên.",
+          "emotion": "neutral"
+        },
+        {
+          "id": 2,
+          "character_id": "character1",
+          "text": "Chào các em! Hôm nay chúng ta sẽ học về giọng nói và cảm xúc trong Tiếng Việt.",
+          "emotion": "happy"
+        },
+        {
+          "id": 3,
+          "character_id": "character2",
+          "text": "Thưa cô, em có thể hỏi về cách phát âm chuẩn không ạ?",
+          "emotion": "curious"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Cuộc trò chuyện gia đình",
+      "dialogues": [
+        {
+          "id": 1,
+          "character_id": "character3",
+          "text": "Chị Maria vừa về từ công ty, còn chú Tommy đang xem tin tức.",
+          "emotion": "neutral"
+        },
+        {
+          "id": 2,
+          "character_id": "character4",
+          "text": "Hôm nay chú đã nghe về công nghệ TTS mới, rất thú vị!",
+          "emotion": "excited"
+        },
+        {
+          "id": 3,
+          "character_id": "character3",
+          "text": "Chị cũng quan tâm lắm, công nghệ AI ngày càng phát triển.",
+          "emotion": "interested"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Demo AI Assistant",
+      "dialogues": [
+        {
+          "id": 1,
+          "character_id": "robot",
+          "text": "Xin chào, tôi là AI Assistant với khả năng phân tích giới tính từ giọng nói.",
+          "emotion": "neutral"
+        },
+        {
+          "id": 2,
+          "character_id": "character1",
+          "text": "Này thật tuyệt vời! Bạn có thể phân biệt giọng nam và nữ không?",
+          "emotion": "amazed"
+        },
+        {
+          "id": 3,
+          "character_id": "robot",
+          "text": "Đúng vậy, tôi có thể phân tích patterns Tiếng Việt và suggest voices phù hợp.",
+          "emotion": "confident"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Kết luận",
+      "dialogues": [
+        {
+          "id": 1,
+          "character_id": "narrator",
+          "text": "Voice Studio Gender Optimization đã giúp cải thiện chất lượng TTS đáng kể.",
+          "emotion": "satisfied"
+        },
+        {
+          "id": 2,
+          "character_id": "character2",
+          "text": "Giờ đây việc tạo voice đã trở nên dễ dàng và tự nhiên hơn rất nhiều!",
+          "emotion": "happy"
+        },
+        {
+          "id": 3,
+          "character_id": "character4",
+          "text": "Cảm ơn công nghệ Chatterbox TTS và Gender Optimization system!",
+          "emotion": "grateful"
+        }
+      ]
+    }
+  ]
+}

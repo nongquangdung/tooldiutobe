@@ -1,0 +1,47 @@
+{
+  "segments": [
+    {
+      "id": 1,
+      "script": "Voice Cloning Demo",
+      "image_prompt": "Demo of voice cloning technology",
+      "dialogues": [
+        {
+          "speaker": "narrator",
+          "text": "Welcome to our voice cloning demonstration. This technology allows us to replicate voices from short audio samples.",
+          "emotion": "neutral"
+        },
+        {
+          "speaker": "male_character",
+          "text": "Hello! I'm speaking with a cloned male voice. You can hear the unique characteristics.",
+          "emotion": "friendly"
+        },
+        {
+          "speaker": "female_character",
+          "text": "And I'm using a cloned female voice! The emotion control still works perfectly.",
+          "emotion": "excited"
+        }
+      ],
+      "duration": 25
+    }
+  ],
+  "characters": [
+    {
+      "id": "narrator",
+      "name": "Narrator (Original)",
+      "gender": "neutral",
+      "suggested_voice": "vi-VN-Standard-C"
+    },
+    {
+      "id": "male_character",
+      "name": "Male Clone Demo",
+      "gender": "male",
+      "suggested_voice": "vi-VN-Standard-B"
+    },
+    {
+      "id": "female_character",
+      "name": "Female Clone Demo",
+      "gender": "female",
+      "suggested_voice": "vi-VN-Standard-A"
+    }
+  ]
+}

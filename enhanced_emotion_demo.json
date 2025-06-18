@@ -1,0 +1,120 @@
+{
+  "title": "Enhanced Emotion Mapping Demo",
+  "characters": [
+    {
+      "id": "narrator",
+      "name": "Narrator",
+      "suggested_voice": "vi-VN-Standard-A"
+    },
+    {
+      "id": "hero",
+      "name": "Hero (Nam)",
+      "suggested_voice": "vi-VN-Standard-B"
+    },
+    {
+      "id": "heroine",
+      "name": "Heroine (Nữ)",
+      "suggested_voice": "vi-VN-Standard-A"
+    }
+  ],
+  "segments": [
+    {
+      "id": 1,
+      "script": "Giọng Nam Tính - Mạnh Mẽ",
+      "image_prompt": "Strong masculine voices",
+      "dialogues": [
+        {
+          "speaker": "hero",
+          "text": "Tôi sẽ bảo vệ tất cả mọi người! Không ai được làm tổn thương các bạn!",
+          "emotion": "confident"
+        },
+        {
+          "speaker": "hero",
+          "text": "Đừng dại mà thách thức tôi! Tôi sẽ cho ngươi biết sức mạnh thật sự!",
+          "emotion": "threatening"
+        },
+        {
+          "speaker": "hero",
+          "text": "Tôi tức giận vì sự bất công này! Điều này không thể chấp nhận được!",
+          "emotion": "angry"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "script": "Giọng Nữ Tính - Nhẹ Nhàng",
+      "image_prompt": "Gentle feminine voices",
+      "dialogues": [
+        {
+          "speaker": "heroine",
+          "text": "Tôi rất vui khi được gặp các bạn! Cảm ơn vì đã giúp đỡ tôi!",
+          "emotion": "happy"
+        },
+        {
+          "speaker": "heroine",
+          "text": "Wow! Thật không ngờ! Điều này thật tuyệt vời quá!",
+          "emotion": "excited"
+        },
+        {
+          "speaker": "heroine",
+          "text": "Xin lỗi... Tôi có thể nhờ bạn giúp tôi được không?",
+          "emotion": "shy"
+        },
+        {
+          "speaker": "heroine",
+          "text": "Xin hãy giúp tôi! Tôi thực sự cần sự hỗ trợ của bạn!",
+          "emotion": "pleading"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "script": "Giọng Đặc Biệt - Đa Dạng",
+      "image_prompt": "Special voice emotions",
+      "dialogues": [
+        {
+          "speaker": "narrator",
+          "text": "Và thế là câu chuyện kết thúc một cách bình yên, ai cũng có được hạnh phúc của mình.",
+          "emotion": "calm"
+        },
+        {
+          "speaker": "heroine",
+          "text": "Thật tiếc... Tôi buồn vì phải chia tay với mọi người...",
+          "emotion": "sad"
+        },
+        {
+          "speaker": "hero",
+          "text": "Tôi có một bí mật mà chưa ai biết... nhưng liệu tôi có nên nói không?",
+          "emotion": "mysterious"
+        },
+        {
+          "speaker": "narrator",
+          "text": "Shh... hãy lắng nghe âm thanh của đêm tối...",
+          "emotion": "whisper"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "script": "Mix Test - Tất Cả Emotions",
+      "image_prompt": "Mixed emotions showcase",
+      "dialogues": [
+        {
+          "speaker": "hero",
+          "text": "Tôi tự hào về những gì chúng ta đã làm được!",
+          "emotion": "proud"
+        },
+        {
+          "speaker": "heroine",
+          "text": "Ồ thật tuyệt! Tôi không ngờ kết quả lại tốt đến vậy!",
+          "emotion": "surprised"
+        },
+        {
+          "speaker": "narrator",
+          "text": "Đây là một buổi demo tuyệt vời về khả năng điều chỉnh cảm xúc tự động.",
+          "emotion": "neutral"
+        }
+      ]
+    }
+  ]
+}

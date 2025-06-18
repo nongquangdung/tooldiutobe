@@ -16,12 +16,12 @@ except ImportError:
 
 # Import Chatterbox TTS Provider
 try:
-    from .chatterbox_tts_provider import ChatterboxTTSProvider
+    from .real_chatterbox_provider import RealChatterboxProvider
     CHATTERBOX_PROVIDER_AVAILABLE = True
-    print("✅ ChatterboxTTSProvider imported successfully")
+    print("✅ RealChatterboxProvider imported successfully")
 except ImportError as e:
     CHATTERBOX_PROVIDER_AVAILABLE = False
-    print(f"⚠️ ChatterboxTTSProvider not available: {e}")
+    print(f"⚠️ RealChatterboxProvider not available: {e}")
 
 load_dotenv('config.env')
 
@@ -34,10 +34,10 @@ class VoiceGenerator:
         self.chatterbox_provider = None
         if CHATTERBOX_PROVIDER_AVAILABLE:
             try:
-                self.chatterbox_provider = ChatterboxTTSProvider()
-                print(f"🎙️ Chatterbox TTS Status: {self.chatterbox_provider.get_device_info()}")
+                self.chatterbox_provider = RealChatterboxProvider()
+                print(f"🎙️ REAL Chatterbox TTS Status: {self.chatterbox_provider.get_device_info()}")
             except Exception as e:
-                print(f"⚠️ Failed to initialize Chatterbox TTS: {e}")
+                print(f"⚠️ Failed to initialize Real Chatterbox TTS: {e}")
         
         # Danh sách giọng Google TTS
         self.google_voices = {
@@ -85,33 +85,36 @@ class VoiceGenerator:
             device_info = self.chatterbox_provider.get_device_info()
             providers.append({
                 "id": "chatterbox",
-                "name": "Chatterbox TTS",
+                "name": "🚀 REAL Chatterbox TTS",
                 "status": f"✅ Available ({device_info['device_name']})",
                 "languages": ["English"],
-                "features": ["SoTA quality", "Emotion control", "Voice cloning", f"Device: {device_info['device_name']}"]
+                "features": ["REAL cfg_weight support", "True emotion control", "Voice cloning", f"Device: {device_info['device_name']}"]
             })
         elif CHATTERBOX_PROVIDER_AVAILABLE:
             providers.append({
                 "id": "chatterbox",
-                "name": "Chatterbox TTS",
+                "name": "🚀 REAL Chatterbox TTS",
                 "status": "❌ Failed to initialize",
                 "languages": ["English"],
-                "features": ["SoTA quality", "Emotion control", "Voice cloning"]
+                "features": ["REAL cfg_weight support", "True emotion control", "Voice cloning"]
             })
         
         return providers
     
-    def generate_voice_chatterbox(self, text, save_path, voice_sample_path=None, emotion_exaggeration=1.0, speed=1.0):
-        """Tạo giọng nói bằng Chatterbox TTS với emotion control"""
+    def generate_voice_chatterbox(self, text, save_path, voice_sample_path=None, emotion_exaggeration=1.0, speed=1.0, voice_name=None, cfg_weight=0.5, voice_prompt=None):
+        """Tạo giọng nói bằng REAL Chatterbox TTS với TRUE cfg_weight và emotion control + PROMPT-BASED VOICE"""
         if not self.chatterbox_provider or not self.chatterbox_provider.is_initialized:
-            return {"success": False, "error": "Chatterbox TTS not available or not initialized"}
+            return {"success": False, "error": "Real Chatterbox TTS not available or not initialized"}
         
         return self.chatterbox_provider.generate_voice(
             text=text,
             save_path=save_path,
             voice_sample_path=voice_sample_path,
             emotion_exaggeration=emotion_exaggeration,
-            speed=speed
+            speed=speed,
+            voice_name=voice_name,
+            cfg_weight=cfg_weight,
+            voice_prompt=voice_prompt  # NEW: Support prompt-based voice generation
         )
     
     def generate_voice_auto_v2(self, text, save_path, provider="auto", language="vi", **kwargs):
@@ -176,13 +179,13 @@ class VoiceGenerator:
             return "en"
     
     def get_chatterbox_device_info(self):
-        """Lấy thông tin device của Chatterbox TTS"""
+        """Lấy thông tin device của Real Chatterbox TTS"""
         if self.chatterbox_provider:
             return self.chatterbox_provider.get_device_info()
-        return {"available": False, "error": "Chatterbox TTS not initialized"}
+        return {"available": False, "error": "Real Chatterbox TTS not initialized"}
     
     def cleanup_chatterbox(self):
-        """Cleanup Chatterbox TTS resources"""
+        """Cleanup Real Chatterbox TTS resources"""
         if self.chatterbox_provider:
             self.chatterbox_provider.cleanup()
     
