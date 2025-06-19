@@ -2782,7 +2782,7 @@ Tạo script video về "[TOPIC]" theo format JSON sau:
 - Vietnamese text with proper punctuation
 - 3-5 segments, 2-3 characters max
 
-**Focus on CONTENT QUALITY** - you have +1300 extra tokens for story development!
+**Focus on CONTENT QUALITY** - you have +1350 extra tokens for story development!
 """
         self.show_ai_request_dialog("RAPID Mode Template", template_content, 150)
 
@@ -2806,8 +2806,8 @@ Tạo script video về "[TOPIC]" theo format JSON sau:
           "speaker": "narrator",
           "text": "Nội dung với dấu câu chuẩn Tiếng Việt",
           "emotion": "friendly",
-          "emotion_intensity": 1.2,
-          "speed": 1.0
+          "pause_after": 1.0,
+          "emphasis": ["từ khóa"]
         }
       ]
     }
@@ -2817,8 +2817,7 @@ Tạo script video về "[TOPIC]" theo format JSON sau:
       "id": "narrator", 
       "name": "Character Name",
       "gender": "neutral|female|male",
-      "default_emotion": "friendly",
-      "default_speed": 1.0
+      "default_emotion": "friendly"
     }
   ]
 }
@@ -2867,8 +2866,6 @@ Tạo script video về "[TOPIC]" theo Enhanced Format 2.0:
           "speaker": "narrator",
           "text": "Dialogue with proper Vietnamese punctuation and emphasis",
           "emotion": "friendly",
-          "emotion_intensity": 1.2,
-          "speed": 1.0,
           "pause_after": 0.5,
           "emphasis": ["key", "words"]
         }
@@ -2888,9 +2885,7 @@ Tạo script video về "[TOPIC]" theo Enhanced Format 2.0:
       "personality": "professional, warm, engaging",
       "voice_characteristics": "clear, moderate_pace",
       "suggested_voice": "vi-VN-Wavenet-C",
-      "default_emotion": "friendly",
-      "default_speed": 1.0,
-      "default_emotion_intensity": 1.0
+      "default_emotion": "friendly"
     }
   ],
   "audio_settings": {
