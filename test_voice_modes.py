@@ -19,7 +19,7 @@ def test_voice_selection_mode():
     print("🗣️ TESTING VOICE SELECTION MODE")
     print("=" * 50)
     
-    provider = RealChatterboxProvider()
+    provider = RealChatterboxProvider.get_instance()
     
     # Test với các voice ID khác nhau
     test_voices = [
@@ -54,7 +54,7 @@ def test_voice_clone_mode():
     print("\n🎤 TESTING VOICE CLONE MODE")
     print("=" * 50)
     
-    provider = RealChatterboxProvider()
+    provider = RealChatterboxProvider.get_instance()
     
     # Tìm reference audio files trong project
     reference_paths = []

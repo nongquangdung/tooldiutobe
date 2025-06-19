@@ -30,11 +30,11 @@ class VoiceGenerator:
         self.elevenlabs_api_key = os.getenv('ELEVENLABS_API_KEY')
         self.google_api_key = os.getenv('GOOGLE_TTS_API_KEY')
         
-        # Initialize Chatterbox TTS Provider
+        # Initialize Chatterbox TTS Provider (Singleton)
         self.chatterbox_provider = None
         if CHATTERBOX_PROVIDER_AVAILABLE:
             try:
-                self.chatterbox_provider = RealChatterboxProvider()
+                self.chatterbox_provider = RealChatterboxProvider.get_instance()
                 print(f"🎙️ REAL Chatterbox TTS Status: {self.chatterbox_provider.get_device_info()}")
             except Exception as e:
                 print(f"⚠️ Failed to initialize Real Chatterbox TTS: {e}")
@@ -185,9 +185,10 @@ class VoiceGenerator:
         return {"available": False, "error": "Real Chatterbox TTS not initialized"}
     
     def cleanup_chatterbox(self):
-        """Cleanup Real Chatterbox TTS resources"""
+        """Cleanup Real Chatterbox TTS resources (Singleton safe)"""
         if self.chatterbox_provider:
-            self.chatterbox_provider.cleanup()
+            # Sử dụng soft_cleanup cho Singleton để không destroy shared instance
+            self.chatterbox_provider.soft_cleanup()
     
     def generate_voice_elevenlabs(self, text, voice_id="21m00Tcm4TlvDq8ikWAM", save_path="output.mp3"):
         """Tạo giọng nói bằng ElevenLabs"""

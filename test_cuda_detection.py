@@ -66,7 +66,7 @@ def test_chatterbox_device():
     try:
         from tts.real_chatterbox_provider import RealChatterboxProvider
         
-        provider = RealChatterboxProvider()
+        provider = RealChatterboxProvider.get_instance()
         device_info = provider.get_device_info()
         
         print(f"📊 Device Info:")

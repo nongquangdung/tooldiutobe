@@ -4,7 +4,7 @@ from PySide6.QtWidgets import (
     QListWidgetItem, QMessageBox, QProgressBar, QComboBox, 
     QLineEdit, QCheckBox, QSplitter, QScrollArea, QFrame, QGroupBox,
     QGridLayout, QSlider, QSpinBox, QFileDialog, QStatusBar, QDialog,
-    QTableWidget, QTableWidgetItem
+    QTableWidget, QTableWidgetItem, QStackedWidget, QProgressDialog
 )
 from PySide6.QtCore import Qt, QThread, Signal, QTimer, QSize
 from PySide6.QtGui import QTextCursor, QFont, QIcon, QAction, QPixmap
@@ -16,6 +16,7 @@ import tempfile
 import platform
 import traceback
 import shutil
+import glob
 from .manual_voice_setup_dialog import ManualVoiceSetupDialog
 
 # Import pipeline
@@ -422,55 +423,106 @@ class AdvancedMainWindow(QMainWindow):
         self.tabs.addTab(tab, "🎬 Tạo Video")
     
     def create_voice_studio_tab(self):
-        """Tab Voice Studio để cấu hình giọng theo nhân vật và tạo voice"""
-        tab = QWidget()
-        
-        # Sử dụng scroll area
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        
-        content_widget = QWidget()
+        """Tạo tab Voice Studio với enhanced features"""
+        voice_studio_widget = QWidget()
         layout = QVBoxLayout()
-        layout.setSpacing(12)
-        layout.setContentsMargins(16, 16, 16, 16)
-        content_widget.setLayout(layout)
         
-        # Group 1: Import Data
-        import_group = QGroupBox("📥 Import Script Data")
+        # Title
+        title = QLabel("🎭 Voice Studio - Tạo voice cho script AI")
+        title.setFont(QFont("San Francisco", 16, QFont.Bold))
+        title.setStyleSheet("color: #007AFF; margin: 10px;")
+        layout.addWidget(title)
+        
+        # === ENHANCED: Multi-file Import Section ===
+        import_group = QGroupBox("📥 Import Script Data (Enhanced Multi-File Support)")
         import_layout = QVBoxLayout()
-        import_layout.setSpacing(8)
         
-        # Source selection
+        # Data source selection
         source_layout = QHBoxLayout()
         source_layout.addWidget(QLabel("Nguồn dữ liệu:"))
         
         self.data_source_combo = QComboBox()
         self.data_source_combo.addItem("📁 Import từ file JSON", "file")
+        self.data_source_combo.addItem("📁 Import nhiều file JSON (Multi-merge)", "multi_file")  # NEW
         self.data_source_combo.addItem("🔄 Sử dụng data từ tab Tạo Video", "generated")
         self.data_source_combo.addItem("✏️ Nhập thủ công", "manual")
         self.data_source_combo.currentTextChanged.connect(self.switch_data_source)
-        source_layout.addWidget(self.data_source_combo)
         
+        source_layout.addWidget(self.data_source_combo)
         source_layout.addStretch()
         import_layout.addLayout(source_layout)
         
-        # File import section
-        self.file_import_widget = QWidget()
-        file_layout = QHBoxLayout()
-        file_layout.setContentsMargins(0, 0, 0, 0)
+        # === NEW: Template Mode Selection ===
+        template_group = QGroupBox("🎯 AI Template Mode (Token Optimization)")
+        template_layout = QHBoxLayout()
         
+        template_layout.addWidget(QLabel("Template Mode:"))
+        self.template_mode_combo = QComboBox()
+        self.template_mode_combo.addItem("🏃‍♂️ RAPID Mode (~150 tokens) - Compact", "rapid")
+        self.template_mode_combo.addItem("📝 STANDARD Mode (~400 tokens) - Balanced", "standard") 
+        self.template_mode_combo.addItem("📚 DETAILED Mode (~800 tokens) - Full Guide", "detailed")
+        self.template_mode_combo.setCurrentText("📝 STANDARD Mode (~400 tokens) - Balanced")
+        self.template_mode_combo.currentTextChanged.connect(self.update_token_preview)
+        
+        template_layout.addWidget(self.template_mode_combo)
+        template_layout.addStretch()
+        
+        # Token preview
+        self.token_preview_label = QLabel("💡 Tiết kiệm: +1100 tokens cho story content")
+        self.token_preview_label.setStyleSheet("color: #28CD41; font-weight: bold;")
+        template_layout.addWidget(self.token_preview_label)
+        
+        # === NEW: AI Request Form Button ===
+        self.generate_ai_request_btn = QPushButton("📋 Tạo Request Form cho AI")
+        self.generate_ai_request_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #5856D6;
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 6px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #4B49C8;
+            }
+        """)
+        self.generate_ai_request_btn.clicked.connect(self.generate_ai_request_form)
+        self.generate_ai_request_btn.setToolTip("Tạo template form theo mode đã chọn để request AI tạo JSON script")
+        template_layout.addWidget(self.generate_ai_request_btn)
+        
+        template_group.setLayout(template_layout)
+        import_layout.addWidget(template_group)
+        
+        # File import controls
+        file_layout = QHBoxLayout()
         self.import_file_btn = QPushButton("📁 Chọn file JSON")
         self.import_file_btn.clicked.connect(self.import_script_file)
+        
+        # === NEW: Multi-file import button ===
+        self.import_multi_files_btn = QPushButton("📂 Import nhiều file JSON")
+        self.import_multi_files_btn.clicked.connect(self.import_multiple_script_files)
+        self.import_multi_files_btn.setVisible(False)  # Hidden initially
+        
+        self.load_generated_btn = QPushButton("🔄 Load từ tab Tạo Video")
+        self.load_generated_btn.clicked.connect(self.load_generated_script_data)
+        self.load_generated_btn.setVisible(False)
+        
         file_layout.addWidget(self.import_file_btn)
-        
-        self.imported_file_label = QLabel("Chưa chọn file")
-        self.imported_file_label.setStyleSheet("color: gray; font-style: italic;")
-        file_layout.addWidget(self.imported_file_label)
-        
+        file_layout.addWidget(self.import_multi_files_btn)  # NEW
+        file_layout.addWidget(self.load_generated_btn)
         file_layout.addStretch()
-        self.file_import_widget.setLayout(file_layout)
-        import_layout.addWidget(self.file_import_widget)
+        
+        import_layout.addLayout(file_layout)
+        
+        # File status
+        file_status_layout = QHBoxLayout()
+        file_status_layout.addWidget(QLabel("Imported file:"))
+        self.imported_file_label = QLabel("Chưa import file nào")
+        self.imported_file_label.setStyleSheet("color: #8E8E93;")
+        file_status_layout.addWidget(self.imported_file_label)
+        file_status_layout.addStretch()
+        import_layout.addLayout(file_status_layout)
         
         # Generated data section
         self.generated_data_widget = QWidget()
@@ -510,6 +562,22 @@ class AdvancedMainWindow(QMainWindow):
         
         import_group.setLayout(import_layout)
         layout.addWidget(import_group)
+        
+        # === NEW: Template Usage Guide ===
+        guide_group = QGroupBox("💡 Hướng dẫn sử dụng Template Modes")
+        guide_layout = QVBoxLayout()
+        
+        guide_text = QLabel("""
+<b>🏃‍♂️ RAPID Mode:</b> Cho stories đơn giản, tập trung vào nội dung. Tiết kiệm token tối đa.<br/>
+<b>📝 STANDARD Mode:</b> Cân bằng giữa format và content. Phù hợp cho hầu hết trường hợp.<br/>
+<b>📚 DETAILED Mode:</b> Cho stories phức tạp với nhiều tính năng cinematic và advanced settings.
+        """)
+        guide_text.setWordWrap(True)
+        guide_text.setStyleSheet("color: #666; font-size: 12px; padding: 8px;")
+        guide_layout.addWidget(guide_text)
+        
+        guide_group.setLayout(guide_layout)
+        layout.addWidget(guide_group)
         
         # Group 2: Script Overview
         overview_group = QGroupBox("📋 Script Overview")
@@ -567,157 +635,19 @@ class AdvancedMainWindow(QMainWindow):
         chatterbox_manual_layout = QVBoxLayout()
         chatterbox_manual_layout.setContentsMargins(20, 10, 10, 10)
         
-        # Global settings với input fields và sliders
-        global_settings_layout = QGridLayout()
-        global_settings_layout.setSpacing(8)
-        
-        # Emotion exaggeration row
-        global_settings_layout.addWidget(QLabel("🎭 Emotion Exaggeration:"), 0, 0)
-        
-        # Emotion slider
-        self.emotion_slider = QSlider(Qt.Horizontal)
-        self.emotion_slider.setRange(0, 300)  # 0.0 to 3.0
-        self.emotion_slider.setValue(100)  # Default 1.0
-        self.emotion_slider.valueChanged.connect(self.update_emotion_from_slider)
-        global_settings_layout.addWidget(self.emotion_slider, 0, 1)
-        
-        # Emotion input field
-        self.emotion_input = QLineEdit()
-        self.emotion_input.setText("1.0")
-        self.emotion_input.setMaximumWidth(60)
-        self.emotion_input.setAlignment(Qt.AlignCenter)
-        self.emotion_input.setStyleSheet("""
-            QLineEdit {
-                background-color: white;
-                border: 1px solid #ccc;
-                border-radius: 4px;
-                padding: 2px;
-                color: black;
-            }
-            QLineEdit:focus {
-                border: 2px solid #007AFF;
-            }
-        """)
-        self.emotion_input.textChanged.connect(self.update_emotion_from_input)
-        global_settings_layout.addWidget(self.emotion_input, 0, 2)
-        
-        global_settings_layout.addWidget(QLabel("(0.0-3.0)"), 0, 3)
-        
-        # Speed row
-        global_settings_layout.addWidget(QLabel("⚡ Speed:"), 1, 0)
-        
-        # Speed slider
-        self.speed_slider = QSlider(Qt.Horizontal)
-        self.speed_slider.setRange(50, 200)  # 0.5 to 2.0
-        self.speed_slider.setValue(100)  # Default 1.0
-        self.speed_slider.valueChanged.connect(self.update_speed_from_slider)
-        global_settings_layout.addWidget(self.speed_slider, 1, 1)
-        
-        # Speed input field
-        self.speed_input = QLineEdit()
-        self.speed_input.setText("1.0")
-        self.speed_input.setMaximumWidth(60)
-        self.speed_input.setAlignment(Qt.AlignCenter)
-        self.speed_input.setStyleSheet("""
-            QLineEdit {
-                background-color: white;
-                border: 1px solid #ccc;
-                border-radius: 4px;
-                padding: 2px;
-                color: black;
-            }
-            QLineEdit:focus {
-                border: 2px solid #007AFF;
-            }
-        """)
-        self.speed_input.textChanged.connect(self.update_speed_from_input)
-        global_settings_layout.addWidget(self.speed_input, 1, 2)
-        
-        global_settings_layout.addWidget(QLabel("(0.5-2.0)"), 1, 3)
-        
-        # CFG Weight row (NEW)
-        global_settings_layout.addWidget(QLabel("🎚️ CFG Weight:"), 2, 0)
-        
-        # CFG Weight slider
-        self.cfg_weight_slider = QSlider(Qt.Horizontal)
-        self.cfg_weight_slider.setRange(0, 100)  # 0.0 to 1.0
-        self.cfg_weight_slider.setValue(50)  # Default 0.5
-        self.cfg_weight_slider.valueChanged.connect(self.update_cfg_weight_from_slider)
-        global_settings_layout.addWidget(self.cfg_weight_slider, 2, 1)
-        
-        # CFG Weight input field
-        self.cfg_weight_input = QLineEdit()
-        self.cfg_weight_input.setText("0.5")
-        self.cfg_weight_input.setMaximumWidth(60)
-        self.cfg_weight_input.setAlignment(Qt.AlignCenter)
-        self.cfg_weight_input.setStyleSheet("""
-            QLineEdit {
-                background-color: white;
-                border: 1px solid #ccc;
-                border-radius: 4px;
-                padding: 2px;
-                color: black;
-            }
-            QLineEdit:focus {
-                border: 2px solid #007AFF;
-            }
-        """)
-        self.cfg_weight_input.textChanged.connect(self.update_cfg_weight_from_input)
-        global_settings_layout.addWidget(self.cfg_weight_input, 2, 2)
-        
-        global_settings_layout.addWidget(QLabel("(0.0-1.0)"), 2, 3)
-        
-        # Voice selection row (NEW)
-        global_settings_layout.addWidget(QLabel("🗣️ Default Voice:"), 3, 0)
-        
-        # Voice combo
-        self.default_voice_combo = QComboBox()
-        self.default_voice_combo.setStyleSheet("""
-            QComboBox {
-                background-color: white;
-                border: 1px solid #ccc;
-                border-radius: 4px;
-                padding: 2px;
-                color: black;
-            }
-            QComboBox::drop-down {
-                background-color: white;
-            }
-            QComboBox::down-arrow {
-                color: black;
-            }
-            QComboBox QAbstractItemView {
-                background-color: white;
-                color: black;
-                selection-background-color: #007AFF;
-                selection-color: white;
-            }
-        """)
-        self.update_default_voice_options()
-        global_settings_layout.addWidget(self.default_voice_combo, 3, 1, 1, 2)
-        
-        # Voice preview button
-        self.preview_default_voice_btn = QPushButton("🎧")
-        self.preview_default_voice_btn.setMaximumWidth(40)
-        self.preview_default_voice_btn.setToolTip("Preview default voice")
-        self.preview_default_voice_btn.clicked.connect(self.preview_default_voice)
-        global_settings_layout.addWidget(self.preview_default_voice_btn, 3, 3)
-        
-        chatterbox_manual_layout.addLayout(global_settings_layout)
-        
-        # Character-specific settings
+        # Character-specific settings ONLY (XÓA GLOBAL CONTROLS)
         char_specific_label = QLabel("🎭 Cấu hình riêng cho từng nhân vật:")
         char_specific_label.setStyleSheet("font-weight: bold; margin-top: 10px;")
         chatterbox_manual_layout.addWidget(char_specific_label)
         
         # Character settings table
         self.character_settings_table = QTableWidget()
-        self.character_settings_table.setColumnCount(9)  # Tăng lên 9 columns (thêm Voice Mode)
+        self.character_settings_table.setColumnCount(9)  # Giữ nguyên 9 columns
         self.character_settings_table.setHorizontalHeaderLabels([
             "Nhân vật", "Emotion", "Speed", "CFG Weight", "Mode", "Voice/Prompt/Clone", "Quick", "Status", "Preview"
         ])
         self.character_settings_table.horizontalHeader().setStretchLastSection(False)
-        self.character_settings_table.setMaximumHeight(150)
+        self.character_settings_table.setMaximumHeight(200)  # Tăng height cho table
         
         # Set column widths
         header = self.character_settings_table.horizontalHeader()
@@ -725,39 +655,22 @@ class AdvancedMainWindow(QMainWindow):
         header.resizeSection(1, 80)   # Emotion
         header.resizeSection(2, 80)   # Speed  
         header.resizeSection(3, 80)   # CFG Weight
-        header.resizeSection(4, 150)  # Voice
-        header.resizeSection(5, 80)   # Preview
+        header.resizeSection(4, 150)  # Mode
+        header.resizeSection(5, 150)  # Voice/Prompt/Clone
+        header.resizeSection(6, 60)   # Quick
+        header.resizeSection(7, 60)   # Status
+        header.resizeSection(8, 60)   # Preview
         
         chatterbox_manual_layout.addWidget(self.character_settings_table)
-        
-        # Voice cloning section
-        voice_clone_layout = QHBoxLayout()
-        voice_clone_layout.addWidget(QLabel("🎙️ Voice Cloning:"))
-        
-        self.enable_voice_cloning = QCheckBox("Bật voice cloning")
-        self.enable_voice_cloning.toggled.connect(self.toggle_voice_cloning)
-        voice_clone_layout.addWidget(self.enable_voice_cloning)
-        
-        self.voice_clone_folder_btn = QPushButton("📁 Chọn thư mục voice samples")
-        self.voice_clone_folder_btn.clicked.connect(self.select_voice_clone_folder)
-        self.voice_clone_folder_btn.setEnabled(False)
-        voice_clone_layout.addWidget(self.voice_clone_folder_btn)
-        
-        voice_clone_layout.addStretch()
-        chatterbox_manual_layout.addLayout(voice_clone_layout)
-        
-        self.voice_clone_path_label = QLabel("Chưa chọn thư mục voice samples")
-        self.voice_clone_path_label.setStyleSheet("color: gray; font-style: italic; margin-left: 20px;")
-        chatterbox_manual_layout.addWidget(self.voice_clone_path_label)
         
         # 💡 VOICE GENERATION HELP
         help_layout = QVBoxLayout()
         help_layout.addWidget(QLabel("💡 Hướng dẫn sử dụng:"))
         
         help_text = QLabel("""
-• <b>Voice Prompt</b>: Nhập mô tả giọng nói cho từng nhân vật riêng biệt trong bảng dưới
-• <b>Voice Clone</b>: Chọn thư mục chứa audio samples để clone giọng cho từng nhân vật  
-• <b>Priority</b>: Voice Prompt > Voice Clone > Voice Selection
+• <b>Per-Character Settings</b>: Mỗi nhân vật có thông số riêng (Emotion, Speed, CFG Weight)
+• <b>Voice Mode</b>: Chọn Voice Selection hoặc Voice Clone cho từng nhân vật
+• <b>Quick Actions</b>: Nhấn nút 🔧 để tối ưu thông số tự động
 • <b>Preview</b>: Nhấn nút 🎧 để nghe thử giọng với settings hiện tại
         """)
         help_text.setWordWrap(True)
@@ -766,28 +679,8 @@ class AdvancedMainWindow(QMainWindow):
         
         chatterbox_manual_layout.addLayout(help_layout)
         
-        # Preset buttons
-        preset_layout = QHBoxLayout()
-        preset_layout.addWidget(QLabel("🎨 Presets:"))
-        
-        self.preset_natural_btn = QPushButton("🌿 Natural")
-        self.preset_natural_btn.clicked.connect(lambda: self.apply_preset("natural"))
-        preset_layout.addWidget(self.preset_natural_btn)
-        
-        self.preset_dramatic_btn = QPushButton("🎭 Dramatic")
-        self.preset_dramatic_btn.clicked.connect(lambda: self.apply_preset("dramatic"))
-        preset_layout.addWidget(self.preset_dramatic_btn)
-        
-        self.preset_fast_btn = QPushButton("⚡ Fast Speech")
-        self.preset_fast_btn.clicked.connect(lambda: self.apply_preset("fast"))
-        preset_layout.addWidget(self.preset_fast_btn)
-        
-        self.preset_slow_btn = QPushButton("🐌 Slow & Clear")
-        self.preset_slow_btn.clicked.connect(lambda: self.apply_preset("slow"))
-        preset_layout.addWidget(self.preset_slow_btn)
-        
-        preset_layout.addStretch()
-        chatterbox_manual_layout.addLayout(preset_layout)
+        # Note: Removed "Apply to All Characters" preset buttons 
+        # since per-character settings in table provide better control
         
         self.chatterbox_manual_widget.setLayout(chatterbox_manual_layout)
         self.chatterbox_manual_widget.setVisible(False)  # Hidden by default
@@ -871,6 +764,42 @@ class AdvancedMainWindow(QMainWindow):
         # Action buttons
         action_buttons_layout = QHBoxLayout()
         
+        self.merge_audio_btn = QPushButton("🎵 Gộp Audio Files")
+        self.merge_audio_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #34C759;
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 6px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #248A3D;
+            }
+        """)
+        self.merge_audio_btn.clicked.connect(self.manual_merge_audio)
+        self.merge_audio_btn.setToolTip("Gộp tất cả file audio thành 1 cuộc hội thoại hoàn chỉnh")
+        action_buttons_layout.addWidget(self.merge_audio_btn)
+        
+        self.play_complete_audio_btn = QPushButton("▶️ Nghe Cuộc Hội Thoại")
+        self.play_complete_audio_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #FF9500;
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 6px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #CC7700;
+            }
+        """)
+        self.play_complete_audio_btn.clicked.connect(self.play_complete_conversation)
+        self.play_complete_audio_btn.setToolTip("Phát cuộc hội thoại hoàn chỉnh gần nhất")
+        action_buttons_layout.addWidget(self.play_complete_audio_btn)
+        
         self.open_voice_folder_btn = QPushButton("📁 Mở thư mục output")
         self.open_voice_folder_btn.clicked.connect(self.open_voice_output_folder)
         action_buttons_layout.addWidget(self.open_voice_folder_btn)
@@ -891,12 +820,21 @@ class AdvancedMainWindow(QMainWindow):
         self.character_chatterbox_settings = {}  # Store per-character settings
         self.voice_clone_folder = None
         
-        # Set content and add to scroll
-        scroll.setWidget(content_widget)
+        # === SET UP MAIN TAB LAYOUT ===
+        voice_studio_widget.setLayout(layout)
         
+        # Use scroll area for the full content
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        scroll.setWidget(voice_studio_widget)
+        
+        # Main tab layout
         tab_layout = QVBoxLayout()
         tab_layout.setContentsMargins(0, 0, 0, 0)
         tab_layout.addWidget(scroll)
+        
+        tab = QWidget()
         tab.setLayout(tab_layout)
         
         self.tabs.addTab(tab, "🎙️ Voice Studio")
@@ -1974,22 +1912,61 @@ Created: {data['created_at']}
     
     # ===== VOICE STUDIO TAB METHODS =====
     
+    def update_token_preview(self):
+        """Update token preview based on selected template mode"""
+        mode = self.template_mode_combo.currentData()
+        
+        token_counts = {
+            'rapid': 150,
+            'standard': 400, 
+            'detailed': 800
+        }
+        
+        savings = {
+            'rapid': 1350,
+            'standard': 1100,
+            'detailed': 700
+        }
+        
+        current_tokens = token_counts.get(mode, 400)
+        current_savings = savings.get(mode, 1100)
+        
+        self.token_preview_label.setText(f"💡 Tiết kiệm: +{current_savings} tokens cho story content")
+        
+        # Update color based on savings amount
+        if current_savings >= 1200:
+            color = "#28CD41"  # Green for high savings
+        elif current_savings >= 900:
+            color = "#FF6B35"  # Orange for medium savings  
+        else:
+            color = "#5856D6"  # Purple for lower savings
+            
+        self.token_preview_label.setStyleSheet(f"color: {color}; font-weight: bold;")
+
     def switch_data_source(self):
-        """Chuyển đổi nguồn dữ liệu trong Voice Studio"""
+        """Switch between data sources với enhanced multi-file support"""
         source = self.data_source_combo.currentData()
         
         # Hide all widgets first
-        self.file_import_widget.setVisible(False)
-        self.generated_data_widget.setVisible(False)
-        self.manual_input_widget.setVisible(False)
+        self.import_file_btn.setVisible(False)
+        self.import_multi_files_btn.setVisible(False)
+        self.load_generated_btn.setVisible(False)
+        if hasattr(self, 'manual_script_widget'):
+            self.manual_script_widget.setVisible(False)
         
-        # Show appropriate widget
         if source == "file":
-            self.file_import_widget.setVisible(True)
+            self.import_file_btn.setVisible(True)
+            self.imported_file_label.setText("Chưa import file nào")
+        elif source == "multi_file":  # NEW
+            self.import_multi_files_btn.setVisible(True)
+            self.imported_file_label.setText("Chưa import files nào")
         elif source == "generated":
-            self.generated_data_widget.setVisible(True)
+            self.load_generated_btn.setVisible(True)
+            self.imported_file_label.setText("Sử dụng data từ tab Tạo Video")
         elif source == "manual":
-            self.manual_input_widget.setVisible(True)
+            if hasattr(self, 'manual_script_widget'):
+                self.manual_script_widget.setVisible(True)
+            self.imported_file_label.setText("Nhập thủ công JSON script")
     
     def import_script_file(self):
         """Import script từ file JSON"""
@@ -2050,12 +2027,13 @@ Created: {data['created_at']}
             QMessageBox.critical(self, "Lỗi", f"Không thể parse script:\n{str(e)}")
     
     def validate_script_data(self, script_data):
-        """Validate format của script data"""
+        """Validate format của script data - Enhanced Format 2.0 Support"""
         try:
             # Check required fields
             if not isinstance(script_data, dict):
                 return False
             
+            # Support both old format and Enhanced Format 2.0
             if 'segments' not in script_data or 'characters' not in script_data:
                 return False
             
@@ -2075,20 +2053,57 @@ Created: {data['created_at']}
                     return False
                 
                 for dialogue in segment['dialogues']:
+                    # Required fields for dialogue
                     if not all(key in dialogue for key in ['speaker', 'text']):
                         return False
+                    
+                    # Optional Enhanced Format 2.0 fields validation
+                                # Emotion intensity and speed fields are no longer supported - simplified to emotion only
+                    
+                    if 'pause_after' in dialogue:
+                        pause = dialogue['pause_after']
+                        if not isinstance(pause, (int, float)) or not (0.0 <= pause <= 5.0):
+                            print(f"⚠️ Invalid pause_after: {pause} (should be 0.0-5.0)")
             
             for character in characters:
                 if not all(key in character for key in ['id', 'name']):
                     return False
+                
+                # Enhanced Format 2.0 character validation
+                            # Default emotion intensity and speed fields are no longer supported - simplified to default_emotion only
+            
+            # Enhanced Format 2.0 detection
+            has_project_metadata = 'project' in script_data
+            has_audio_settings = 'audio_settings' in script_data
+            has_metadata = 'metadata' in script_data
+            
+            if has_project_metadata or has_audio_settings or has_metadata:
+                print("🆕 Enhanced Format 2.0 detected with advanced features")
+                
+                # Validate project metadata if present
+                if has_project_metadata:
+                    project = script_data['project']
+                    if not all(key in project for key in ['title', 'description']):
+                        print("⚠️ Missing required project fields (title, description)")
+                
+                # Validate audio settings if present
+                if has_audio_settings:
+                    audio = script_data['audio_settings']
+                    if 'crossfade_duration' in audio:
+                        fade = audio['crossfade_duration']
+                        if not isinstance(fade, (int, float)) or not (0.0 <= fade <= 2.0):
+                            print(f"⚠️ Invalid crossfade_duration: {fade}")
+            else:
+                print("📜 Classic format detected - fully compatible")
             
             return True
             
-        except Exception:
+        except Exception as e:
+            print(f"❌ Validation error: {e}")
             return False
     
     def update_voice_studio_overview(self):
-        """Cập nhật overview của script trong Voice Studio"""
+        """Cập nhật overview của script trong Voice Studio - Enhanced Format 2.0 Support"""
         if not self.voice_studio_script_data:
             return
         
@@ -2096,19 +2111,64 @@ Created: {data['created_at']}
             segments = self.voice_studio_script_data['segments']
             characters = self.voice_studio_script_data['characters']
             
-            # Update info labels
+            # Detect format version
+            has_enhanced_features = any(key in self.voice_studio_script_data for key in ['project', 'audio_settings', 'metadata'])
+            format_version = "Enhanced 2.0" if has_enhanced_features else "Classic"
+            
+            # Update info labels with enhanced information
             total_dialogues = sum(len(segment['dialogues']) for segment in segments)
-            self.script_info_label.setText(
-                f"✅ Script loaded: {len(segments)} segments, {total_dialogues} dialogues"
-            )
+            
+            # Calculate enhanced features count
+            enhanced_features = []
+            if 'project' in self.voice_studio_script_data:
+                enhanced_features.append("Project Metadata")
+            if 'audio_settings' in self.voice_studio_script_data:
+                enhanced_features.append("Audio Settings")
+            if 'metadata' in self.voice_studio_script_data:
+                enhanced_features.append("Metadata")
+            
+            # Count advanced dialogue features
+            advanced_dialogues = 0
+            for segment in segments:
+                for dialogue in segment['dialogues']:
+                    if any(key in dialogue for key in ['pause_after', 'emphasis']):
+                        advanced_dialogues += 1
+            
+            # Build script info text
+            script_info = f"✅ Script loaded ({format_version}): {len(segments)} segments, {total_dialogues} dialogues"
+            if advanced_dialogues > 0:
+                script_info += f", {advanced_dialogues} với advanced settings"
+            
+            self.script_info_label.setText(script_info)
             self.script_info_label.setStyleSheet("color: #007AFF; font-weight: bold;")
             
-            # Update characters
-            character_names = [char['name'] for char in characters]
-            self.characters_label.setText(", ".join(character_names))
+            # Update characters with enhanced info
+            character_info = []
+            for char in characters:
+                char_text = char['name']
+                if 'default_emotion' in char:
+                    char_text += f" ({char['default_emotion']})"
+                character_info.append(char_text)
+            
+            self.characters_label.setText(", ".join(character_info))
             
             # Update segments count
             self.segments_count_label.setText(str(len(segments)))
+            
+            # Show project title if available
+            if 'project' in self.voice_studio_script_data and hasattr(self, 'project_title_label'):
+                project_title = self.voice_studio_script_data['project']['title']
+                self.project_title_label.setText(f"📖 {project_title}")
+                self.project_title_label.setVisible(True)
+            
+            # Log enhanced features
+            if has_enhanced_features:
+                print(f"🆕 Enhanced Format 2.0 loaded with: {', '.join(enhanced_features)}")
+                
+                # Show duration if available
+                if 'project' in self.voice_studio_script_data and 'total_duration' in self.voice_studio_script_data['project']:
+                    duration = self.voice_studio_script_data['project']['total_duration']
+                    print(f"⏱️ Estimated duration: {duration} seconds")
             
             # Update voice mapping table
             self.populate_voice_mapping_table()
@@ -2143,7 +2203,6 @@ Created: {data['created_at']}
         
         # Reset table
         self.populate_character_settings_table()
-        from PySide6.QtWidgets import QMessageBox
         QMessageBox.information(self, "Thông báo", "Đã reset voice mapping về mặc định!")
     
     def preview_selected_voice(self):
@@ -2204,7 +2263,6 @@ Created: {data['created_at']}
             if result.get('success'):
                 # Play preview
                 self.play_audio_file(preview_path)
-                from PySide6.QtWidgets import QMessageBox
                 QMessageBox.information(self, "🎧 Preview Voice", 
                     f"Character: {character_id}\n"
                     f"Voice: {voice_combo.currentText()}\n"
@@ -2213,11 +2271,9 @@ Created: {data['created_at']}
                     f"CFG Weight: {cfg_weight:.2f}\n"
                     f"\n🤖 Generated by Chatterbox TTS")
             else:
-                from PySide6.QtWidgets import QMessageBox
                 QMessageBox.warning(self, "❌ Lỗi Preview", f"Không thể tạo preview Chatterbox TTS:\n{result.get('error', 'Unknown error')}")
                 
         except Exception as e:
-            from PySide6.QtWidgets import QMessageBox
             QMessageBox.critical(self, "❌ Lỗi Critical", f"Lỗi preview voice:\n{str(e)}")
     
     def play_audio_file(self, file_path):
@@ -2295,19 +2351,35 @@ Created: {data['created_at']}
                     'cfg_weight': float(cfg_weight_input.text()) if cfg_weight_input and cfg_weight_input.text() else 0.5
                 }
             
-            # Generate audio
-            total_generated = 0
-            total_failed = 0
-            results_text = ""
-            
+            # Count total dialogues for progress tracking
+            total_dialogues = 0
             for segment in self.voice_studio_script_data['segments']:
                 for dialogue in segment['dialogues']:
+                    if dialogue['speaker'] in character_ids:
+                        total_dialogues += 1
+            
+            # Generate audio với real-time progress
+            total_generated = 0
+            total_failed = 0
+            current_dialogue = 0
+            results_text = ""
+            
+            # Set determinate progress bar
+            self.voice_progress_bar.setRange(0, total_dialogues)
+            self.voice_progress_bar.setValue(0)
+            
+            for segment in self.voice_studio_script_data['segments']:
+                segment_id = segment['id']
+                print(f"\n🎬 Processing Segment {segment_id}")
+                
+                for dialogue_idx, dialogue in enumerate(segment['dialogues'], 1):
                     speaker = dialogue['speaker']
                     
                     # Skip if not in selected characters
                     if speaker not in character_ids:
                         continue
                     
+                    current_dialogue += 1
                     text = dialogue['text']
                     emotion = dialogue.get('emotion', 'neutral')
                     
@@ -2324,10 +2396,19 @@ Created: {data['created_at']}
                     voice_clone_path = char_settings.get('voice_clone_path', None)
                     
                     # Generate filename
-                    segment_id = segment['id']
-                    dialogue_idx = segment['dialogues'].index(dialogue) + 1
                     filename = f"segment_{segment_id}_dialogue_{dialogue_idx}_{speaker}.mp3"
                     file_path = os.path.join(output_dir, filename)
+                    
+                    # 📊 Update real-time progress
+                    progress_text = f"🎙️ [{current_dialogue}/{total_dialogues}] Đang tạo: {speaker} (Segment {segment_id})"
+                    self.voice_progress_text.setText(progress_text)
+                    self.voice_progress_bar.setValue(current_dialogue)
+                    
+                    # Process events để UI update ngay lập tức
+                    QApplication.processEvents()
+                    
+                    # Log chi tiết cho console
+                    print(f"🎤 [{current_dialogue}/{total_dialogues}] {speaker}: {text[:50]}{'...' if len(text) > 50 else ''}")
                     
                     # Generate voice - CHỈ SỬ DỤNG CHATTERBOX TTS với per-character settings
                     try:
@@ -2355,16 +2436,40 @@ Created: {data['created_at']}
                         if result.get('success'):
                             total_generated += 1
                             results_text += f"✅ {filename}\n"
+                            print(f"   ✅ Success: {filename}")
                         else:
                             total_failed += 1
-                            results_text += f"❌ {filename}: {result.get('error', 'Unknown error')}\n"
+                            error_msg = result.get('error', 'Unknown error')
+                            results_text += f"❌ {filename}: {error_msg}\n"
+                            print(f"   ❌ Failed: {error_msg}")
+                            
+                        # Update results text ngay lập tức
+                        self.voice_results_text.setText(results_text)
+                        QApplication.processEvents()
                             
                     except Exception as e:
                         total_failed += 1
-                        results_text += f"❌ {filename}: {str(e)}\n"
+                        error_msg = str(e)
+                        results_text += f"❌ {filename}: {error_msg}\n"
+                        print(f"   💥 Exception: {error_msg}")
+                        
+                        # Update results text ngay lập tức
+                        self.voice_results_text.setText(results_text)
+                        QApplication.processEvents()
             
             # Update results
             self.voice_results_text.setText(results_text)
+            
+            # 🎵 MERGE ALL AUDIO FILES into complete conversation
+            merged_file = None
+            if total_generated > 0:
+                try:
+                    print("🔄 Merging all audio files into complete conversation...")
+                    merged_file = self.merge_all_voice_files(output_dir)
+                    if merged_file:
+                        print(f"✅ Complete conversation saved: {merged_file}")
+                except Exception as merge_error:
+                    print(f"⚠️ Failed to merge audio files: {merge_error}")
             
             # Show summary
             summary = f"🎯 Hoàn thành!\n\n"
@@ -2372,10 +2477,17 @@ Created: {data['created_at']}
             summary += f"❌ Thất bại: {total_failed} files\n"
             summary += f"📁 Output: {output_dir}"
             
+            if merged_file:
+                summary += f"\n\n🎵 Complete Audio: {os.path.basename(merged_file)}"
+                summary += f"\n📊 File gộp đã được tạo thành công!"
+            
             QMessageBox.information(self, "Kết quả", summary)
             
             # Update progress
-            self.voice_progress_text.setText(f"Hoàn thành: {total_generated} thành công, {total_failed} thất bại")
+            progress_text = f"Hoàn thành: {total_generated} thành công, {total_failed} thất bại"
+            if merged_file:
+                progress_text += " | 🎵 File gộp đã tạo"
+            self.voice_progress_text.setText(progress_text)
             
         except Exception as e:
             QMessageBox.critical(self, "Lỗi", f"Lỗi tạo voice:\n{str(e)}")
@@ -2402,6 +2514,500 @@ Created: {data['created_at']}
         self.voice_results_text.clear()
         self.voice_progress_text.setText("Sẵn sàng tạo voice")
         QMessageBox.information(self, "Thông báo", "Đã xóa kết quả!")
+        
+    def merge_all_voice_files(self, output_dir):
+        """Gộp tất cả audio files thành 1 cuộc hội thoại hoàn chỉnh theo thứ tự script"""
+        try:
+            from pydub import AudioSegment
+            import re
+            import glob
+            
+            if not self.voice_studio_script_data:
+                print("❌ No script data available for merging")
+                return None
+            
+            print("🔍 Scanning for generated audio files...")
+            
+            # Collect all generated files by segment order
+            merged_audio = AudioSegment.silent(duration=0)  # Start with empty audio
+            total_files_added = 0
+            missing_files = []
+            
+            # Process each segment in order
+            for segment in self.voice_studio_script_data['segments']:
+                segment_id = segment['id']
+                print(f"📝 Processing segment {segment_id}...")
+                
+                # Process each dialogue in order within segment
+                for dialogue_idx, dialogue in enumerate(segment['dialogues'], 1):
+                    speaker = dialogue['speaker']
+                    
+                    # Build expected filename
+                    filename = f"segment_{segment_id}_dialogue_{dialogue_idx}_{speaker}.mp3"
+                    file_path = os.path.join(output_dir, filename)
+                    
+                    if os.path.exists(file_path):
+                        try:
+                            # Load audio file
+                            audio_segment = AudioSegment.from_mp3(file_path)
+                            
+                            # Add silence padding between dialogues (0.5 seconds)
+                            if total_files_added > 0:
+                                silence = AudioSegment.silent(duration=500)  # 0.5 second pause
+                                merged_audio += silence
+                            
+                            # Add the dialogue audio
+                            merged_audio += audio_segment
+                            total_files_added += 1
+                            
+                            # Log addition
+                            duration = len(audio_segment) / 1000.0  # Convert to seconds
+                            print(f"   ✅ Added: {filename} ({duration:.1f}s)")
+                            
+                        except Exception as e:
+                            print(f"   ❌ Failed to load {filename}: {e}")
+                            missing_files.append(filename)
+                    else:
+                        print(f"   ⚠️ Missing: {filename}")
+                        missing_files.append(filename)
+            
+            if total_files_added == 0:
+                print("❌ No audio files found to merge")
+                return None
+            
+            # Generate output filename with timestamp
+            from datetime import datetime
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            
+            # Try to get project name or use default
+            project_name = getattr(self, 'current_project_name', 'voice_conversation')
+            if hasattr(self, 'voice_studio_script_data') and self.voice_studio_script_data:
+                # Try to extract title from script data
+                if 'title' in self.voice_studio_script_data:
+                    project_name = self.voice_studio_script_data['title']
+                elif 'project_name' in self.voice_studio_script_data:
+                    project_name = self.voice_studio_script_data['project_name']
+            
+            # Clean project name for filename
+            clean_name = re.sub(r'[^\w\s-]', '', project_name)
+            clean_name = re.sub(r'[-\s]+', '_', clean_name)
+            
+            output_filename = f"{clean_name}_complete_conversation_{timestamp}.mp3"
+            merged_file_path = os.path.join(output_dir, output_filename)
+            
+            # Export merged audio
+            print(f"💾 Exporting complete conversation...")
+            merged_audio.export(merged_file_path, format="mp3", bitrate="192k")
+            
+            # Calculate total duration
+            total_duration = len(merged_audio) / 1000.0  # Convert to seconds
+            minutes = int(total_duration // 60)
+            seconds = int(total_duration % 60)
+            
+            # Log success summary
+            print(f"🎉 MERGE COMPLETE!")
+            print(f"   📊 Files merged: {total_files_added}")
+            if missing_files:
+                print(f"   ⚠️ Missing files: {len(missing_files)}")
+                for missing in missing_files[:5]:  # Show first 5 missing files
+                    print(f"      - {missing}")
+                if len(missing_files) > 5:
+                    print(f"      ... and {len(missing_files) - 5} more")
+            
+            print(f"   ⏱️ Total duration: {minutes:02d}:{seconds:02d}")
+            print(f"   📁 Saved: {output_filename}")
+            
+            return merged_file_path
+            
+        except ImportError:
+            print("❌ pydub library not available - audio merging disabled")
+            print("   💡 Install with: pip install pydub")
+            return None
+        except Exception as e:
+            print(f"❌ Error merging audio files: {e}")
+            import traceback
+            traceback.print_exc()
+            return None
+    
+    def manual_merge_audio(self):
+        """Manual trigger để gộp audio files"""
+        try:
+            output_dir = self.voice_output_input.text() or "./voice_studio_output"
+            
+            if not os.path.exists(output_dir):
+                QMessageBox.warning(self, "Cảnh báo", f"Thư mục output không tồn tại: {output_dir}")
+                return
+            
+            # Check if any audio files exist
+            audio_files = glob.glob(os.path.join(output_dir, "segment_*.mp3"))
+            if not audio_files:
+                QMessageBox.warning(self, "Cảnh báo", "Không tìm thấy file audio nào để gộp!\n\nHãy tạo voice trước khi gộp.")
+                return
+            
+            # Show progress
+            self.voice_progress_text.setText("Đang gộp audio files...")
+            QApplication.processEvents()
+            
+            # Perform merge
+            merged_file = self.merge_all_voice_files(output_dir)
+            
+            if merged_file:
+                # Success message
+                filename = os.path.basename(merged_file)
+                message = f"🎉 Gộp audio thành công!\n\n"
+                message += f"📁 File: {filename}\n"
+                message += f"📍 Vị trí: {output_dir}\n\n"
+                message += f"Bạn có muốn nghe cuộc hội thoại hoàn chỉnh không?"
+                
+                reply = QMessageBox.question(
+                    self, "Thành công", message,
+                    QMessageBox.Yes | QMessageBox.No,
+                    QMessageBox.Yes
+                )
+                
+                if reply == QMessageBox.Yes:
+                    self.play_audio_file(merged_file)
+                    
+                self.voice_progress_text.setText(f"✅ Đã gộp: {filename}")
+            else:
+                QMessageBox.warning(self, "Lỗi", "Không thể gộp audio files. Xem console để biết chi tiết.")
+                self.voice_progress_text.setText("❌ Lỗi gộp audio")
+                
+        except Exception as e:
+            QMessageBox.critical(self, "Lỗi", f"Lỗi gộp audio:\n{str(e)}")
+            self.voice_progress_text.setText("❌ Lỗi gộp audio")
+    
+    def play_complete_conversation(self):
+        """Phát cuộc hội thoại hoàn chỉnh gần nhất"""
+        try:
+            output_dir = self.voice_output_input.text() or "./voice_studio_output"
+            
+            if not os.path.exists(output_dir):
+                QMessageBox.warning(self, "Cảnh báo", f"Thư mục output không tồn tại: {output_dir}")
+                return
+            
+            # Find the most recent complete conversation file
+            conversation_files = glob.glob(os.path.join(output_dir, "*_complete_conversation_*.mp3"))
+            
+            if not conversation_files:
+                # Offer to create one
+                reply = QMessageBox.question(
+                    self, "Không tìm thấy file", 
+                    "Không tìm thấy file cuộc hội thoại hoàn chỉnh.\n\nBạn có muốn gộp audio files hiện tại thành cuộc hội thoại không?",
+                    QMessageBox.Yes | QMessageBox.No,
+                    QMessageBox.Yes
+                )
+                
+                if reply == QMessageBox.Yes:
+                    self.manual_merge_audio()
+                return
+            
+            # Get the most recent file (by modification time)
+            latest_file = max(conversation_files, key=os.path.getmtime)
+            
+            # Show file info and play
+            filename = os.path.basename(latest_file)
+            file_size = os.path.getsize(latest_file) / (1024 * 1024)  # MB
+            
+            # Get duration if possible
+            duration_info = ""
+            try:
+                from pydub import AudioSegment
+                audio = AudioSegment.from_mp3(latest_file)
+                duration_seconds = len(audio) / 1000.0
+                minutes = int(duration_seconds // 60)
+                seconds = int(duration_seconds % 60)
+                duration_info = f" ({minutes:02d}:{seconds:02d})"
+            except:
+                pass
+            
+            self.voice_progress_text.setText(f"▶️ Đang phát: {filename}{duration_info}")
+            
+            # Play the file
+            self.play_audio_file(latest_file)
+            
+            # Show info message
+            info = f"🎵 Đang phát cuộc hội thoại hoàn chỉnh:\n\n"
+            info += f"📁 File: {filename}\n"
+            info += f"📊 Size: {file_size:.1f} MB{duration_info}\n"
+            info += f"📍 Đường dẫn: {latest_file}"
+            
+            QMessageBox.information(self, "Đang phát audio", info)
+            
+        except Exception as e:
+            QMessageBox.critical(self, "Lỗi", f"Lỗi phát audio:\n{str(e)}")
+            self.voice_progress_text.setText("❌ Lỗi phát audio")
+    
+    def generate_ai_request_form(self):
+        """Tạo request form cho AI với template mode selection"""
+        template_mode = self.template_mode_combo.currentData() if hasattr(self, 'template_mode_combo') else 'standard'
+        
+        # Generate form based on selected template mode
+        if template_mode == 'rapid':
+            return self.generate_rapid_template_form()
+        elif template_mode == 'standard':
+            return self.generate_standard_template_form()
+        elif template_mode == 'detailed':
+            return self.generate_detailed_template_form()
+        else:
+            return self.generate_standard_template_form()  # Default fallback
+
+    def generate_rapid_template_form(self):
+        """Generate RAPID mode template (~150 tokens)"""
+        template_content = """
+# 🚀 RAPID MODE - Tạo Script Video JSON (Ultra Compact ~150 tokens)
+
+## Request:
+Tạo script video về "[TOPIC]" theo format JSON sau:
+
+```json
+{
+  "segments": [
+    {"id": 1, "dialogues": [
+      {"speaker": "narrator", "text": "Lời thoại narrator...", "emotion": "friendly"},
+      {"speaker": "character1", "text": "Lời thoại character...", "emotion": "excited"}
+    ]}
+  ],
+  "characters": [
+    {"id": "narrator", "name": "Narrator", "gender": "neutral"},
+    {"id": "character1", "name": "Character", "gender": "female"}
+  ]
+}
+```
+
+**RULES**: 
+- segments[].dialogues[]: speaker, text, emotion (required)
+- characters[]: id, name, gender (required)
+- Emotions: neutral, happy, sad, excited, calm, dramatic
+- Vietnamese text with proper punctuation
+- 3-5 segments, 2-3 characters max
+
+**Focus on CONTENT QUALITY** - you have +1300 extra tokens for story development!
+"""
+        self.show_ai_request_dialog("RAPID Mode Template", template_content, 150)
+
+    def generate_standard_template_form(self):
+        """Generate STANDARD mode template (~400 tokens)"""
+        template_content = """
+# 📝 STANDARD MODE - Tạo Script Video JSON (Balanced ~400 tokens)
+
+## Request:
+Tạo script video về "[TOPIC]" theo format JSON sau:
+
+```json
+{
+  "project": {"title": "Story Title", "duration": 60},
+  "segments": [
+    {
+      "id": 1,
+      "title": "Scene name",
+      "dialogues": [
+        {
+          "speaker": "narrator",
+          "text": "Nội dung với dấu câu chuẩn Tiếng Việt",
+          "emotion": "friendly",
+          "emotion_intensity": 1.2,
+          "speed": 1.0
+        }
+      ]
+    }
+  ],
+  "characters": [
+    {
+      "id": "narrator", 
+      "name": "Character Name",
+      "gender": "neutral|female|male",
+      "default_emotion": "friendly",
+      "default_speed": 1.0
+    }
+  ]
+}
+```
+
+**Enhanced emotions**: neutral, gentle, contemplative, cheerful, excited, surprised, sorrowful, angry, friendly, happy, sad, mysterious, dramatic, confident, worried, calm, energetic, serious.
+
+**Parameters**:
+- emotion: Emotion keyword (e.g., friendly, excited, contemplative)
+- pause_after: 0.0-5.0 seconds (optional)
+- emphasis: Array of keywords to highlight (optional)
+- gender: neutral/female/male
+
+**Focus on CHARACTER DEVELOPMENT** - you have +1100 extra tokens for richer dialogues!
+"""
+        self.show_ai_request_dialog("STANDARD Mode Template", template_content, 400)
+
+    def generate_detailed_template_form(self):
+        """Generate DETAILED mode template (~800 tokens)"""
+        template_content = """
+# 📚 DETAILED MODE - Tạo Script Video JSON (Full Features ~800 tokens)
+
+## Request:
+Tạo script video về "[TOPIC]" theo Enhanced Format 2.0:
+
+```json
+{
+  "project": {
+    "title": "Story Title",
+    "description": "Story description",
+    "total_duration": 60,
+    "target_audience": "adult",
+    "style": "educational",
+    "created_date": "2024-01-20"
+  },
+  "segments": [
+    {
+      "id": 1,
+      "title": "Scene name",
+      "script": "Scene description",
+      "image_prompt": "Visual description for AI image generation",
+      "mood": "upbeat",
+      "background_music": "energetic",
+      "dialogues": [
+        {
+          "speaker": "narrator",
+          "text": "Dialogue with proper Vietnamese punctuation and emphasis",
+          "emotion": "friendly",
+          "emotion_intensity": 1.2,
+          "speed": 1.0,
+          "pause_after": 0.5,
+          "emphasis": ["key", "words"]
+        }
+      ],
+      "duration": 12,
+      "transition": "fade",
+      "camera_movement": "zoom_in"
+    }
+  ],
+  "characters": [
+    {
+      "id": "narrator",
+      "name": "Character Name",
+      "description": "Character description and role",
+      "gender": "neutral",
+      "age_range": "adult",
+      "personality": "professional, warm, engaging",
+      "voice_characteristics": "clear, moderate_pace",
+      "suggested_voice": "vi-VN-Wavenet-C",
+      "default_emotion": "friendly",
+      "default_speed": 1.0,
+      "default_emotion_intensity": 1.0
+    }
+  ],
+  "audio_settings": {
+    "crossfade_duration": 0.3,
+    "normalize_volume": true,
+    "output_format": "mp3"
+  },
+  "metadata": {
+    "version": "2.0",
+    "language": "vi-VN",
+    "content_rating": "G",
+    "tags": ["educational"]
+  }
+}
+```
+
+**Full emotion list**: neutral, gentle, contemplative, cheerful, excited, surprised, sorrowful, angry, fierce, pleading, friendly, happy, sad, mysterious, dramatic, confident, worried, calm, energetic, romantic, serious, playful.
+
+**Advanced features**:
+- emotion: Rich emotion keywords (friendly, excited, contemplative, etc.)
+- pause_after: 0.0-5.0 seconds for natural timing
+- emphasis: Array of keywords to highlight for better delivery
+- camera_movement, transitions, background_music
+- Complete character personalities and voice characteristics
+
+**Focus on CINEMATIC STORYTELLING** - you have +700 extra tokens for complex plot development!
+"""
+        self.show_ai_request_dialog("DETAILED Mode Template", template_content, 800)
+
+    def show_ai_request_dialog(self, title, content, token_count):
+        """Show AI request template in dialog with copy functionality"""
+        from PySide6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QTextEdit
+        
+        dialog = QDialog(self)
+        dialog.setWindowTitle(title)
+        dialog.setFixedSize(800, 700)
+        
+        layout = QVBoxLayout()
+        
+        # Header with token info
+        header_layout = QHBoxLayout()
+        header_label = QLabel(f"📋 {title}")
+        header_label.setStyleSheet("font-size: 16px; font-weight: bold; color: #007AFF;")
+        
+        token_label = QLabel(f"💡 Template size: ~{token_count} tokens")
+        token_label.setStyleSheet("color: #28CD41; font-weight: bold;")
+        
+        savings_label = QLabel(f"🚀 Story space: +{1500-token_count} tokens")
+        savings_label.setStyleSheet("color: #FF6B35; font-weight: bold;")
+        
+        header_layout.addWidget(header_label)
+        header_layout.addStretch()
+        header_layout.addWidget(token_label)
+        header_layout.addWidget(savings_label)
+        layout.addLayout(header_layout)
+        
+        # Content area
+        content_area = QTextEdit()
+        content_area.setPlainText(content.strip())
+        content_area.setFont(QFont("Courier", 10))
+        layout.addWidget(content_area)
+        
+        # Buttons
+        button_layout = QHBoxLayout()
+        
+        copy_btn = QPushButton("📋 Copy Template")
+        copy_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #5856D6;
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 6px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #4B49C8;
+            }
+        """)
+        copy_btn.clicked.connect(lambda: self.copy_to_clipboard(content_area.toPlainText()))
+        
+        save_btn = QPushButton("💾 Save Template")
+        save_btn.clicked.connect(lambda: self.save_ai_request_template(content_area.toPlainText()))
+        
+        close_btn = QPushButton("❌ Close")
+        close_btn.clicked.connect(dialog.close)
+        
+        button_layout.addWidget(copy_btn)
+        button_layout.addWidget(save_btn)
+        button_layout.addStretch()
+        button_layout.addWidget(close_btn)
+        
+        layout.addLayout(button_layout)
+        dialog.setLayout(layout)
+        dialog.exec()
+    
+    def save_ai_request_template(self, template_content):
+        """Save AI request template to file"""
+        try:
+            file_path, _ = QFileDialog.getSaveFileName(
+                self, 
+                "Save AI Request Template",
+                "./ai_request_template.json",
+                "JSON Files (*.json);;All Files (*)"
+            )
+            
+            if file_path:
+                with open(file_path, 'w', encoding='utf-8') as f:
+                    f.write(template_content)
+                
+                QMessageBox.information(
+                    self, 
+                    "Đã lưu", 
+                    f"AI Request Template đã được lưu:\n{file_path}\n\nBạn có thể chia sẻ file này với AI để tạo script đúng format."
+                )
+        except Exception as e:
+            QMessageBox.critical(self, "Lỗi", f"Lỗi lưu file:\n{str(e)}")
     
     # ========== CHATTERBOX MANUAL CONTROLS ==========
     
@@ -2422,25 +3028,35 @@ Created: {data['created_at']}
         self.speed_label.setText(f"{speed_value:.1f}x")
     
     def populate_character_settings_table(self):
-        """Populate bảng settings cho từng nhân vật với CFG Weight và Voice selection"""
+        """Populate bảng settings cho từng nhân vật với CFG Weight và Voice selection - Enhanced Format 2.0 Support"""
         if not self.voice_studio_script_data:
             return
         
         characters = self.voice_studio_script_data['characters']
-        # Thêm 2 cột mới cho Voice Prompt và Voice Clone
+        # Enhanced Format 2.0 detection
+        has_enhanced_features = any(key in self.voice_studio_script_data for key in ['project', 'audio_settings', 'metadata'])
+        
         self.character_settings_table.setRowCount(len(characters))
         
         for i, character in enumerate(characters):
             char_id = character['id']
             
-            # Character name
-            name_item = QTableWidgetItem(character['name'])
+            # Character name với enhanced info
+            display_name = character['name']
+            if has_enhanced_features and 'description' in character:
+                display_name += f" ({character['description'][:20]}...)" if len(character.get('description', '')) > 20 else f" ({character.get('description', '')})"
+            
+            name_item = QTableWidgetItem(display_name)
             name_item.setFlags(name_item.flags() & ~Qt.ItemIsEditable)
+            name_item.setToolTip(character.get('description', character['name']))
             self.character_settings_table.setItem(i, 0, name_item)
             
-            # Emotion input field (thay vì slider) - Fix màu đen
+            # Simplified: Only use emotion keywords now
+            default_emotion = character.get('default_emotion', 'friendly')
+            
+            # Emotion input field với default emotion
             emotion_input = QLineEdit()
-            emotion_input.setText("1.0")
+            emotion_input.setText(str(default_emotion))
             emotion_input.setAlignment(Qt.AlignCenter)
             emotion_input.setMaximumWidth(60)
             emotion_input.setStyleSheet("""
@@ -2460,9 +3076,12 @@ Created: {data['created_at']}
             )
             self.character_settings_table.setCellWidget(i, 1, emotion_input)
             
-            # Speed input field (thay vì slider) - Fix màu đen
+            # Enhanced Format 2.0: Use default_speed hoặc fallback to 1.0  
+            default_speed = character.get('default_speed', 1.0)
+            
+            # Speed input field với Enhanced Format defaults
             speed_input = QLineEdit()
-            speed_input.setText("1.0")
+            speed_input.setText(str(default_speed))
             speed_input.setAlignment(Qt.AlignCenter)
             speed_input.setMaximumWidth(60)
             speed_input.setStyleSheet("""
@@ -2545,8 +3164,51 @@ Created: {data['created_at']}
             for display, voice_id in fallback_voices:
                 voice_combo.addItem(display, voice_id)
             
-            # Set default selection
-            voice_combo.setCurrentIndex(0)  # Default to Young Female
+            # Enhanced Format 2.0: Use suggested_voice hoặc default selection
+            default_voice_index = 0  # Default to Young Female
+            if 'suggested_voice' in character:
+                suggested_voice = character['suggested_voice']
+                print(f"🎯 Character {character['name']} suggests voice: {suggested_voice}")
+                
+                # Try to map suggested voice to fallback voice
+                voice_mapping = {
+                    'vi-VN-Wavenet-A': 0,  # Young Female
+                    'vi-VN-Wavenet-C': 0,  # Young Female
+                    'vi-VN-Standard-A': 0,  # Young Female
+                    'vi-VN-Standard-C': 0,  # Young Female
+                    'vi-VN-Wavenet-B': 1,  # Young Male
+                    'vi-VN-Wavenet-D': 1,  # Young Male
+                    'vi-VN-Standard-B': 1,  # Young Male
+                    'vi-VN-Standard-D': 1,  # Young Male
+                }
+                
+                # Map gender to appropriate voice
+                if 'gender' in character:
+                    gender = character['gender'].lower()
+                    age_range = character.get('age_range', 'young_adult')
+                    
+                    if gender == 'female':
+                        if age_range in ['young_adult', 'teen']:
+                            default_voice_index = 0  # Young Female
+                        else:
+                            default_voice_index = 3  # Mature Female
+                    elif gender == 'male':
+                        if age_range in ['young_adult', 'teen']:
+                            default_voice_index = 1  # Young Male
+                        else:
+                            default_voice_index = 4  # Mature Male
+                    elif gender == 'neutral':
+                        default_voice_index = 2  # Narrator
+                    elif gender == 'child':
+                        default_voice_index = 7  # Child Voice
+                    elif gender == 'elderly':
+                        default_voice_index = 8  # Elder Voice
+                
+                # Override with direct voice mapping if available
+                if suggested_voice in voice_mapping:
+                    default_voice_index = voice_mapping[suggested_voice]
+            
+            voice_combo.setCurrentIndex(default_voice_index)
             
             voice_combo.currentIndexChanged.connect(
                 lambda index, cid=char_id, combo=voice_combo: self.update_character_voice(cid, combo.currentData())
@@ -2602,9 +3264,9 @@ Created: {data['created_at']}
             clone_layout.setContentsMargins(2, 2, 2, 2)
             clone_layout.setSpacing(4)
             
-            voice_clone_btn = QPushButton("📁 Select")
+            voice_clone_btn = QPushButton("🎵 Chọn file")
             voice_clone_btn.setMaximumWidth(80)
-            voice_clone_btn.setToolTip(f"Chọn voice samples cho {character['name']}")
+            voice_clone_btn.setToolTip(f"Chọn audio file làm voice sample cho {character['name']}")
             voice_clone_btn.clicked.connect(lambda checked, cid=char_id: self.select_character_voice_clone_folder(cid))
             clone_layout.addWidget(voice_clone_btn)
             
@@ -2670,16 +3332,10 @@ Created: {data['created_at']}
         except ValueError:
             pass  # Ignore invalid input
     
-    def update_character_speed_from_input(self, char_id, text):
-        """Cập nhật speed cho nhân vật cụ thể từ input"""
-        try:
-            value = float(text)
-            value = max(0.5, min(2.0, value))  # Clamp to 0.5-2.0
-            if char_id not in self.character_chatterbox_settings:
-                self.character_chatterbox_settings[char_id] = {}
-            self.character_chatterbox_settings[char_id]['speed'] = value
-        except ValueError:
-            pass  # Ignore invalid input
+    # Speed field has been removed from simplified JSON structure
+    # def update_character_speed_from_input(self, char_id, text):
+    #     """Speed no longer supported - simplified to emotion only"""
+    #     pass
     
     def update_character_cfg_weight_from_input(self, char_id, text):
         """Cập nhật CFG weight cho nhân vật cụ thể từ input"""
@@ -2964,10 +3620,9 @@ Created: {data['created_at']}
         # Update settings
         self.character_chatterbox_settings[char_id].update(optimized_params)
         
-        # Update UI
-        self.populate_character_settings_table()
+        # ✅ FIX: Update UI TABLE DIRECTLY để hiển thị changes
+        self._update_character_table_row(char_id, optimized_params)
         
-        from PySide6.QtWidgets import QMessageBox
         QMessageBox.information(dialog, "✅ Optimized", 
                               f"Parameters optimized for {voice_id}:\n"
                               f"Emotion: {optimized_params['emotion']:.1f}\n"
@@ -2977,16 +3632,16 @@ Created: {data['created_at']}
     
     def reset_voice_params(self, char_id, dialog):
         """Reset voice parameters về defaults"""
-        self.character_chatterbox_settings[char_id].update({
+        default_params = {
             'emotion': 1.0,
             'speed': 1.0,
             'cfg_weight': 0.5
-        })
+        }
+        self.character_chatterbox_settings[char_id].update(default_params)
         
-        # Update UI
-        self.populate_character_settings_table()
+        # ✅ FIX: Update UI TABLE DIRECTLY để hiển thị changes
+        self._update_character_table_row(char_id, default_params)
         
-        from PySide6.QtWidgets import QMessageBox
         QMessageBox.information(dialog, "🔄 Reset", "Parameters reset to defaults")
         dialog.close()
     
@@ -3083,9 +3738,8 @@ Created: {data['created_at']}
         dialog.accept()
     
     def select_character_voice_clone_folder(self, char_id):
-        """Chọn thư mục voice samples cho nhân vật cụ thể với progress tracking"""
+        """Chọn thư mục và file voice sample cho nhân vật cụ thể với UI selection"""
         from PySide6.QtWidgets import QFileDialog, QMessageBox, QProgressDialog
-        from PySide6.QtCore import QTimer
         
         character_name = self.get_character_name_by_id(char_id)
         folder = QFileDialog.getExistingDirectory(
@@ -3096,11 +3750,6 @@ Created: {data['created_at']}
         )
         
         if folder:
-            # Show progress dialog
-            progress = QProgressDialog(f"Đang xử lý voice samples cho {character_name}...", "Hủy", 0, 100, self)
-            progress.setWindowModality(Qt.WindowModal)
-            progress.show()
-            
             # Update status to processing
             self._update_voice_clone_status_ui(char_id, 'processing', 'Đang xử lý...')
             
@@ -3109,53 +3758,111 @@ Created: {data['created_at']}
             audio_extensions = ['.wav', '.mp3', '.flac', '.ogg', '.m4a']
             audio_files = []
             
-            progress.setValue(20)
-            
             try:
-                for file in os.listdir(folder):
-                    if any(file.lower().endswith(ext) for ext in audio_extensions):
-                        audio_files.append(file)
+                print(f"🔍 Scanning folder: {folder}")
+                all_files = os.listdir(folder)
+                print(f"📂 Found {len(all_files)} total files: {all_files}")
                 
-                progress.setValue(50)
+                for file in all_files:
+                    file_lower = file.lower()
+                    print(f"   Checking file: {file} (lowercase: {file_lower})")
+                    
+                    if any(file_lower.endswith(ext) for ext in audio_extensions):
+                        print(f"   ✅ Audio file detected: {file}")
+                        # Get file info
+                        file_path = os.path.join(folder, file)
+                        
+                        try:
+                            file_size = os.path.getsize(file_path)
+                            file_size_mb = file_size / (1024 * 1024)
+                            
+                            # Try to get audio duration (optional)
+                            duration_info = ""
+                            try:
+                                import mutagen
+                                audio_file = mutagen.File(file_path)
+                                if audio_file and hasattr(audio_file, 'info') and hasattr(audio_file.info, 'length'):
+                                    duration = audio_file.info.length
+                                    duration_info = f" ({duration:.1f}s)"
+                            except Exception as e:
+                                print(f"   ⚠️ Could not get duration for {file}: {e}")
+                                pass  # Skip duration if mutagen not available
+                            
+                            audio_files.append({
+                                'name': file,
+                                'path': file_path,
+                                'size_mb': file_size_mb,
+                                'duration_info': duration_info,
+                                'display_name': f"{file} ({file_size_mb:.1f}MB{duration_info})"
+                            })
+                            print(f"   ✅ Added to list: {file} ({file_size_mb:.1f}MB)")
+                            
+                        except Exception as e:
+                            print(f"   ❌ Error processing file {file}: {e}")
+                            continue
+                    else:
+                        print(f"   ❌ Not an audio file: {file}")
+                
+                print(f"🎵 Total audio files found: {len(audio_files)}")
                 
                 if not audio_files:
-                    progress.close()
                     self._update_voice_clone_status_ui(char_id, 'error', 'Không tìm thấy audio files')
+                    
+                    # Create detailed message with file list for debugging
+                    debug_message = f"Thư mục '{folder}' không chứa file audio nào.\n\n"
+                    debug_message += f"Supported formats: {', '.join(audio_extensions)}\n\n"
+                    debug_message += f"Files found in folder ({len(all_files)} total):\n"
+                    for i, file in enumerate(all_files[:10]):  # Show first 10 files
+                        debug_message += f"  • {file}\n"
+                    if len(all_files) > 10:
+                        debug_message += f"  ... and {len(all_files) - 10} more files"
+                    
                     QMessageBox.warning(
                         self, 
                         "⚠️ Không tìm thấy audio files", 
-                        f"Thư mục '{folder}' không chứa file audio nào (.wav, .mp3, .flac, .ogg, .m4a)"
+                        debug_message
                     )
                     return
                 
-                progress.setValue(80)
+                # Show file selection dialog
+                print(f"🔍 Calling file selection dialog with {len(audio_files)} files")
+                selected_file = self._show_voice_file_selection_dialog(character_name, folder, audio_files)
+                print(f"🎯 Dialog result: {selected_file}")
                 
-                # Lưu path và update status
-                if char_id not in self.character_chatterbox_settings:
-                    self.character_chatterbox_settings[char_id] = {}
+                if selected_file is None:
+                    print("⚠️ User cancelled file selection")
+                    self._update_voice_clone_status_ui(char_id, 'none', 'Đã hủy chọn file')
+                    return
                 
-                self.character_chatterbox_settings[char_id]['voice_clone_path'] = folder
-                self.character_chatterbox_settings[char_id]['voice_clone_status'] = 'ready'
-                
-                progress.setValue(100)
-                progress.close()
-                
-                # Update UI status
-                self._update_voice_clone_status_ui(char_id, 'ready', f"{len(audio_files)} files sẵn sàng")
-                
-                print(f"📁 Voice clone folder set for {character_name}: {folder}")
-                print(f"   🎵 Found {len(audio_files)} audio files: {', '.join(audio_files[:3])}{'...' if len(audio_files) > 3 else ''}")
-                
-                QMessageBox.information(
-                    self,
-                    "✅ Voice Clone Setup",
-                    f"Đã thiết lập voice cloning cho {character_name}\n"
-                    f"Thư mục: {folder}\n"
-                    f"Tìm thấy: {len(audio_files)} audio files"
-                )
+                if selected_file:
+                    # Lưu file path cụ thể
+                    if char_id not in self.character_chatterbox_settings:
+                        self.character_chatterbox_settings[char_id] = {}
+                    
+                    self.character_chatterbox_settings[char_id]['voice_clone_path'] = selected_file['path']
+                    self.character_chatterbox_settings[char_id]['voice_clone_status'] = 'ready'
+                    self.character_chatterbox_settings[char_id]['voice_clone_folder'] = folder
+                    
+                    # Update UI status
+                    self._update_voice_clone_status_ui(char_id, 'ready', f"File: {selected_file['name']}")
+                    
+                    print(f"📁 Voice clone file set for {character_name}: {selected_file['path']}")
+                    print(f"   📂 Folder: {folder}")
+                    print(f"   🎵 Selected: {selected_file['name']} ({selected_file['size_mb']:.1f}MB{selected_file['duration_info']})")
+                    
+                    QMessageBox.information(
+                        self,
+                        "✅ Voice Clone Setup",
+                        f"Đã thiết lập voice cloning cho {character_name}\n"
+                        f"Folder: {os.path.basename(folder)}\n"
+                        f"File: {selected_file['name']}\n"
+                        f"Size: {selected_file['size_mb']:.1f}MB{selected_file['duration_info']}"
+                    )
+                else:
+                    # User cancelled file selection
+                    self._update_voice_clone_status_ui(char_id, 'none', 'Chưa chọn file')
                 
             except Exception as e:
-                progress.close()
                 self._update_voice_clone_status_ui(char_id, 'error', f'Lỗi: {str(e)}')
                 QMessageBox.critical(
                     self,
@@ -3164,7 +3871,7 @@ Created: {data['created_at']}
                 )
     
     def _update_voice_clone_status_ui(self, char_id, status, tooltip_text=""):
-        """Cập nhật UI status cho voice clone của nhân vật"""
+        """Cập nhật UI status cho voice clone của nhân vật với file name display"""
         status_icons = {
             'none': '❌',
             'ready': '✅', 
@@ -3182,7 +3889,7 @@ Created: {data['created_at']}
         # Tìm row của character này
         for i in range(self.character_settings_table.rowCount()):
             name_item = self.character_settings_table.item(i, 0)
-            if name_item and name_item.text() == self.get_character_name_by_id(char_id):
+            if name_item and name_item.text() == char_id:  # Note: Updated to use char_id directly
                 # Lấy voice clone container
                 voice_clone_container = self.character_settings_table.cellWidget(i, 6)
                 if voice_clone_container:
@@ -3191,9 +3898,28 @@ Created: {data['created_at']}
                     if layout and layout.count() > 1:
                         status_label = layout.itemAt(1).widget()
                         if status_label:
-                            status_label.setText(status_icons.get(status, '❓'))
+                            # ✅ IMPROVED: Show file name for ready status
+                            if status == 'ready':
+                                settings = self.character_chatterbox_settings.get(char_id, {})
+                                voice_clone_path = settings.get('voice_clone_path', '')
+                                
+                                if voice_clone_path and os.path.exists(voice_clone_path):
+                                    file_name = os.path.basename(voice_clone_path)
+                                    # Truncate long file names
+                                    if len(file_name) > 15:
+                                        display_name = file_name[:12] + "..."
+                                    else:
+                                        display_name = file_name
+                                    status_label.setText(f"🎵 {display_name}")
+                                    status_label.setToolTip(f"Voice sample: {file_name}\nPath: {voice_clone_path}")
+                                else:
+                                    status_label.setText(status_icons.get(status, '❓'))
+                                    status_label.setToolTip(tooltip_text or f"Status: {status}")
+                            else:
+                                status_label.setText(status_icons.get(status, '❓'))
+                                status_label.setToolTip(tooltip_text or f"Status: {status}")
+                            
                             status_label.setStyleSheet(status_colors.get(status, ''))
-                            status_label.setToolTip(tooltip_text or f"Status: {status}")
                 break
     
     def get_character_name_by_id(self, char_id):
@@ -3278,169 +4004,516 @@ Created: {data['created_at']}
     def get_character_chatterbox_settings(self, char_id):
         """Lấy settings cho character khi manual mode enabled"""
         if self.enable_chatterbox_manual.isChecked():
+            # ✅ FIX: Dùng character-specific settings thay vì global controls
             return self.character_chatterbox_settings.get(char_id, {
-                'emotion': self.emotion_slider.value() / 100.0,
-                'speed': self.speed_slider.value() / 100.0,
-                'voice_clone_path': None
+                'emotion': 1.0,
+                'speed': 1.0, 
+                'cfg_weight': 0.5,
+                'voice_clone_path': None,
+                'voice_mode': 'voice_selection'
             })
         else:
-            return {'emotion': 1.0, 'speed': 1.0, 'voice_clone_path': None}
+            return {
+                'emotion': 1.0, 
+                'speed': 1.0, 
+                'cfg_weight': 0.5,
+                'voice_clone_path': None,
+                'voice_mode': 'voice_selection'
+            }
     
     def map_emotion_to_parameters(self, emotion_label, base_exaggeration=1.0):
-        """Map emotion label thành emotion exaggeration + cfg_weight cho chất lượng tối ưu"""
+        """Map emotion label to optimized emotion exaggeration + cfg_weight parameters"""
         
-        # Enhanced emotion mapping table với cả exaggeration và cfg_weight
+        # 🎭 Enhanced 22-Emotion Mapping Table (English labels for Chatterbox compatibility)
         emotion_mapping = {
-            # Mục đích: Tự nhiên, giọng kể chuyện
-            'neutral': {'exaggeration_mult': 0.4, 'cfg_weight': 0.5},
+            # 1. Neutral - Objective narration, reporting
+            'neutral': {'exaggeration': 0.5, 'cfg_weight': 0.5},
+            'calm': {'exaggeration': 0.5, 'cfg_weight': 0.5},
+            'normal': {'exaggeration': 0.5, 'cfg_weight': 0.5},
             
-            # Giọng nhân mạnh (hùng biện, tức giận) 
-            'angry': {'exaggeration_mult': 1.2, 'cfg_weight': 0.35},
-            'threatening': {'exaggeration_mult': 1.2, 'cfg_weight': 0.35},
-            'confident': {'exaggeration_mult': 1.1, 'cfg_weight': 0.35},
-            'proud': {'exaggeration_mult': 1.1, 'cfg_weight': 0.35},
-            'dramatic': {'exaggeration_mult': 1.3, 'cfg_weight': 0.35},
-            'shout': {'exaggeration_mult': 1.3, 'cfg_weight': 0.30},
+            # 2. Gentle/Contemplative - Deep inner thoughts, light emotions  
+            'gentle': {'exaggeration': 0.35, 'cfg_weight': 0.35},
+            'contemplative': {'exaggeration': 0.4, 'cfg_weight': 0.4},
+            'soft': {'exaggeration': 0.3, 'cfg_weight': 0.3},
+            'whisper': {'exaggeration': 0.3, 'cfg_weight': 0.3},
             
-            # Cảm xúc nhẹ nhàng, nữ tính
-            'happy': {'exaggeration_mult': 0.7, 'cfg_weight': 0.45},
-            'excited': {'exaggeration_mult': 0.8, 'cfg_weight': 0.45},
-            'friendly': {'exaggeration_mult': 0.7, 'cfg_weight': 0.45},
-            'romantic': {'exaggeration_mult': 0.7, 'cfg_weight': 0.45},
-            'surprised': {'exaggeration_mult': 0.7, 'cfg_weight': 0.45},
-            'pleading': {'exaggeration_mult': 0.8, 'cfg_weight': 0.45},
+            # 3. Happy/Cheerful - Positive, joyful, friendly greetings
+            'happy': {'exaggeration': 1.35, 'cfg_weight': 0.55},
+            'cheerful': {'exaggeration': 1.2, 'cfg_weight': 0.5},
+            'joyful': {'exaggeration': 1.5, 'cfg_weight': 0.6},
+            'friendly': {'exaggeration': 1.2, 'cfg_weight': 0.5},
             
-            # Cảm xúc đặc biệt
-            'sad': {'exaggeration_mult': 0.6, 'cfg_weight': 0.45},
-            'fear': {'exaggeration_mult': 0.7, 'cfg_weight': 0.40},
-            'calm': {'exaggeration_mult': 0.4, 'cfg_weight': 0.50},
-            'whisper': {'exaggeration_mult': 0.3, 'cfg_weight': 0.50},
-            'shy': {'exaggeration_mult': 0.4, 'cfg_weight': 0.45},
-            'mysterious': {'exaggeration_mult': 0.5, 'cfg_weight': 0.40},
-            'sarcastic': {'exaggeration_mult': 1.0, 'cfg_weight': 0.35},
+            # 4. Surprised - Shock, disbelief, amazement
+            'surprised': {'exaggeration': 1.85, 'cfg_weight': 0.55},
+            'shocked': {'exaggeration': 2.0, 'cfg_weight': 0.6},
+            'amazed': {'exaggeration': 1.7, 'cfg_weight': 0.5},
+            
+            # 5. Sad/Hurt - Heartache, disappointment, heavy emotions
+            'sad': {'exaggeration': 0.4, 'cfg_weight': 0.35},
+            'hurt': {'exaggeration': 0.3, 'cfg_weight': 0.3},
+            'disappointed': {'exaggeration': 0.5, 'cfg_weight': 0.4},
+            'melancholy': {'exaggeration': 0.3, 'cfg_weight': 0.3},
+            
+            # 6. Angry/Furious - Irritated, arguing, dissatisfied
+            'angry': {'exaggeration': 2.0, 'cfg_weight': 0.7},
+            'furious': {'exaggeration': 2.2, 'cfg_weight': 0.8},
+            'irritated': {'exaggeration': 1.8, 'cfg_weight': 0.6},
+            'frustrated': {'exaggeration': 1.8, 'cfg_weight': 0.6},
+            
+            # 7. Pleading/Earnest - Begging, deep emotional appeals
+            'pleading': {'exaggeration': 1.6, 'cfg_weight': 0.45},
+            'earnest': {'exaggeration': 1.4, 'cfg_weight': 0.4},
+            'desperate': {'exaggeration': 1.8, 'cfg_weight': 0.5},
+            
+            # 8. Anxious/Restless - Worried, underlying tension
+            'anxious': {'exaggeration': 1.4, 'cfg_weight': 0.55},
+            'worried': {'exaggeration': 1.3, 'cfg_weight': 0.5},
+            'nervous': {'exaggeration': 1.5, 'cfg_weight': 0.6},
+            'restless': {'exaggeration': 1.4, 'cfg_weight': 0.55},
+            
+            # 9. Mysterious/Suspenseful - Detective, lurking, tense
+            'mysterious': {'exaggeration': 1.4, 'cfg_weight': 0.45},
+            'suspenseful': {'exaggeration': 1.2, 'cfg_weight': 0.4},
+            'ominous': {'exaggeration': 1.6, 'cfg_weight': 0.5},
+            'eerie': {'exaggeration': 1.2, 'cfg_weight': 0.4},
+            
+            # 10. Warning/Emergency - Alerts, danger, urgent calls
+            'warning': {'exaggeration': 2.0, 'cfg_weight': 0.8},
+            'urgent': {'exaggeration': 2.0, 'cfg_weight': 0.7},
+            'emergency': {'exaggeration': 2.0, 'cfg_weight': 0.9},
+            'alarm': {'exaggeration': 2.0, 'cfg_weight': 0.8},
+            
+            # 11. Sarcastic/Mocking - Teasing, implied meanings
+            'sarcastic': {'exaggeration': 0.85, 'cfg_weight': 0.45},
+            'mocking': {'exaggeration': 0.7, 'cfg_weight': 0.4},
+            'ironic': {'exaggeration': 1.0, 'cfg_weight': 0.5},
+            
+            # 12. Admiring/Impressed - Genuine praise, admiration
+            'admiring': {'exaggeration': 1.45, 'cfg_weight': 0.55},
+            'impressed': {'exaggeration': 1.3, 'cfg_weight': 0.5},
+            'praising': {'exaggeration': 1.6, 'cfg_weight': 0.6},
+            
+            # 13. Confused/Embarrassed - Hesitant, lacking confidence
+            'confused': {'exaggeration': 0.7, 'cfg_weight': 0.45},
+            'embarrassed': {'exaggeration': 0.6, 'cfg_weight': 0.4},
+            'hesitant': {'exaggeration': 0.8, 'cfg_weight': 0.5},
+            'uncertain': {'exaggeration': 0.7, 'cfg_weight': 0.45},
+            
+            # 14. Cold/Distant - Indifferent, emotionless
+            'cold': {'exaggeration': 0.35, 'cfg_weight': 0.65},
+            'distant': {'exaggeration': 0.3, 'cfg_weight': 0.6},
+            'indifferent': {'exaggeration': 0.4, 'cfg_weight': 0.7},
+            'detached': {'exaggeration': 0.3, 'cfg_weight': 0.6},
+            
+            # 15. Enthusiastic/Encouraging - Inspiring, motivating
+            'enthusiastic': {'exaggeration': 1.7, 'cfg_weight': 0.6},
+            'encouraging': {'exaggeration': 1.6, 'cfg_weight': 0.6},
+            'motivating': {'exaggeration': 1.8, 'cfg_weight': 0.6},
+            'inspiring': {'exaggeration': 1.7, 'cfg_weight': 0.6},
+            
+            # 16. Strong/Decisive - Commands, clear demands
+            'commanding': {'exaggeration': 1.75, 'cfg_weight': 0.8},
+            'decisive': {'exaggeration': 1.5, 'cfg_weight': 0.7},
+            'authoritative': {'exaggeration': 2.0, 'cfg_weight': 0.9},
+            'firm': {'exaggeration': 1.8, 'cfg_weight': 0.8},
+            
+            # 17. Innocent/Naive - Childlike, carefree joy
+            'innocent': {'exaggeration': 1.2, 'cfg_weight': 0.5},
+            'naive': {'exaggeration': 1.0, 'cfg_weight': 0.4},
+            'childlike': {'exaggeration': 1.4, 'cfg_weight': 0.6},
+            'carefree': {'exaggeration': 1.3, 'cfg_weight': 0.5},
+            
+            # 18. Bewildered/Lost - Confused, don't understand
+            'bewildered': {'exaggeration': 1.55, 'cfg_weight': 0.45},
+            'lost': {'exaggeration': 1.4, 'cfg_weight': 0.4},
+            'perplexed': {'exaggeration': 1.7, 'cfg_weight': 0.5},
+            'dazed': {'exaggeration': 1.6, 'cfg_weight': 0.45},
+            
+            # 19. Provocative/Teasing - Intentionally suggestive, playful
+            'provocative': {'exaggeration': 1.65, 'cfg_weight': 0.55},
+            'teasing': {'exaggeration': 1.5, 'cfg_weight': 0.5},
+            'flirtatious': {'exaggeration': 1.8, 'cfg_weight': 0.6},
+            'playful': {'exaggeration': 1.6, 'cfg_weight': 0.55},
+            
+            # 20. Humorous/Witty - Funny, charming, naturally captivating
+            'humorous': {'exaggeration': 1.45, 'cfg_weight': 0.5},
+            'witty': {'exaggeration': 1.3, 'cfg_weight': 0.4},
+            'amusing': {'exaggeration': 1.6, 'cfg_weight': 0.6},
+            'charming': {'exaggeration': 1.4, 'cfg_weight': 0.5},
+            
+            # 21. Persuasive/Rhetorical - Eloquent, logical with emotion
+            'persuasive': {'exaggeration': 1.35, 'cfg_weight': 0.55},
+            'rhetorical': {'exaggeration': 1.1, 'cfg_weight': 0.5},
+            'eloquent': {'exaggeration': 1.6, 'cfg_weight': 0.6},
+            'convincing': {'exaggeration': 1.4, 'cfg_weight': 0.55},
+            
+            # 22. Scornful/Contemptuous - Harsh mockery, clear disdain
+            'scornful': {'exaggeration': 1.85, 'cfg_weight': 0.65},
+            'contemptuous': {'exaggeration': 1.7, 'cfg_weight': 0.6},
+            'disdainful': {'exaggeration': 2.0, 'cfg_weight': 0.7},
+            'condescending': {'exaggeration': 1.8, 'cfg_weight': 0.65},
+            
+            # Additional common emotions
+            'excited': {'exaggeration': 1.6, 'cfg_weight': 0.6},
+            'romantic': {'exaggeration': 1.2, 'cfg_weight': 0.45},
+            'fear': {'exaggeration': 1.4, 'cfg_weight': 0.5},
+            'confident': {'exaggeration': 1.5, 'cfg_weight': 0.6},
+            'shy': {'exaggeration': 0.6, 'cfg_weight': 0.4},
+            'dramatic': {'exaggeration': 1.8, 'cfg_weight': 0.6},
         }
         
-        # Get mapping cho emotion label
-        mapping = emotion_mapping.get(emotion_label.lower(), {'exaggeration_mult': 1.0, 'cfg_weight': 0.5})
+        # Get mapping for emotion label (English labels)
+        mapping = emotion_mapping.get(emotion_label.lower(), {'exaggeration': 1.0, 'cfg_weight': 0.5})
         
-        # Calculate final parameters
-        final_exaggeration = base_exaggeration * mapping['exaggeration_mult']
+        # Use absolute values from mapping table (optimized for Chatterbox TTS)
+        final_exaggeration = mapping['exaggeration']
         cfg_weight = mapping['cfg_weight']
         
-        # Clamp exaggeration vào range 0.0-2.0
-        final_exaggeration = max(0.0, min(2.0, final_exaggeration))
+        # Clamp exaggeration to valid range 0.0-2.5
+        final_exaggeration = max(0.0, min(2.5, final_exaggeration))
         
-        # Clamp cfg_weight vào range 0.0-1.0  
+        # Clamp cfg_weight to valid range 0.0-1.0  
         cfg_weight = max(0.0, min(1.0, cfg_weight))
         
-        # Log để user thấy emotion được áp dụng
-        if emotion_label.lower() != 'neutral':
+        # Log emotion mapping results (English labels for better clarity)
+        if emotion_label.lower() not in ['neutral', 'normal', 'calm']:
             print(f"   🎭 Emotion Auto-Mapping: '{emotion_label}' → exaggeration={final_exaggeration:.2f}, cfg_weight={cfg_weight:.2f}")
         
         return final_exaggeration, cfg_weight
     
-    def update_emotion_from_slider(self, value):
-        """Cập nhật emotion input từ slider"""
-        emotion_value = value / 100.0  # Convert 0-300 to 0.0-3.0
-        self.emotion_input.setText(f"{emotion_value:.1f}")
+    # ✅ REMOVED: Global controls methods no longer needed
+    # All voice controls are now per-character only
     
-    def update_emotion_from_input(self):
-        """Cập nhật emotion slider từ input"""
+    def _update_character_table_row(self, char_id, params):
+        """Cập nhật UI table row cho character cụ thể với parameters mới"""
         try:
-            value = float(self.emotion_input.text())
-            value = max(0.0, min(3.0, value))  # Clamp to 0.0-3.0
-            slider_value = int(value * 100)  # Convert to 0-300
-            self.emotion_slider.setValue(slider_value)
-        except ValueError:
-            pass  # Ignore invalid input
-    
-    def update_speed_from_slider(self, value):
-        """Cập nhật speed input từ slider"""
-        speed_value = value / 100.0  # Convert 50-200 to 0.5-2.0
-        self.speed_input.setText(f"{speed_value:.1f}")
-    
-    def update_speed_from_input(self):
-        """Cập nhật speed slider từ input"""
-        try:
-            value = float(self.speed_input.text())
-            value = max(0.5, min(2.0, value))  # Clamp to 0.5-2.0
-            slider_value = int(value * 100)  # Convert to 50-200
-            self.speed_slider.setValue(slider_value)
-        except ValueError:
-            pass  # Ignore invalid input
-    
-    def update_cfg_weight_from_slider(self, value):
-        """Cập nhật CFG weight input từ slider"""
-        cfg_value = value / 100.0  # Convert 0-100 to 0.0-1.0
-        self.cfg_weight_input.setText(f"{cfg_value:.2f}")
-    
-    def update_cfg_weight_from_input(self):
-        """Cập nhật CFG weight slider từ input"""
-        try:
-            value = float(self.cfg_weight_input.text())
-            value = max(0.0, min(1.0, value))  # Clamp to 0.0-1.0
-            slider_value = int(value * 100)  # Convert to 0-100
-            self.cfg_weight_slider.setValue(slider_value)
-        except ValueError:
-            pass  # Ignore invalid input
-    
-    def update_default_voice_options(self):
-        """Cập nhật danh sách giọng default"""
-        self.default_voice_combo.clear()
-        
-        # Lấy voices từ Chatterbox provider
-        if self.voice_generator.chatterbox_provider:
-            available_voices = self.voice_generator.chatterbox_provider.get_available_voices()
-            for voice in available_voices:
-                display_text = f"{voice['name']} ({voice['gender']})"
-                self.default_voice_combo.addItem(display_text, voice['id'])
-        else:
-            # Fallback voices
-            fallback_voices = [
-                ("Young Female (female)", "female_young"),
-                ("Young Male (male)", "male_young"),
-                ("Narrator (neutral)", "neutral_narrator"),
-                ("Voice Cloning (variable)", "cloned")
-            ]
-            for display, voice_id in fallback_voices:
-                self.default_voice_combo.addItem(display, voice_id)
-    
-    def preview_default_voice(self):
-        """Preview giọng default với settings hiện tại"""
-        try:
-            # Get current settings
-            emotion = float(self.emotion_input.text())
-            speed = float(self.speed_input.text())
-            cfg_weight = float(self.cfg_weight_input.text())
-            voice_id = self.default_voice_combo.currentData()
-            voice_name = self.default_voice_combo.currentText()
-            
-            # Preview text
-            preview_text = f"Đây là giọng {voice_name} với emotion {emotion}, speed {speed}, và CFG weight {cfg_weight}."
-            
-            # Generate preview audio
-            import tempfile
-            temp_dir = tempfile.mkdtemp()
-            preview_path = os.path.join(temp_dir, "preview_default_voice.mp3")
-            
-            result = self.voice_generator.generate_voice_chatterbox(
-                text=preview_text,
-                save_path=preview_path,
-                voice_sample_path=None,
-                emotion_exaggeration=emotion,
-                speed=speed,
-                voice_name=voice_id,
-                cfg_weight=cfg_weight
-            )
-            
-            if result.get('success'):
-                self.play_audio_file(preview_path)
-                from PyQt5.QtWidgets import QMessageBox
-                QMessageBox.information(self, "Preview", f"Preview: {voice_name}\nEmotion: {emotion}\nSpeed: {speed}\nCFG Weight: {cfg_weight}")
-            else:
-                from PyQt5.QtWidgets import QMessageBox
-                QMessageBox.warning(self, "Lỗi", f"Không thể tạo preview:\\n{result.get('error', 'Unknown error')}")
-                
+            # Tìm row của character trong table
+            for row in range(self.character_settings_table.rowCount()):
+                name_item = self.character_settings_table.item(row, 0)
+                if name_item and name_item.text() == char_id:
+                    # Update emotion input (column 1)
+                    emotion_input = self.character_settings_table.cellWidget(row, 1)
+                    if emotion_input and 'emotion' in params:
+                        emotion_input.setText(f"{params['emotion']:.1f}")
+                    
+                    # Update speed input (column 2)  
+                    speed_input = self.character_settings_table.cellWidget(row, 2)
+                    if speed_input and 'speed' in params:
+                        speed_input.setText(f"{params['speed']:.1f}")
+                    
+                    # Update cfg weight input (column 3)
+                    cfg_weight_input = self.character_settings_table.cellWidget(row, 3)
+                    if cfg_weight_input and 'cfg_weight' in params:
+                        cfg_weight_input.setText(f"{params['cfg_weight']:.2f}")
+                    
+                    print(f"✅ Updated UI for {char_id}: emotion={params.get('emotion', 'N/A'):.1f}, speed={params.get('speed', 'N/A'):.1f}, cfg_weight={params.get('cfg_weight', 'N/A'):.2f}")
+                    break
         except Exception as e:
-            from PyQt5.QtWidgets import QMessageBox
-            QMessageBox.critical(self, "Lỗi", f"Lỗi preview voice:\\n{str(e)}")
+            print(f"⚠️ Error updating character table row: {e}")
+    
+    def _show_voice_file_selection_dialog(self, character_name, folder, audio_files):
+        """Hiển thị dialog để chọn file voice sample từ danh sách"""
+        from PySide6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QListWidget, QListWidgetItem, QPushButton, QLabel
+        from PySide6.QtCore import Qt
+        import os
+        
+        print(f"🎯 Creating dialog for {character_name} with {len(audio_files)} audio files")
+        
+        dialog = QDialog(self)
+        dialog.setWindowTitle(f"🎤 Chọn Voice Sample cho {character_name}")
+        dialog.setModal(True)
+        dialog.resize(600, 400)
+        dialog.setWindowFlags(Qt.Dialog | Qt.WindowTitleHint | Qt.WindowCloseButtonHint)
+        
+        print(f"📋 Audio files to show:")
+        for i, af in enumerate(audio_files):
+            print(f"   {i+1}. {af['name']} ({af['size_mb']:.1f}MB)")
+        
+        if len(audio_files) == 0:
+            print("❌ ERROR: No audio files provided to dialog!")
+            return None
+        
+        layout = QVBoxLayout()
+        
+        # Header
+        header_label = QLabel(f"📂 Folder: {os.path.basename(folder)}")
+        header_label.setStyleSheet("font-weight: bold; font-size: 14px; margin: 10px;")
+        layout.addWidget(header_label)
+        
+        info_label = QLabel(f"🎵 Tìm thấy {len(audio_files)} audio files. Chọn 1 file để làm voice sample:")
+        info_label.setStyleSheet("color: #666; margin-bottom: 10px;")
+        layout.addWidget(info_label)
+        
+        # File list
+        file_list = QListWidget()
+        file_list.setAlternatingRowColors(True)
+        file_list.setMinimumHeight(200)
+        
+        print(f"🔄 Adding {len(audio_files)} items to list widget...")
+        
+        for i, audio_file in enumerate(audio_files):
+            print(f"   Adding item {i+1}: {audio_file['display_name']}")
+            item = QListWidgetItem(audio_file['display_name'])
+            item.setData(Qt.UserRole, audio_file)  # Store file data
+            
+            # Color coding by file size
+            try:
+                from PySide6.QtGui import QColor
+                if audio_file['size_mb'] < 1:
+                    item.setBackground(QColor('#e8f5e8'))  # Light green for small files
+                elif audio_file['size_mb'] > 10:
+                    item.setBackground(QColor('#fff3cd'))  # Light yellow for large files
+            except Exception as e:
+                print(f"   ⚠️ Could not set background color: {e}")
+                pass  # Skip color coding if it fails
+            
+            file_list.addItem(item)
+            print(f"   ✅ Item {i+1} added successfully")
+        
+        print(f"✅ List widget now has {file_list.count()} items")
+        
+        layout.addWidget(file_list)
+        
+        # Preview section
+        preview_info = QLabel("💡 Tip: File nhỏ hơn (<5MB) và rõ ràng sẽ cho kết quả voice cloning tốt hơn")
+        preview_info.setStyleSheet("color: #007acc; font-style: italic; margin: 5px;")
+        layout.addWidget(preview_info)
+        
+        # Buttons
+        button_layout = QHBoxLayout()
+        
+        # Play button (preview - if possible)
+        play_button = QPushButton("🔊 Preview")
+        play_button.setEnabled(False)  # Disable for now - can implement later
+        play_button.setToolTip("Tính năng preview sẽ được thêm trong bản cập nhật sau")
+        
+        # Cancel button
+        cancel_button = QPushButton("❌ Hủy")
+        cancel_button.clicked.connect(dialog.reject)
+        
+        # Select button  
+        select_button = QPushButton("✅ Chọn File Này")
+        select_button.setEnabled(False)
+        select_button.setStyleSheet("font-weight: bold; background-color: #007acc; color: white;")
+        
+        # Enable select button when item is selected
+        def on_selection_changed():
+            has_selection = len(file_list.selectedItems()) > 0
+            select_button.setEnabled(has_selection)
+            if has_selection:
+                selected_item = file_list.selectedItems()[0]
+                selected_file = selected_item.data(Qt.UserRole)
+                select_button.setText(f"✅ Chọn: {selected_file['name'][:20]}")
+        
+        file_list.itemSelectionChanged.connect(on_selection_changed)
+        
+        def on_select():
+            if file_list.selectedItems():
+                dialog.selected_file = file_list.selectedItems()[0].data(Qt.UserRole)
+                dialog.accept()
+        
+        select_button.clicked.connect(on_select)
+        
+        # Double click to select
+        file_list.itemDoubleClicked.connect(on_select)
+        
+        button_layout.addWidget(play_button)
+        button_layout.addStretch()
+        button_layout.addWidget(cancel_button)
+        button_layout.addWidget(select_button)
+        
+        layout.addLayout(button_layout)
+        dialog.setLayout(layout)
+        
+        # Show dialog
+        dialog.selected_file = None
+        
+        print("🔍 About to show dialog...")
+        result = dialog.exec()
+        print(f"📊 Dialog result: {result} (Accepted={QDialog.Accepted}, Rejected={QDialog.Rejected})")
+        
+        if result == QDialog.Accepted:
+            print(f"✅ Dialog accepted, returning file: {dialog.selected_file}")
+            return dialog.selected_file
+        else:
+            print("❌ Dialog was cancelled or rejected")
+            return None
+    
+    def import_multiple_script_files(self):
+        """Import và merge nhiều file JSON scripts với smart merge logic"""
+        from PySide6.QtWidgets import QFileDialog, QMessageBox, QProgressDialog
+        
+        file_paths, _ = QFileDialog.getOpenFileNames(
+            self,
+            "Chọn nhiều file JSON scripts",
+            "",
+            "JSON files (*.json);;All files (*.*)"
+        )
+        
+        if not file_paths:
+            return
+        
+        # Progress dialog
+        progress = QProgressDialog("Đang import và merge files...", "Hủy", 0, len(file_paths), self)
+        progress.setWindowModality(Qt.WindowModal)
+        progress.show()
+        
+        merged_data = {
+            "project": {
+                "title": "Merged Multi-File Story",
+                "description": "Story được merge từ nhiều files",
+                "total_duration": 0,
+                "target_audience": "general",
+                "style": "multi_story",
+                "created_date": "2024-01-20"
+            },
+            "segments": [],
+            "characters": [],
+            "audio_settings": {
+                "merge_order": ["intro", "content", "conclusion"],
+                "crossfade_duration": 0.5,
+                "normalize_volume": True,
+                "background_music_volume": 0.2,
+                "voice_volume": 1.0,
+                "output_format": "mp3",
+                "sample_rate": 44100
+            },
+            "metadata": {
+                "version": "2.0",
+                "ai_model": "Multi-File Merger",
+                "generation_date": "2024-01-20",
+                "language": "vi-VN",
+                "content_rating": "G",
+                "source_files": [],
+                "merge_type": "smart_merge"
+            }
+        }
+        
+        character_id_map = {}  # Map old char IDs to new merged IDs
+        next_character_id = 1
+        next_segment_id = 1
+        
+        loaded_files = []
+        errors = []
+        
+        try:
+            for i, file_path in enumerate(file_paths):
+                if progress.wasCanceled():
+                    return
+                
+                progress.setValue(i)
+                progress.setLabelText(f"Processing: {os.path.basename(file_path)}")
+                
+                try:
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        script_data = json.load(f)
+                    
+                    if not self.validate_script_data(script_data):
+                        errors.append(f"{os.path.basename(file_path)}: Invalid format")
+                        continue
+                    
+                    # Store source file info
+                    file_info = {
+                        "filename": os.path.basename(file_path),
+                        "segments": len(script_data.get('segments', [])),
+                        "characters": len(script_data.get('characters', []))
+                    }
+                    merged_data["metadata"]["source_files"].append(file_info)
+                    
+                    # === SMART CHARACTER MERGE ===
+                    file_char_map = {}  # Map for this specific file
+                    
+                    for char in script_data.get('characters', []):
+                        old_char_id = char['id']
+                        char_name = char.get('name', '')
+                        
+                        # Check if character already exists (by name similarity)
+                        existing_char_id = None
+                        for existing_char in merged_data['characters']:
+                            if existing_char['name'].lower() == char_name.lower():
+                                existing_char_id = existing_char['id']
+                                break
+                        
+                        if existing_char_id:
+                            # Use existing character
+                            file_char_map[old_char_id] = existing_char_id
+                            print(f"🔄 Merged character: {char_name} -> {existing_char_id}")
+                        else:
+                            # Create new character with unique ID
+                            new_char_id = f"character{next_character_id}"
+                            while any(c['id'] == new_char_id for c in merged_data['characters']):
+                                next_character_id += 1
+                                new_char_id = f"character{next_character_id}"
+                            
+                            new_char = char.copy()
+                            new_char['id'] = new_char_id
+                            merged_data['characters'].append(new_char)
+                            file_char_map[old_char_id] = new_char_id
+                            character_id_map[old_char_id] = new_char_id
+                            next_character_id += 1
+                            print(f"✅ Added character: {char_name} -> {new_char_id}")
+                    
+                    # === MERGE SEGMENTS ===
+                    for segment in script_data.get('segments', []):
+                        new_segment = segment.copy()
+                        new_segment['id'] = next_segment_id
+                        
+                        # Update character IDs in dialogues
+                        for dialogue in new_segment.get('dialogues', []):
+                            old_speaker = dialogue['speaker']
+                            if old_speaker in file_char_map:
+                                dialogue['speaker'] = file_char_map[old_speaker]
+                            else:
+                                print(f"⚠️ Character not found: {old_speaker}")
+                        
+                        # Add file source info
+                        new_segment['source_file'] = os.path.basename(file_path)
+                        merged_data['segments'].append(new_segment)
+                        next_segment_id += 1
+                    
+                    # Update project duration
+                    if 'project' in script_data and 'total_duration' in script_data['project']:
+                        merged_data['project']['total_duration'] += script_data['project']['total_duration']
+                    
+                    loaded_files.append(os.path.basename(file_path))
+                    
+                except Exception as e:
+                    errors.append(f"{os.path.basename(file_path)}: {str(e)}")
+                    continue
+            
+            progress.setValue(len(file_paths))
+            
+            if not merged_data['segments']:
+                QMessageBox.warning(self, "Lỗi", "Không có segment nào được load từ các files!")
+                return
+            
+            # Update project title with file count
+            merged_data['project']['title'] = f"Multi-Story ({len(loaded_files)} files)"
+            merged_data['project']['description'] = f"Merged from: {', '.join(loaded_files)}"
+            
+            # Set merged data
+            self.voice_studio_script_data = merged_data
+            self.imported_file_label.setText(f"✅ {len(loaded_files)} files merged")
+            self.imported_file_label.setStyleSheet("color: #007AFF; font-weight: bold;")
+            self.update_voice_studio_overview()
+            
+            # Show success message
+            success_msg = f"✅ Multi-file merge thành công!\n\n"
+            success_msg += f"📁 Files loaded: {len(loaded_files)}\n"
+            success_msg += f"🎭 Characters: {len(merged_data['characters'])}\n"  
+            success_msg += f"📝 Segments: {len(merged_data['segments'])}\n"
+            success_msg += f"⏱️ Total duration: {merged_data['project']['total_duration']}s\n"
+            
+            if errors:
+                success_msg += f"\n⚠️ Errors ({len(errors)}):\n"
+                for error in errors[:3]:  # Show first 3 errors
+                    success_msg += f"  • {error}\n"
+                if len(errors) > 3:
+                    success_msg += f"  ... và {len(errors) - 3} errors khác"
+            
+            QMessageBox.information(self, "Multi-File Import", success_msg)
+            
+        except Exception as e:
+            QMessageBox.critical(self, "Lỗi", f"Lỗi trong quá trình merge:\n{str(e)}")
+        finally:
+            progress.close()

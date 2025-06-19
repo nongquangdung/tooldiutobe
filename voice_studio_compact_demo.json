@@ -1,0 +1,37 @@
+{
+  "segments": [
+    {
+      "id": 1,
+      "dialogues": [
+        {"speaker": "narrator", "text": "Chào mọi người! Hôm nay chúng ta sẽ khám phá bí mật của sức mạnh tâm lý tích cực.", "emotion": "friendly"},
+        {"speaker": "character1", "text": "Wow, nghe thật thú vị! Tôi đã chờ đợi bài học này rất lâu rồi!", "emotion": "excited"}
+      ]
+    },
+    {
+      "id": 2,
+      "dialogues": [
+        {"speaker": "character2", "text": "Nghiên cứu cho thấy tư duy tích cực có thể thay đổi cấu trúc não bộ của chúng ta.", "emotion": "contemplative"},
+        {"speaker": "character1", "text": "Thật không thể tin được! Vậy làm sao để áp dụng điều này?", "emotion": "surprised"}
+      ]
+    },
+    {
+      "id": 3,
+      "dialogues": [
+        {"speaker": "narrator", "text": "Có 3 bước đơn giản: Nhận thức, Thực hành và Kiên trì.", "emotion": "confident"},
+        {"speaker": "character2", "text": "Mỗi ngày dành 10 phút để ghi lại 3 điều tích cực bạn trải qua.", "emotion": "encouraging"}
+      ]
+    },
+    {
+      "id": 4,
+      "dialogues": [
+        {"speaker": "character1", "text": "Tôi sẽ bắt đầu ngay từ hôm nay! Cảm ơn các bạn đã chia sẻ!", "emotion": "happy"},
+        {"speaker": "narrator", "text": "Hãy nhớ rằng thay đổi nhỏ mỗi ngày sẽ tạo nên kết quả lớn sau này.", "emotion": "inspiring"}
+      ]
+    }
+  ],
+  "characters": [
+    {"id": "narrator", "name": "MC Anna", "gender": "female"},
+    {"id": "character1", "name": "Học viên Nam", "gender": "male"},
+    {"id": "character2", "name": "Chuyên gia Tâm lý", "gender": "neutral"}
+  ]
+} 

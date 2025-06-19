@@ -19,7 +19,7 @@ def test_real_chatterbox():
     print("🧪 Testing Real Chatterbox TTS Provider...")
     
     # Initialize provider
-    provider = RealChatterboxProvider()
+    provider = RealChatterboxProvider.get_instance()
     
     # Print device info
     info = provider.get_device_info()

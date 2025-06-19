@@ -8,6 +8,7 @@ import uuid
 from typing import Optional, Dict, Any, List
 import logging
 import traceback
+import threading
 
 # Safe imports với fallbacks
 try:
@@ -48,15 +49,39 @@ class RealChatterboxProvider:
     """
     Real Chatterbox TTS Provider - Sử dụng chatterbox-tts chính thức
     
+    SINGLETON PATTERN: Chỉ có 1 instance duy nhất để tránh lãng phí GPU resources
+    
     Features:
     - 🚀 Real Chatterbox voice cloning
     - 🎛️ CFG weight control (thật)
     - 🎭 Emotion exaggeration (thật)
     - 💾 GPU/CPU auto-detection
     - 🔄 Thread-safe operations
+    - 🎯 Singleton pattern - chỉ 1 instance GPU
     """
     
+    _instance = None
+    _lock = threading.Lock()
+    
+    def __new__(cls):
+        """Singleton pattern implementation - thread-safe"""
+        if cls._instance is None:
+            with cls._lock:
+                if cls._instance is None:
+                    print("🔄 Creating new RealChatterboxProvider instance (Singleton)")
+                    cls._instance = super(RealChatterboxProvider, cls).__new__(cls)
+                    cls._instance._initialized = False
+                else:
+                    print("♻️ Reusing existing RealChatterboxProvider instance (Singleton)")
+        else:
+            print("♻️ Reusing existing RealChatterboxProvider instance (Singleton)")
+        return cls._instance
+    
     def __init__(self):
+        # Chỉ initialize một lần duy nhất
+        if self._initialized:
+            return
+            
         self.device = None
         self.device_name = "Unknown"
         self.is_initialized = False
@@ -65,6 +90,7 @@ class RealChatterboxProvider:
         
         if not CHATTERBOX_AVAILABLE:
             print("⚠️ Real Chatterbox TTS not available - install with: pip install chatterbox-tts")
+            self._initialized = True
             return
         
         try:
@@ -73,6 +99,16 @@ class RealChatterboxProvider:
         except Exception as e:
             print(f"⚠️ Real Chatterbox TTS initialization failed: {e}")
             self.available = False
+        
+        self._initialized = True
+    
+    @classmethod
+    def get_instance(cls):
+        """
+        Get singleton instance - thread-safe
+        Phương thức này đảm bảo chỉ có 1 instance duy nhất
+        """
+        return cls()
     
     def _detect_device(self):
         """Auto-detect best available device"""
@@ -489,7 +525,10 @@ class RealChatterboxProvider:
         return memory_info
     
     def cleanup(self):
-        """Clean up resources"""
+        """
+        Cleanup Real Chatterbox TTS resources
+        CẢNH BÁO: Với Singleton pattern, cleanup sẽ ảnh hưởng đến tất cả instances
+        """
         try:
             if self.chatterbox_model:
                 # Clear model from memory
@@ -500,14 +539,29 @@ class RealChatterboxProvider:
                 torch.cuda.empty_cache()
                 
             self.is_initialized = False
-            print("🧹 Real Chatterbox TTS cleaned up")
+            print("🧹 Real Chatterbox TTS cleaned up (Singleton)")
             
         except Exception as e:
             logger.error(f"Cleanup failed: {e}")
     
+    def soft_cleanup(self):
+        """
+        Soft cleanup - chỉ dọn dẹp cache, không destroy model
+        An toàn hơn cho Singleton pattern
+        """
+        try:
+            if TORCH_AVAILABLE and self.device == "cuda":
+                torch.cuda.empty_cache()
+                print("🧹 Real Chatterbox CUDA cache cleared (Singleton safe)")
+        except Exception as e:
+            logger.warning(f"Real Chatterbox soft cleanup warning: {e}")
+    
     def __del__(self):
-        """Destructor"""
-        self.cleanup()
+        """
+        Destructor - không cleanup với Singleton pattern
+        Để tránh destroy shared instance
+        """
+        pass
     
     def clear_voice_cache(self):
         """Clear voice cache"""
