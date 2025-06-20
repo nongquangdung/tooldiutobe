@@ -2704,19 +2704,92 @@ Created: {data['created_at']}
                 print("❌ No audio files successfully loaded with PyDub")
                 print("🔄 Attempting FORCE BYPASS with simple file concatenation...")
                 
-                # FORCE BYPASS: Simple binary file concatenation for MP3s
+                # FORCE BYPASS: Use FFmpeg directly via subprocess (no PyDub)
                 try:
                     output_path = os.path.join(output_dir, "complete_merged_audio.mp3")
                     
-                    with open(output_path, 'wb') as outfile:
+                    # Try FFmpeg direct command first
+                    import subprocess
+                    import shutil
+                    
+                    # Check if ffmpeg is available
+                    ffmpeg_available = shutil.which('ffmpeg') is not None
+                    
+                    if ffmpeg_available:
+                        print("🎯 Using FFmpeg direct command for concatenation...")
+                        
+                        # Create file list for FFmpeg
+                        file_list_path = os.path.join(output_dir, "concat_list.txt")
+                        with open(file_list_path, 'w', encoding='utf-8') as f:
+                            for file_path in sorted_files:
+                                normalized_path = os.path.normpath(file_path)
+                                if os.path.exists(normalized_path):
+                                    # FFmpeg expects forward slashes even on Windows
+                                    ffmpeg_path = normalized_path.replace('\\', '/')
+                                    f.write(f"file '{ffmpeg_path}'\n")
+                        
+                        # Run FFmpeg concatenation
+                        cmd = ['ffmpeg', '-f', 'concat', '-safe', '0', '-i', file_list_path, '-c', 'copy', output_path, '-y']
+                        
+                        result = subprocess.run(cmd, capture_output=True, text=True)
+                        
+                        # Clean up temp file
+                        try:
+                            os.remove(file_list_path)
+                        except:
+                            pass
+                        
+                        if result.returncode == 0:
+                            files_concatenated = len([f for f in sorted_files if os.path.exists(os.path.normpath(f))])
+                            print(f"✅ FFmpeg SUCCESS: {files_concatenated} files merged to {output_path}")
+                        else:
+                            print(f"❌ FFmpeg failed: {result.stderr}")
+                            ffmpeg_available = False
+                    
+                    if not ffmpeg_available:
+                        print("🔄 FFmpeg not available, trying Windows copy command...")
+                        
+                        # Fallback: Use Windows copy command for concatenation
                         files_concatenated = 0
-                        for file_path in sorted_files:
+                        temp_files = []
+                        
+                        for i, file_path in enumerate(sorted_files):
                             normalized_path = os.path.normpath(file_path)
                             if os.path.exists(normalized_path):
-                                print(f"   📎 Concatenating: {os.path.basename(file_path)}")
-                                with open(normalized_path, 'rb') as infile:
-                                    outfile.write(infile.read())
+                                print(f"   📎 Processing: {os.path.basename(file_path)}")
                                 files_concatenated += 1
+                        
+                        if files_concatenated > 0:
+                            # Use copy command on Windows
+                            files_str = ' + '.join([f'"{os.path.normpath(f)}"' for f in sorted_files if os.path.exists(os.path.normpath(f))])
+                            copy_cmd = f'copy /b {files_str} "{output_path}"'
+                            
+                            result = subprocess.run(copy_cmd, shell=True, capture_output=True, text=True)
+                            
+                            if result.returncode == 0:
+                                print(f"✅ Windows COPY SUCCESS: {files_concatenated} files merged")
+                            else:
+                                print(f"❌ Windows copy failed: {result.stderr}")
+                                # Last resort: Create a playlist file instead
+                                playlist_path = os.path.join(output_dir, "complete_conversation_playlist.m3u")
+                                with open(playlist_path, 'w', encoding='utf-8') as f:
+                                    f.write("#EXTM3U\n")
+                                    for file_path in sorted_files:
+                                        if os.path.exists(os.path.normpath(file_path)):
+                                            f.write(f"{os.path.basename(file_path)}\n")
+                                
+                                output_path = playlist_path
+                                print(f"✅ Created playlist file: {playlist_path}")
+                                
+                                # Show different success dialog for playlist
+                                msg = QMessageBox()
+                                msg.setIcon(QMessageBox.Information)
+                                msg.setWindowTitle("📝 Playlist Created!")
+                                msg.setText(f"✅ Created playlist with {files_concatenated} audio files!")
+                                msg.setInformativeText(f"📁 Saved to: {playlist_path}\n\n💡 Open this file with your music player to play all segments in order.")
+                                msg.setStandardButtons(QMessageBox.Ok)
+                                msg.exec_()
+                                return output_path
                     
                     if files_concatenated > 0:
                         print(f"✅ FORCE BYPASS SUCCESS: {files_concatenated} files concatenated to {output_path}")
