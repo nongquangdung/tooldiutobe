@@ -2618,12 +2618,15 @@ Created: {data['created_at']}
             sorted_files = sorted(all_mp3_files, key=extract_numbers)
             
             print(f"📋 File order after smart sorting:")
-            for i, file_path in enumerate(sorted_files[:10]):  # Show first 10
+            for i, file_path in enumerate(sorted_files[:5]):  # Show first 5
                 seg, dial = extract_numbers(file_path)
                 filename = os.path.basename(file_path)
-                print(f"   {i+1:2d}. {filename} (seg:{seg}, dial:{dial})")
-            if len(sorted_files) > 10:
-                print(f"   ... and {len(sorted_files) - 10} more files")
+                absolute_path = os.path.abspath(file_path)
+                exists = "✅" if os.path.exists(file_path) else "❌"
+                print(f"   {i+1:2d}. {filename} (seg:{seg}, dial:{dial}) {exists}")
+                print(f"       Path: {absolute_path}")
+            if len(sorted_files) > 5:
+                print(f"   ... and {len(sorted_files) - 5} more files")
             
             # Merge all files in order
             merged_audio = AudioSegment.silent(duration=0)
@@ -2632,8 +2635,16 @@ Created: {data['created_at']}
             for file_path in sorted_files:
                 filename = os.path.basename(file_path)
                 try:
+                    # Fix path separators for Windows compatibility
+                    normalized_path = os.path.normpath(file_path)
+                    
+                    # Double check file exists before trying to load
+                    if not os.path.exists(normalized_path):
+                        print(f"   ⚠️ File not found at: {normalized_path}")
+                        continue
+                    
                     # Load audio file
-                    audio_segment = AudioSegment.from_mp3(file_path)
+                    audio_segment = AudioSegment.from_mp3(normalized_path)
                     
                     # Add silence padding between dialogues (0.5 seconds)
                     if total_files_added > 0:
