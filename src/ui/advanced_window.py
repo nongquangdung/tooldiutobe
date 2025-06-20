@@ -2593,14 +2593,37 @@ Created: {data['created_at']}
             
             print("🔍 SMART AUDIO MERGE - Scanning for files...")
             print(f"📁 Output directory: {output_dir}")
+            print(f"📍 Absolute path: {os.path.abspath(output_dir)}")
             
             # Get all segment MP3 files and sort them intelligently
-            all_mp3_files = glob.glob(os.path.join(output_dir, "segment_*.mp3"))
+            search_pattern = os.path.join(output_dir, "segment_*.mp3")
+            print(f"🔍 Search pattern: {search_pattern}")
+            all_mp3_files = glob.glob(search_pattern)
             print(f"🎵 Found {len(all_mp3_files)} segment MP3 files")
             
             if not all_mp3_files:
-                print("❌ No segment files found to merge")
-                return None
+                print("❌ No segment files found with glob search")
+                
+                # Fallback: Try manual directory listing  
+                print("🔄 Trying manual directory scan...")
+                try:
+                    if os.path.exists(output_dir):
+                        all_files = os.listdir(output_dir)
+                        segment_files = [f for f in all_files if f.startswith('segment_') and f.endswith('.mp3')]
+                        print(f"📂 Manual scan found {len(segment_files)} segment files: {segment_files[:5]}")
+                        
+                        if segment_files:
+                            # Build full paths
+                            all_mp3_files = [os.path.join(output_dir, f) for f in segment_files]
+                        else:
+                            print("❌ No segment files found even with manual scan")
+                            return None
+                    else:
+                        print(f"❌ Output directory does not exist: {output_dir}")
+                        return None
+                except Exception as e:
+                    print(f"❌ Error during manual scan: {e}")
+                    return None
             
             # Smart sorting: Extract segment and dialogue numbers for proper ordering
             def extract_numbers(filename):
