@@ -823,7 +823,7 @@ class AdvancedMainWindow(QMainWindow):
                 background-color: #005999;
             }
         """)
-        self.force_merge_btn.clicked.connect(self.force_merge_all_files)
+        self.force_merge_btn.clicked.connect(self.force_merge_all_segments)
         self.force_merge_btn.setToolTip("Gộp tất cả file segment_*.mp3 có trong thư mục output (không cần script data)")
         action_buttons_layout.addWidget(self.force_merge_btn)
         
@@ -2541,6 +2541,113 @@ Created: {data['created_at']}
         self.voice_progress_text.setText("Sẵn sàng tạo voice")
         QMessageBox.information(self, "Thông báo", "Đã xóa kết quả!")
     
+    def force_merge_all_segments(self):
+        """Force merge tất cả segment files với proper MP3 handling"""
+        try:
+            output_dir = self.voice_output_input.text() or "./voice_studio_output"
+            
+            if not os.path.exists(output_dir):
+                QMessageBox.warning(self, "Cảnh báo", f"Thư mục output không tồn tại: {output_dir}")
+                return
+            
+            # Find all segment files
+            import glob
+            audio_files = glob.glob(os.path.join(output_dir, "segment_*.mp3"))
+            
+            if not audio_files:
+                QMessageBox.warning(self, "Cảnh báo", f"Không tìm thấy file segment_*.mp3 trong thư mục: {output_dir}")
+                return
+            
+            # Sort files properly
+            def extract_numbers(filename):
+                import re
+                basename = os.path.basename(filename)
+                match = re.search(r'segment_(\d+)_dialogue_(\d+)', basename)
+                if match:
+                    return (int(match.group(1)), int(match.group(2)))
+                return (0, 0)
+            
+            sorted_files = sorted(audio_files, key=extract_numbers)
+            
+            print(f"\n🚀 FORCE MERGE ALL SEGMENTS")
+            print(f"📁 Directory: {output_dir}")
+            print(f"🎵 Found {len(sorted_files)} files to merge")
+            
+            # Show progress
+            self.voice_progress_text.setText(f"Force merging {len(sorted_files)} files...")
+            QApplication.processEvents()
+            
+            # Output file with timestamp
+            from datetime import datetime
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            output_path = os.path.join(output_dir, f"force_merged_conversation_{timestamp}.mp3")
+            
+            print(f"🔧 Using MP3 frame-level concatenation...")
+            
+            try:
+                with open(output_path, 'wb') as outfile:
+                    first_file = True
+                    files_merged = 0
+                    
+                    for file_path in sorted_files:
+                        if os.path.exists(file_path):
+                            print(f"   📎 Processing: {os.path.basename(file_path)}")
+                            
+                            with open(file_path, 'rb') as infile:
+                                data = infile.read()
+                                
+                                if first_file:
+                                    # Keep full first file including headers
+                                    outfile.write(data)
+                                    first_file = False
+                                    print(f"      ✅ Wrote full file with headers ({len(data)} bytes)")
+                                else:
+                                    # Skip ID3 headers for subsequent files
+                                    # Find MP3 sync frame (0xFF 0xFB or 0xFF 0xFA)
+                                    sync_pos = 0
+                                    for i in range(min(1024, len(data) - 1)):
+                                        if data[i] == 0xFF and data[i+1] in [0xFB, 0xFA, 0xF3, 0xF2]:
+                                            sync_pos = i
+                                            break
+                                    
+                                    # Write from sync frame onwards
+                                    audio_data = data[sync_pos:]
+                                    outfile.write(audio_data)
+                                    print(f"      ✅ Wrote audio data ({len(audio_data)} bytes, skipped {sync_pos} header bytes)")
+                                
+                                files_merged += 1
+                
+                # Check file size
+                file_size = os.path.getsize(output_path)
+                print(f"\n✅ FORCE MERGE SUCCESS!")
+                print(f"📁 Output: {os.path.basename(output_path)}")
+                print(f"📏 File size: {file_size:,} bytes ({file_size / 1024 / 1024:.2f} MB)")
+                
+                # Success dialog với option to play
+                msg = QMessageBox()
+                msg.setIcon(QMessageBox.Information)
+                msg.setWindowTitle("🎉 Force Merge Success!")
+                msg.setText(f"✅ Successfully merged {files_merged} audio files!")
+                msg.setInformativeText(f"📁 Saved: {os.path.basename(output_path)}\n📏 Size: {file_size / 1024 / 1024:.2f} MB\n\n🎵 Bạn có muốn nghe merged audio không?")
+                msg.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+                msg.setDefaultButton(QMessageBox.Yes)
+                
+                reply = msg.exec_()
+                
+                if reply == QMessageBox.Yes:
+                    self.play_audio_file(output_path)
+                
+                self.voice_progress_text.setText(f"✅ Force merged: {os.path.basename(output_path)}")
+                
+            except Exception as merge_error:
+                print(f"❌ Force merge failed: {merge_error}")
+                QMessageBox.critical(self, "Lỗi", f"Force merge thất bại:\n{merge_error}")
+                self.voice_progress_text.setText("❌ Force merge failed")
+                
+        except Exception as e:
+            print(f"❌ Error in force merge: {e}")
+            QMessageBox.critical(self, "Lỗi", f"Lỗi khi force merge:\n{e}")
+    
     def force_merge_all_files(self):
         """Force merge tất cả segment files - không cần script data"""
         try:
@@ -2712,8 +2819,27 @@ Created: {data['created_at']}
                     import subprocess
                     import shutil
                     
-                    # Check if ffmpeg is available
+                    # Check if ffmpeg is available (multiple locations)
                     ffmpeg_available = shutil.which('ffmpeg') is not None
+                    
+                    # Try common FFmpeg installation paths on Windows
+                    if not ffmpeg_available:
+                        common_paths = [
+                            r"C:\ffmpeg\bin\ffmpeg.exe",
+                            r"C:\Program Files\ffmpeg\bin\ffmpeg.exe", 
+                            r"C:\Program Files (x86)\ffmpeg\bin\ffmpeg.exe",
+                            r"C:\Users\%USERNAME%\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-7.1.1-full_build\bin\ffmpeg.exe"
+                        ]
+                        
+                        for path in common_paths:
+                            expanded_path = os.path.expandvars(path)
+                            if os.path.exists(expanded_path):
+                                ffmpeg_cmd = expanded_path
+                                ffmpeg_available = True
+                                print(f"🎯 Found FFmpeg at: {expanded_path}")
+                                break
+                        else:
+                            ffmpeg_cmd = 'ffmpeg'
                     
                     if ffmpeg_available:
                         print("🎯 Using FFmpeg direct command for concatenation...")
@@ -2729,7 +2855,7 @@ Created: {data['created_at']}
                                     f.write(f"file '{ffmpeg_path}'\n")
                         
                         # Run FFmpeg concatenation
-                        cmd = ['ffmpeg', '-f', 'concat', '-safe', '0', '-i', file_list_path, '-c', 'copy', output_path, '-y']
+                        cmd = [ffmpeg_cmd, '-f', 'concat', '-safe', '0', '-i', file_list_path, '-c', 'copy', output_path, '-y']
                         
                         result = subprocess.run(cmd, capture_output=True, text=True)
                         
@@ -2768,8 +2894,42 @@ Created: {data['created_at']}
                             
                             if result.returncode == 0:
                                 print(f"✅ Windows COPY SUCCESS: {files_concatenated} files merged")
+                                print(f"⚠️ Note: Duration may show incorrectly due to MP3 header issues")
                             else:
                                 print(f"❌ Windows copy failed: {result.stderr}")
+                                print("🔄 Trying MP3 frame-level concatenation...")
+                                
+                                # Alternative: MP3 frame-level concatenation
+                                try:
+                                    with open(output_path, 'wb') as outfile:
+                                        first_file = True
+                                        for file_path in sorted_files:
+                                            normalized_path = os.path.normpath(file_path)
+                                            if os.path.exists(normalized_path):
+                                                with open(normalized_path, 'rb') as infile:
+                                                    data = infile.read()
+                                                    
+                                                    if first_file:
+                                                        # Keep full first file including headers
+                                                        outfile.write(data)
+                                                        first_file = False
+                                                    else:
+                                                        # Skip ID3 headers for subsequent files (usually first 128 bytes)
+                                                        # Find MP3 sync frame (0xFF 0xFB or 0xFF 0xFA)
+                                                        sync_pos = 0
+                                                        for i in range(min(1024, len(data) - 1)):
+                                                            if data[i] == 0xFF and data[i+1] in [0xFB, 0xFA, 0xF3, 0xF2]:
+                                                                sync_pos = i
+                                                                break
+                                                        
+                                                        # Write from sync frame onwards
+                                                        outfile.write(data[sync_pos:])
+                                    
+                                    print(f"✅ MP3 FRAME SUCCESS: {files_concatenated} files merged with frame sync")
+                                    
+                                except Exception as frame_error:
+                                    print(f"❌ MP3 frame concatenation failed: {frame_error}")
+                                
                                 # Last resort: Create a playlist file instead
                                 playlist_path = os.path.join(output_dir, "complete_conversation_playlist.m3u")
                                 with open(playlist_path, 'w', encoding='utf-8') as f:
