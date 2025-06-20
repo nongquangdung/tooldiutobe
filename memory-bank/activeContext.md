@@ -1070,108 +1070,114 @@ QLineEdit:focus {
 
 # 🎯 ACTIVE CONTEXT - Voice Studio Development
 
-## 🔧 Current Focus: Fixed Emotion Conversion Error
+## 🔧 Current Focus: Audio Merging Issue Troubleshooting
 
-**Latest Update**: Successfully fixed the `could not convert string to float: 'friendly'` error when using manual voice configuration with automatic emotion adjustment.
+**Latest Update**: Enhanced debugging for audio merging when using custom output directories.
 
-## ✅ **COMPLETED FIXES**
+## 🚨 **CURRENT ISSUE: Audio Merging with Custom Output**
 
-### 1. **Emotion Conversion Bug Fix** 
+### Problem Description
+- When selecting custom output directory (not default), audio merging fails
+- Error: "No audio files found to merge" 
+- Files show as missing: `[WinError 2] The system cannot find the file specified`
+
+### 🔍 **Debugging Enhancements Added**
+1. **Detailed file listing**: Shows all MP3 files found in output directory
+2. **Path verification**: Logs exact output directory being used
+3. **Better error messages**: Distinguishes between no files vs wrong format
+4. **Segment file tracking**: Shows which specific files are missing
+
+### 🧩 **Potential Root Causes**
+1. **Output path mismatch**: Voice generation saves to one path, merge looks in another
+2. **File naming inconsistency**: Generated files don't match expected pattern
+3. **Permission issues**: Custom directory access problems
+4. **Timing issues**: Merge called before files are fully written
+
+### ✅ **COMPLETED FIXES**
+
+#### 1. **Emotion Conversion Bug Fix** 
 - **Problem**: Code was trying to convert emotion keywords to float values
 - **Error**: `could not convert string to float: 'friendly'`
 - **Solution**: Updated all emotion handling to use string keywords instead of numeric values
 
-### 2. **Fixed Methods**:
-- `preview_selected_voice()`: Emotion now handled as string
-- `generate_voices_for_characters()`: Updated emotion mapping logic  
-- `update_character_emotion_from_input()`: No more float conversion
-- `_get_voice_gender_parameters()`: Returns emotion keywords
-- `update_character_voice()`: Auto-adjusts with string emotions
+#### 2. **Fixed Methods**:
+- ✅ `preview_selected_voice()`: Emotion now handled as string
+- ✅ `generate_voices_for_characters()`: Updated emotion mapping logic  
+- ✅ `update_character_emotion_from_input()`: No more float conversion
+- ✅ `_get_voice_gender_parameters()`: Returns emotion keywords
+- ✅ `merge_all_voice_files()`: Enhanced debugging output
+- ✅ `manual_merge_audio()`: Better error diagnostics
 
-### 3. **Updated JSON Structure (Simplified)**
+## 📋 **SIMPLIFIED JSON STRUCTURE**
+
+### Core Structure (Updated)
 ```json
 {
-  "dialogues": [
+  "segments": [
     {
-      "speaker": "narrator",
-      "text": "Content...", 
-      "emotion": "friendly",        // ✅ String keyword only
-      "pause_after": 1.0,           // ✅ Optional
-      "emphasis": ["keywords"]      // ✅ Optional
+      "id": 1, 
+      "title": "Scene Title",
+      "dialogues": [
+        {
+          "speaker": "narrator", 
+          "text": "Content text...", 
+          "emotion": "friendly",        // ✅ String keyword only
+          "pause_after": 1.2,           // ✅ Optional
+          "emphasis": ["keyword1", "keyword2"]      // ✅ Optional
+        }
+      ]
     }
   ],
   "characters": [
     {
-      "id": "narrator",
-      "name": "Character Name",
-      "gender": "female", 
+      "id": "narrator", 
+      "name": "Character Name", 
+      "gender": "neutral",
       "default_emotion": "friendly"  // ✅ String only
     }
   ]
 }
 ```
 
-## 🎛️ **VOICE CONTROL MODES** 
+**Key Changes**:
+- ❌ Removed: `emotion_intensity`, `speed` fields
+- ✅ Simplified: Only `emotion` keywords (friendly, excited, etc.)
+- ✅ Optional: `pause_after`, `emphasis` for advanced control
 
-### Manual + Auto Emotion (Now Working)
-- ✅ Manual voice settings work correctly
-- ✅ Auto emotion mapping works with string keywords
-- ✅ No more conversion errors
-- ✅ Both modes can be used together safely
+## 🎯 **NEXT STEPS**
 
-### Voice Parameter Auto-Adjustment 
-- **Female voices** → `emotion: "gentle"` 
-- **Male voices** → `emotion: "confident"`
-- **Neutral voices** → `emotion: "friendly"`
-- **Voice cloning** → `emotion: "friendly"`
+### Immediate Priority
+1. **Test with different output directories** to isolate the merge issue
+2. **Verify file generation** in custom vs default paths
+3. **Check file naming consistency** between generation and merge
+4. **Add more detailed path logging** in voice generation process
 
-## 📋 **AI REQUEST FORM TEMPLATES** (Updated)
+### Quick Fix Options
+1. **Force refresh** output directory before merge
+2. **Add file existence verification** after each voice generation
+3. **Implement retry logic** for missing files
+4. **Add manual merge button** as fallback option
 
-All 3 template modes now use simplified structure:
+## 💡 **DEBUGGING WORKFLOW**
 
-### 🏃‍♂️ **RAPID Mode** (~150 tokens)
-```json
-{"speaker": "narrator", "text": "...", "emotion": "friendly"}
-```
+When encountering merge issues:
+1. **Check console output** for file listing and paths
+2. **Verify output directory** contains expected segment files
+3. **Compare generated filenames** with expected pattern
+4. **Test manual merge** to isolate automatic vs manual issues
 
-### 📝 **STANDARD Mode** (~400 tokens) 
-```json
-{
-  "text": "Content...",
-  "emotion": "friendly",
-  "pause_after": 1.0,
-  "emphasis": ["keywords"]
-}
-```
+## 🔄 **TEMPLATE STATUS**
 
-### 📚 **DETAILED Mode** (~800 tokens)
-- Full project structure with string emotions
-- Camera movements, transitions, background music
-- Character personalities and voice characteristics
+✅ **AI Request Templates**: Updated with simplified emotion structure
+- 🏃‍♂️ RAPID Mode: ~150 tokens (+1350 savings)
+- 📝 STANDARD Mode: ~400 tokens (+1100 savings)  
+- 📚 DETAILED Mode: ~800 tokens (+700 savings)
 
-## 🎯 **TOKEN SAVINGS**
-- **RAPID**: +1350 tokens for story content  
-- **STANDARD**: +1100 tokens for story content
-- **DETAILED**: +700 tokens for story content
+✅ **Multi-file JSON Import**: Working with smart character merge
+✅ **Voice Generation**: Works with manual + auto emotion modes
+⚠️ **Audio Merging**: Issue with custom output directories
 
-## 🔄 **NEXT PRIORITIES**
+---
 
-1. **Testing**: Comprehensive test of all voice generation modes
-2. **UI Polish**: Ensure error handling is smooth 
-3. **Documentation**: Update user guides with new emotion keywords
-4. **Performance**: Monitor voice generation quality with string emotions
-
-## 🎬 **CURRENT CAPABILITIES**
-
-- ✅ Multi-file JSON import with smart merge
-- ✅ Simplified JSON structure (emotion keywords)
-- ✅ 3 AI request template modes  
-- ✅ Voice Studio with fixed emotion handling
-- ✅ Manual + Auto emotion mode compatibility
-- ✅ Real-time token preview and savings
-- ✅ Complete conversation merging
-- ✅ Voice cloning and prompt-based generation
-
-## 📊 **SYSTEM STATUS**: 🟢 Stable & Ready
-
-Voice Studio is now fully functional with simplified, AI-friendly JSON structure and robust emotion handling.
+**Status**: 🟡 Investigating audio merge issue | All other features working
+**Last Update**: Emotion conversion fix + merge debugging enhancement

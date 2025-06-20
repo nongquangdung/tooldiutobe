@@ -808,6 +808,25 @@ class AdvancedMainWindow(QMainWindow):
         self.clear_voice_results_btn.clicked.connect(self.clear_voice_results)
         action_buttons_layout.addWidget(self.clear_voice_results_btn)
         
+        # Force Merge button - tối ưu cho trường hợp script data không match
+        self.force_merge_btn = QPushButton("🔧 Force Merge All")
+        self.force_merge_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #007ACC;
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 6px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #005999;
+            }
+        """)
+        self.force_merge_btn.clicked.connect(self.force_merge_all_files)
+        self.force_merge_btn.setToolTip("Gộp tất cả file segment_*.mp3 có trong thư mục output (không cần script data)")
+        action_buttons_layout.addWidget(self.force_merge_btn)
+        
         action_buttons_layout.addStretch()
         progress_layout.addLayout(action_buttons_layout)
         
@@ -2521,75 +2540,119 @@ Created: {data['created_at']}
         self.voice_results_text.clear()
         self.voice_progress_text.setText("Sẵn sàng tạo voice")
         QMessageBox.information(self, "Thông báo", "Đã xóa kết quả!")
+    
+    def force_merge_all_files(self):
+        """Force merge tất cả segment files - không cần script data"""
+        try:
+            output_dir = self.voice_output_input.text() or "./voice_studio_output"
+            
+            if not os.path.exists(output_dir):
+                QMessageBox.warning(self, "Cảnh báo", f"Thư mục output không tồn tại: {output_dir}")
+                return
+            
+            # Show progress
+            self.voice_progress_text.setText("Force merging tất cả files...")
+            QApplication.processEvents()
+            
+            # Use smart merge logic (doesn't require script data)
+            merged_file = self.merge_all_voice_files(output_dir)
+            
+            if merged_file:
+                # Success message
+                filename = os.path.basename(merged_file)
+                message = f"🎉 Force merge thành công!\n\n"
+                message += f"📁 File: {filename}\n"
+                message += f"📍 Vị trí: {output_dir}\n\n"
+                message += f"✅ Đã gộp tất cả segment files theo thứ tự số.\n"
+                message += f"Bạn có muốn nghe cuộc hội thoại hoàn chỉnh không?"
+                
+                reply = QMessageBox.question(
+                    self, "Thành công", message,
+                    QMessageBox.Yes | QMessageBox.No,
+                    QMessageBox.Yes
+                )
+                
+                if reply == QMessageBox.Yes:
+                    self.play_audio_file(merged_file)
+                    
+                self.voice_progress_text.setText(f"✅ Force merge: {filename}")
+            else:
+                QMessageBox.warning(self, "Lỗi", "Không thể force merge files. Xem console để biết chi tiết.")
+                self.voice_progress_text.setText("❌ Lỗi force merge")
+                
+        except Exception as e:
+            QMessageBox.critical(self, "Lỗi", f"Lỗi force merge:\n{str(e)}")
+            self.voice_progress_text.setText("❌ Lỗi force merge")
         
     def merge_all_voice_files(self, output_dir):
-        """Gộp tất cả audio files thành 1 cuộc hội thoại hoàn chỉnh theo thứ tự script"""
+        """Gộp tất cả audio files thành 1 cuộc hội thoại hoàn chỉnh - SMART MERGE"""
         try:
             from pydub import AudioSegment
             import re
             import glob
             
-            if not self.voice_studio_script_data:
-                print("❌ No script data available for merging")
-                return None
-            
-            print("🔍 Scanning for generated audio files...")
+            print("🔍 SMART AUDIO MERGE - Scanning for files...")
             print(f"📁 Output directory: {output_dir}")
             
-            # Debug: List all mp3 files in output directory
-            all_mp3_files = glob.glob(os.path.join(output_dir, "*.mp3"))
-            print(f"🎵 Found {len(all_mp3_files)} MP3 files in directory:")
-            for mp3_file in all_mp3_files[:10]:  # Show first 10 files
-                filename = os.path.basename(mp3_file)
-                print(f"   - {filename}")
-            if len(all_mp3_files) > 10:
-                print(f"   ... and {len(all_mp3_files) - 10} more files")
+            # Get all segment MP3 files and sort them intelligently
+            all_mp3_files = glob.glob(os.path.join(output_dir, "segment_*.mp3"))
+            print(f"🎵 Found {len(all_mp3_files)} segment MP3 files")
             
-            # Collect all generated files by segment order
-            merged_audio = AudioSegment.silent(duration=0)  # Start with empty audio
+            if not all_mp3_files:
+                print("❌ No segment files found to merge")
+                return None
+            
+            # Smart sorting: Extract segment and dialogue numbers for proper ordering
+            def extract_numbers(filename):
+                """Extract segment_id, dialogue_id from filename like segment_1_dialogue_2_speaker.mp3"""
+                match = re.search(r'segment_(\d+)_dialogue_(\d+)', os.path.basename(filename))
+                if match:
+                    return (int(match.group(1)), int(match.group(2)))
+                # Fallback: try to extract just segment number
+                match = re.search(r'segment_(\d+)', os.path.basename(filename))
+                if match:
+                    return (int(match.group(1)), 0)
+                return (999, 999)  # Put unrecognized files at end
+            
+            # Sort files by segment then dialogue order
+            sorted_files = sorted(all_mp3_files, key=extract_numbers)
+            
+            print(f"📋 File order after smart sorting:")
+            for i, file_path in enumerate(sorted_files[:10]):  # Show first 10
+                seg, dial = extract_numbers(file_path)
+                filename = os.path.basename(file_path)
+                print(f"   {i+1:2d}. {filename} (seg:{seg}, dial:{dial})")
+            if len(sorted_files) > 10:
+                print(f"   ... and {len(sorted_files) - 10} more files")
+            
+            # Merge all files in order
+            merged_audio = AudioSegment.silent(duration=0)
             total_files_added = 0
-            missing_files = []
             
-            # Process each segment in order
-            for segment in self.voice_studio_script_data['segments']:
-                segment_id = segment['id']
-                print(f"📝 Processing segment {segment_id}...")
-                
-                # Process each dialogue in order within segment
-                for dialogue_idx, dialogue in enumerate(segment['dialogues'], 1):
-                    speaker = dialogue['speaker']
+            for file_path in sorted_files:
+                filename = os.path.basename(file_path)
+                try:
+                    # Load audio file
+                    audio_segment = AudioSegment.from_mp3(file_path)
                     
-                    # Build expected filename
-                    filename = f"segment_{segment_id}_dialogue_{dialogue_idx}_{speaker}.mp3"
-                    file_path = os.path.join(output_dir, filename)
+                    # Add silence padding between dialogues (0.5 seconds)
+                    if total_files_added > 0:
+                        silence = AudioSegment.silent(duration=500)  # 0.5 second pause
+                        merged_audio += silence
                     
-                    if os.path.exists(file_path):
-                        try:
-                            # Load audio file
-                            audio_segment = AudioSegment.from_mp3(file_path)
-                            
-                            # Add silence padding between dialogues (0.5 seconds)
-                            if total_files_added > 0:
-                                silence = AudioSegment.silent(duration=500)  # 0.5 second pause
-                                merged_audio += silence
-                            
-                            # Add the dialogue audio
-                            merged_audio += audio_segment
-                            total_files_added += 1
-                            
-                            # Log addition
-                            duration = len(audio_segment) / 1000.0  # Convert to seconds
-                            print(f"   ✅ Added: {filename} ({duration:.1f}s)")
-                            
-                        except Exception as e:
-                            print(f"   ❌ Failed to load {filename}: {e}")
-                            missing_files.append(filename)
-                    else:
-                        print(f"   ⚠️ Missing: {filename}")
-                        missing_files.append(filename)
+                    # Add the dialogue audio
+                    merged_audio += audio_segment
+                    total_files_added += 1
+                    
+                    # Log addition
+                    duration = len(audio_segment) / 1000.0  # Convert to seconds
+                    print(f"   ✅ Added: {filename} ({duration:.1f}s)")
+                    
+                except Exception as e:
+                    print(f"   ❌ Failed to load {filename}: {e}")
             
             if total_files_added == 0:
-                print("❌ No audio files found to merge")
+                print("❌ No audio files successfully loaded")
                 return None
             
             # Generate output filename with timestamp
