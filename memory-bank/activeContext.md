@@ -1067,3 +1067,111 @@ QLineEdit:focus {
 - **Settings Storage**: character_chatterbox_settings dictionary
 - **Preview Path**: temp_dir với unique filenames
 - **UI Framework**: PyQt5 với custom styling
+
+# 🎯 ACTIVE CONTEXT - Voice Studio Development
+
+## 🔧 Current Focus: Fixed Emotion Conversion Error
+
+**Latest Update**: Successfully fixed the `could not convert string to float: 'friendly'` error when using manual voice configuration with automatic emotion adjustment.
+
+## ✅ **COMPLETED FIXES**
+
+### 1. **Emotion Conversion Bug Fix** 
+- **Problem**: Code was trying to convert emotion keywords to float values
+- **Error**: `could not convert string to float: 'friendly'`
+- **Solution**: Updated all emotion handling to use string keywords instead of numeric values
+
+### 2. **Fixed Methods**:
+- `preview_selected_voice()`: Emotion now handled as string
+- `generate_voices_for_characters()`: Updated emotion mapping logic  
+- `update_character_emotion_from_input()`: No more float conversion
+- `_get_voice_gender_parameters()`: Returns emotion keywords
+- `update_character_voice()`: Auto-adjusts with string emotions
+
+### 3. **Updated JSON Structure (Simplified)**
+```json
+{
+  "dialogues": [
+    {
+      "speaker": "narrator",
+      "text": "Content...", 
+      "emotion": "friendly",        // ✅ String keyword only
+      "pause_after": 1.0,           // ✅ Optional
+      "emphasis": ["keywords"]      // ✅ Optional
+    }
+  ],
+  "characters": [
+    {
+      "id": "narrator",
+      "name": "Character Name",
+      "gender": "female", 
+      "default_emotion": "friendly"  // ✅ String only
+    }
+  ]
+}
+```
+
+## 🎛️ **VOICE CONTROL MODES** 
+
+### Manual + Auto Emotion (Now Working)
+- ✅ Manual voice settings work correctly
+- ✅ Auto emotion mapping works with string keywords
+- ✅ No more conversion errors
+- ✅ Both modes can be used together safely
+
+### Voice Parameter Auto-Adjustment 
+- **Female voices** → `emotion: "gentle"` 
+- **Male voices** → `emotion: "confident"`
+- **Neutral voices** → `emotion: "friendly"`
+- **Voice cloning** → `emotion: "friendly"`
+
+## 📋 **AI REQUEST FORM TEMPLATES** (Updated)
+
+All 3 template modes now use simplified structure:
+
+### 🏃‍♂️ **RAPID Mode** (~150 tokens)
+```json
+{"speaker": "narrator", "text": "...", "emotion": "friendly"}
+```
+
+### 📝 **STANDARD Mode** (~400 tokens) 
+```json
+{
+  "text": "Content...",
+  "emotion": "friendly",
+  "pause_after": 1.0,
+  "emphasis": ["keywords"]
+}
+```
+
+### 📚 **DETAILED Mode** (~800 tokens)
+- Full project structure with string emotions
+- Camera movements, transitions, background music
+- Character personalities and voice characteristics
+
+## 🎯 **TOKEN SAVINGS**
+- **RAPID**: +1350 tokens for story content  
+- **STANDARD**: +1100 tokens for story content
+- **DETAILED**: +700 tokens for story content
+
+## 🔄 **NEXT PRIORITIES**
+
+1. **Testing**: Comprehensive test of all voice generation modes
+2. **UI Polish**: Ensure error handling is smooth 
+3. **Documentation**: Update user guides with new emotion keywords
+4. **Performance**: Monitor voice generation quality with string emotions
+
+## 🎬 **CURRENT CAPABILITIES**
+
+- ✅ Multi-file JSON import with smart merge
+- ✅ Simplified JSON structure (emotion keywords)
+- ✅ 3 AI request template modes  
+- ✅ Voice Studio with fixed emotion handling
+- ✅ Manual + Auto emotion mode compatibility
+- ✅ Real-time token preview and savings
+- ✅ Complete conversation merging
+- ✅ Voice cloning and prompt-based generation
+
+## 📊 **SYSTEM STATUS**: 🟢 Stable & Ready
+
+Voice Studio is now fully functional with simplified, AI-friendly JSON structure and robust emotion handling.

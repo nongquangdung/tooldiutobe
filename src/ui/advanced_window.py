@@ -2534,6 +2534,16 @@ Created: {data['created_at']}
                 return None
             
             print("🔍 Scanning for generated audio files...")
+            print(f"📁 Output directory: {output_dir}")
+            
+            # Debug: List all mp3 files in output directory
+            all_mp3_files = glob.glob(os.path.join(output_dir, "*.mp3"))
+            print(f"🎵 Found {len(all_mp3_files)} MP3 files in directory:")
+            for mp3_file in all_mp3_files[:10]:  # Show first 10 files
+                filename = os.path.basename(mp3_file)
+                print(f"   - {filename}")
+            if len(all_mp3_files) > 10:
+                print(f"   ... and {len(all_mp3_files) - 10} more files")
             
             # Collect all generated files by segment order
             merged_audio = AudioSegment.silent(duration=0)  # Start with empty audio
@@ -2647,8 +2657,26 @@ Created: {data['created_at']}
             
             # Check if any audio files exist
             audio_files = glob.glob(os.path.join(output_dir, "segment_*.mp3"))
+            print(f"🔍 Looking for segment files in: {output_dir}")
+            print(f"🎵 Found {len(audio_files)} segment files:")
+            for audio_file in audio_files[:5]:  # Show first 5 files
+                print(f"   - {os.path.basename(audio_file)}")
+            if len(audio_files) > 5:
+                print(f"   ... and {len(audio_files) - 5} more")
+                
             if not audio_files:
-                QMessageBox.warning(self, "Cảnh báo", "Không tìm thấy file audio nào để gộp!\n\nHãy tạo voice trước khi gộp.")
+                # Also check for any MP3 files
+                all_mp3_files = glob.glob(os.path.join(output_dir, "*.mp3"))
+                if all_mp3_files:
+                    message = f"Không tìm thấy file audio theo format segment_*.mp3!\n\n"
+                    message += f"Tuy nhiên có {len(all_mp3_files)} file MP3 khác trong thư mục:\n"
+                    message += f"{output_dir}\n\n"
+                    message += "Hãy kiểm tra lại hoặc tạo voice với định dạng đúng."
+                else:
+                    message = f"Không tìm thấy file audio nào để gộp!\n\n"
+                    message += f"Thư mục: {output_dir}\n\n"
+                    message += "Hãy tạo voice trước khi gộp."
+                QMessageBox.warning(self, "Cảnh báo", message)
                 return
             
             # Show progress
