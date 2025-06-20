@@ -1,8 +1,79 @@
 # activeContext.md
 
-## 🎯 LATEST: MULTI-FILE IMPORT & COMPACT TEMPLATE STRATEGY ✅
+## 🔧 LATEST: WINDOWS PATH COMPATIBILITY DEBUG FOR SMART MERGE 🟡
 
-### 🚀 BREAKTHROUGH ACHIEVEMENT: Voice Studio Revolution
+### 🚨 CURRENT CRITICAL ISSUE: Audio Merging Path Problems
+
+**Status**: Files tạo thành công nhưng SMART MERGE lỗi path compatibility trên Windows
+
+## 🔍 **PROBLEM ANALYSIS (from latest test)**
+```
+✅ Files được tạo thành công:
+   ./voice_studio_output\segment_2_dialogue_2_character2.mp3
+   ./voice_studio_output\segment_3_dialogue_1_character1.mp3
+   ./voice_studio_output\segment_4_dialogue_2_character1.mp3
+
+🔍 SMART MERGE detects files:
+   📋 File order after smart sorting:
+   1. segment_1_dialogue_1_narrator.mp3 (seg:1, dial:1)
+   2. segment_2_dialogue_1_character1.mp3 (seg:2, dial:1)
+   ...
+
+❌ But loading fails:
+   Failed to load segment_X_dialogue_Y.mp3: [WinError 2] The system cannot find the file specified
+```
+
+## 🧩 **ROOT CAUSE IDENTIFIED**
+1. **Path Separator Mismatch**: 
+   - Files created with Windows `\` backslash
+   - SMART MERGE uses Unix `/` forward slash
+   
+2. **Glob Pattern Issue**:
+   - `glob.glob()` might have issues with relative paths on Windows
+   - Current directory vs absolute path confusion
+
+## 🔧 **FIXES IMPLEMENTED**
+
+### 1. **Path Normalization**
+```python
+# Fix path separators for Windows compatibility  
+normalized_path = os.path.normpath(file_path)
+
+# Double check file exists before loading
+if not os.path.exists(normalized_path):
+    print(f"⚠️ File not found at: {normalized_path}")
+    continue
+```
+
+### 2. **Enhanced Debugging**
+```python
+print(f"📍 Absolute path: {os.path.abspath(output_dir)}")
+print(f"🔍 Search pattern: {search_pattern}")
+
+# File existence verification in listing
+exists = "✅" if os.path.exists(file_path) else "❌"
+print(f"   {filename} (seg:{seg}, dial:{dial}) {exists}")
+print(f"       Path: {absolute_path}")
+```
+
+### 3. **Fallback File Detection**
+```python
+# If glob fails, try manual directory listing
+if not all_mp3_files:
+    all_files = os.listdir(output_dir)
+    segment_files = [f for f in all_files if f.startswith('segment_') and f.endswith('.mp3')]
+    all_mp3_files = [os.path.join(output_dir, f) for f in segment_files]
+```
+
+### 🎯 **NEXT DEBUGGING STEPS**
+1. **Test enhanced debugging** để xem absolute paths và file existence details
+2. **Check FFprobe installation** nếu PyDub warnings ảnh hưởng
+3. **Verify current directory** vs expected paths
+4. **Test Force Merge button** after path fixes
+
+---
+
+## 🎉 **PREVIOUSLY COMPLETED FEATURES**
 
 #### ✅ **MULTI-FILE JSON IMPORT & AUTO-MERGE**:
 
@@ -484,506 +555,6 @@ character_chatterbox_settings[char_id] = {
 
 ---
 
-## 🎯 LATEST: SỬA LỖI VOICE PARAMETER AUTO-ADJUSTMENT & PREVIEW ✅
-
-### 🔧 VẤN ĐỀ ĐÃ SỬA:
-1. **Voice Selection Parameter Auto-Update**: ✅ FIXED
-   - Khi chọn giọng trong dropdown, các thông số emotion/speed/cfg_weight giờ TỰ ĐỘNG cập nhật theo gender
-   - Female voices → emotion=1.2, speed=0.95, cfg_weight=0.6
-   - Male voices → emotion=0.8, speed=1.05, cfg_weight=0.4  
-   - Neutral voices → emotion=1.0, speed=1.0, cfg_weight=0.5
-   - UI input fields được cập nhật real-time
-
-2. **Preview Function Import Fix**: ✅ FIXED
-   - Sửa `from PyQt5.QtWidgets import QMessageBox` → `from PySide6.QtWidgets import QMessageBox`
-   - Preview giờ hoạt động đúng với các parameters được apply
-
-### 🎭 VOICE PARAMETER AUTO-ADJUSTMENT SYSTEM:
-
-#### 👩 **Female Voices** (Nhẹ nhàng, biểu cảm):
-- `female_young`, `female_mature`, `female_gentle`
-- **Auto-settings**: emotion=1.2, speed=0.95, cfg_weight=0.6
-
-#### 👨 **Male Voices** (Mạnh mẽ, ít biểu cảm):
-- `male_young`, `male_mature`, `male_deep`
-- **Auto-settings**: emotion=0.8, speed=1.05, cfg_weight=0.4
-
-#### 🗣️ **Neutral Voices** (Cân bằng):
-- `neutral_narrator`, `neutral_child`, `neutral_elder`
-- **Auto-settings**: emotion=1.0, speed=1.0, cfg_weight=0.5
-
-#### 🎤 **Voice Cloning**:
-- `cloned` voice
-- **Auto-settings**: emotion=1.0, speed=1.0, cfg_weight=0.5
-
-### 🔄 WORKFLOW HOẠT ĐỘNG:
-1. User chọn voice trong dropdown
-2. `update_character_voice()` được gọi
-3. Auto-detect gender của voice → apply optimal parameters  
-4. Cập nhật UI input fields real-time
-5. Console log parameters đã thay đổi
-6. Preview button hoạt động với settings mới
-
-### ✅ TEST CASE:
-- Chọn "👩 Young Female" → emotion=1.2, speed=0.95, cfg_weight=0.6
-- Chọn "👨 Deep Male" → emotion=0.8, speed=1.05, cfg_weight=0.4
-- Bấm 🎧 Preview → Audio generated với đúng parameters
-- MessageBox hiển thị đúng thông tin voice
-
-## 🎯 LATEST: VOICE CLONING - FOLDER + FILE SELECTION UI ✅
-
-### 🎤 VẤN ĐỀ ĐÃ GIẢI QUYẾT HOÀN TOÀN:
-
-#### **IMPROVED: Option 2 - Folder + File Selection UI**: ✅ COMPLETED
-
-**🔧 BEFORE**: User confusion về voice cloning mechanism - chọn folder nhưng không rõ file nào được sử dụng
-
-**✅ NOW**: Crystal clear file selection process với detailed file info:
-
-1. **Step 1**: Chọn folder chứa audio files
-2. **Step 2**: Beautiful file selection dialog với:
-   - ✅ File name, size (MB), duration
-   - ✅ Color coding (green <1MB, yellow >10MB)  
-   - ✅ Double-click to select
-   - ✅ Preview button (placeholder for future)
-   - ✅ File validation & error handling
-
-3. **Step 3**: UI shows selected file name instead of folder
-   - ✅ Button displays: `🎵 filename.wav` thay vì `📁 Ready`
-   - ✅ Tooltip shows full path
-   - ✅ Truncated names cho files dài
-
-#### **TECHNICAL IMPLEMENTATION**:
-
-##### **1. New Method**: `_show_voice_file_selection_dialog()` ✅
-- **File Info Display**: Size, duration (nếu có mutagen)
-- **Color Coding**: Visual feedback cho file size
-- **User-Friendly**: Double-click selection, clear buttons
-- **Error Handling**: File validation, graceful fallbacks
-
-##### **2. Updated Method**: `select_character_voice_clone_folder()` ✅  
-- **TWO-STEP PROCESS**: Folder selection → File selection
-- **FILE PATH STORAGE**: Lưu specific file path thay vì folder
-- **BETTER UX**: File info collection & display
-
-##### **3. Enhanced UI**: `_update_voice_clone_status_ui()` ✅
-- **FILE NAME DISPLAY**: Shows actual selected file name
-- **SMART TRUNCATION**: Long filenames → "filename..."
-- **DETAILED TOOLTIPS**: Full path info on hover
-
-##### **4. Button Text Updates**: ✅
-- **OLD**: `📁 Select` → **NEW**: `🎵 Chọn file`
-- **Clearer Tooltips**: "Chọn audio file làm voice sample"
-
-#### **CƠ CHẾ VOICE CLONING EXPLAINED**:
-
-```
-BEFORE (Confusing):
-📁 Folder → ??? → Multiple files → Which one???
-
-AFTER (Crystal Clear):
-📁 Folder → 🎵 File Selection Dialog → 🎵 Specific File → ✅ Ready
-```
-
-**Real Chatterbox TTS Chỉ Cần 1 Audio File**:
-- ✅ User chọn folder (future-proof cho multiple samples)
-- ✅ User chọn 1 file specific làm voice sample  
-- ✅ App lưu file path, sử dụng chính xác file đó
-- ✅ UI hiển thị file name để user biết file nào đang được dùng
-
-#### **USER EXPERIENCE IMPROVEMENTS**:
-
-1. **🎯 NO MORE CONFUSION**: User biết chính xác file nào được sử dụng
-2. **📊 FILE INFO**: Size, duration giúp user chọn file tốt nhất
-3. **🎨 VISUAL FEEDBACK**: Color coding cho file size
-4. **💡 HELPFUL TIPS**: "File nhỏ hơn (<5MB) và rõ ràng sẽ tốt hơn"
-5. **🔄 REAL-TIME UI**: Button text changes to show selected file
-
----
-
-## 🎯 CURRENT FOCUS: Testing & User Feedback
-
-### ✅ **READY FOR TESTING**:
-1. **Voice Studio UI**: Clean, simplified, chỉ per-character controls
-2. **Quick Actions**: Working correctly với real-time UI updates  
-3. **Voice Cloning**: Clear folder + file selection process với file info display
-
-### 🔄 **NEXT STEPS IF ISSUES FOUND**:
-1. User feedback về file selection UX
-2. Potential audio preview trong file selection dialog
-3. Bulk file operations nếu user cần
-
-## 🎯 LATEST: AI GENDER ANALYSIS SYSTEM IMPLEMENTED ✅
-
-### 🤖 AI Analysis Features:
-1. **Text Input (max 300 chars)**: Nhập text mẫu để phân tích
-2. **Pattern Recognition**: 
-   - Vietnamese patterns: "cô Anna", "anh Peter", "bé Sarah"
-   - Gender indicators: mẹ, bố, con gái, con trai, công chúa, hoàng tử
-   - Pronouns: cô ấy, anh ấy, chị ấy, chú ấy
-3. **Confidence Scoring**: 60-95% accuracy với color coding
-4. **Auto Voice Assignment**: Gán voice phù hợp dựa trên phân tích
-
-### 🎚️ Voice Parameters cho Gender Optimization:
-
-#### 👩 Female Voice Settings (Chatterbox):
-- **emotion_exaggeration**: 1.2 (nhẹ nhàng, biểu cảm hơn)
-- **speed**: 0.95 (chậm hơn một chút)
-- **suggested_voices**: Young Female, Gentle Female, Mature Female
-
-#### 👨 Male Voice Settings (Chatterbox):
-- **emotion_exaggeration**: 0.8 (mạnh mẽ, ít biểu cảm)
-- **speed**: 1.05 (nhanh hơn một chút)
-- **suggested_voices**: Young Male, Deep Male, Mature Male
-
-#### 🗣️ Neutral Voice Settings (Chatterbox):
-- **emotion_exaggeration**: 1.0 (cân bằng)
-- **speed**: 1.0 (bình thường)
-- **suggested_voices**: Narrator, Child Voice, Elder Voice
-
-## Trạng thái hiện tại - CHATTERBOX-ONLY VOICE STUDIO ✅
-
-### ✅ Core TTS Status:
-- ✅ **TTS Functionality CONFIRMED**: Test với 8 dialogues, 100% thành công
-- ✅ **Audio Generation**: 8 files MP3 được tạo thành công từ script JSON
-- ✅ **Device Detection**: CUDA (GTX 1080) hoạt động hoàn hảo
-- ✅ **Chatterbox Only**: Simplified UI chỉ Chatterbox voices
-- ✅ **AI Voice Cloning**: Upload samples và real-time processing
-
-### 🆕 VOICE STUDIO ENHANCEMENTS:
-- ✅ **Streamlined UI**: Bỏ provider selection confusion
-- ✅ **Always-on Controls**: Emotion/Speed/Cloning controls luôn hiển thị
-- ✅ **Chatterbox Focus**: 10 built-in voices + voice cloning
-- ✅ **AI Integration**: Gender analysis + voice optimization
-- ✅ **Better Defaults**: Character defaults dùng appropriate Chatterbox voices
-
-## 🔄 Bước tiếp theo:
-
-### Voice Studio Optimization:
-- ✅ Chatterbox-only mode implemented
-- ✅ UI simplified và streamlined
-- ✅ All controls always visible
-- ⏳ User testing với new simplified workflow
-
-### Advanced Chatterbox Features:
-- 🔧 **Voice Style Presets**: Cartoon, Professional, Dramatic presets
-- 🎨 **Emotion Mapping**: Auto-adjust emotion dựa trên dialogue context
-- 📊 **Batch Voice Processing**: Apply settings to multiple characters at once
-- 🎬 **Project Voice Profiles**: Save voice setups per project type
-
-### Integration với Video Pipeline:
-- 🔗 Seamless Chatterbox integration với video generation
-- 📋 Voice consistency across video segments
-- 🎭 Character voice profiles persistent across projects
-
-## ✅ SUMMARY: CHATTERBOX-ONLY VOICE STUDIO READY
-- ✅ Đã xóa Google TTS, ElevenLabs, Auto-select providers
-- ✅ Voice Studio giờ chỉ focus vào Chatterbox AI voice cloning
-- ✅ UI simplified và user-friendly hơn
-- ✅ All Chatterbox features luôn accessible
-- ✅ AI Gender Analysis hoạt động với Chatterbox voices
-- ✅ Default characters setup với appropriate Chatterbox voices
-- ✅ Ready cho production với streamlined workflow 
-
-## 🎯 LATEST: XÓA VOICE MAPPING SECTION TRONG TAB TẠO VIDEO ✅
-
-### 🚀 THAY ĐỔI TRONG TAB TẠO VIDEO:
-- ✅ **Xóa Voice Mapping Section**: Đã xóa toàn bộ "🎭 Cấu hình giọng theo nhân vật" trong tab Tạo Video
-- ✅ **Simplified UI**: Tab Tạo Video giờ gọn gàng hơn, không còn voice mapping table  
-- ✅ **Voice Studio Unchanged**: Tab Voice Studio vẫn giữ nguyên tất cả chức năng
-- ✅ **Hoàn tác thay đổi sai**: Đã revert những chỉnh sửa sai trong manual_voice_setup_dialog.py
-
-### ❌ PHẦN ĐÃ XÓA KHỎI TAB TẠO VIDEO:
-```
-Group 3: Voice Mapping
-├── 🎭 Cấu hình giọng theo nhân vật
-├── Voice mapping table (Nhân vật, Tên, Giới tính, Giọng nói)  
-├── 🔄 Reset về mặc định button
-├── 🎧 Preview giọng button
-└── Voice controls layout
-```
-
-### ✅ PHẦN CÒN LẠI TRONG TAB TẠO VIDEO:
-1. **Script Overview**: Thông tin script đã tạo
-2. **Advanced Chatterbox Controls**: Cấu hình Chatterbox TTS chi tiết  
-3. **Generation Controls**: TTS Provider và tạo audio
-
-## 💡 IMPROVED USER EXPERIENCE:
-
-### Tab Tạo Video - Simplified:
-- ✅ **Ít confusion**: Không còn voice mapping table gây rối
-- ✅ **Focus on generation**: Tập trung vào tạo audio thay vì config
-- ✅ **Cleaner interface**: UI gọn gàng, dễ sử dụng hơn
-
-### Voice Configuration Workflow:
-1. **Voice Studio tab** → Cấu hình voices chi tiết với manual setup
-2. **Tạo Video tab** → Chỉ tạo audio/video, không config voices
-
-## 🔧 TECHNICAL CHANGES:
-
-### Files Modified:
-- ✅ `src/ui/advanced_window.py`: Xóa Group 3: Voice Mapping section  
-- ✅ `src/ui/manual_voice_setup_dialog.py`: Hoàn tác về trạng thái ban đầu
-
-### Logic Removed:
-```python
-# XÓA: Voice mapping table và controls trong tab Tạo Video
-# voice_mapping_group = QGroupBox("🎭 Cấu hình giọng theo nhân vật")  
-# self.voice_mapping_table = QTableWidget()
-# self.reset_voices_btn = QPushButton("🔄 Reset về mặc định")
-# self.preview_voice_btn = QPushButton("🎧 Preview giọng")
-```
-
-## 🎯 LATEST: CHATTERBOX MANUAL CONTROLS ENHANCED ✅
-
-### 🚀 VOICE STUDIO MANUAL CONTROLS CẢI TIẾN:
-- ✅ **CFG Weight Control**: Thêm CFG Weight slider + input field (0.0-1.0)
-- ✅ **Input Fields Replaced Sliders**: Emotion, Speed, CFG Weight giờ hiển thị giá trị rõ ràng
-- ✅ **Default Voice Selection**: Thêm dropdown chọn giọng mặc định với preview
-- ✅ **Character-Specific Settings**: Mỗi nhân vật có CFG Weight + Voice riêng
-- ✅ **Real-time Sync**: Input fields ↔ sliders sync 2-way
-- ✅ **Enhanced Preview**: Preview với đầy đủ thông số (emotion, speed, CFG weight, voice)
-
-### 🎛️ GLOBAL SETTINGS (4 CONTROLS):
-#### 📊 **Emotion Exaggeration**:
-- Slider: 0-300 (0.0-3.0)
-- Input: Text field hiển thị giá trị chính xác
-- Range: 0.0-3.0 với validation
-
-#### ⚡ **Speed**:
-- Slider: 50-200 (0.5-2.0)  
-- Input: Text field hiển thị giá trị chính xác
-- Range: 0.5-2.0x với validation
-
-#### 🎚️ **CFG Weight** (NEW):
-- Slider: 0-100 (0.0-1.0)
-- Input: Text field hiển thị giá trị chính xác  
-- Range: 0.0-1.0 với validation
-
-#### 🗣️ **Default Voice** (NEW):
-- Dropdown: 10 Chatterbox voices + Voice Cloning
-- Preview button: Test voice với current settings
-- Auto-populate từ real_chatterbox_provider
-
-### 🎭 CHARACTER-SPECIFIC TABLE (6 COLUMNS):
-1. **Nhân vật**: Character name (read-only)
-2. **Emotion**: Input field (0.0-3.0) thay vì slider
-3. **Speed**: Input field (0.5-2.0) thay vì slider  
-4. **CFG Weight**: Input field (0.0-1.0) - NEW
-5. **Voice**: Dropdown chọn voice riêng - NEW
-6. **Preview**: Test với settings riêng của character
-
-### 💾 **SETTINGS STORAGE**:
-```python
-character_chatterbox_settings[char_id] = {
-    'emotion': 1.0,
-    'speed': 1.0, 
-    'cfg_weight': 0.5,  # NEW
-    'voice_id': 'female_young',  # NEW
-    'voice_clone_path': None
-}
-```
-
-### 🎧 **PREVIEW FEATURES**:
-- **Global Preview**: Test default voice với global settings
-- **Character Preview**: Test từng character với settings riêng
-- **Full Info Display**: Hiển thị tất cả parameters trong preview dialog
-- **Real Audio Generation**: Sử dụng Chatterbox TTS thực tế
-
-### ✅ **UI IMPROVEMENTS**:
-- ✅ **Clear Value Display**: Không còn chỉ slider, giờ thấy số chính xác
-- ✅ **Column Sizing**: Table columns có width phù hợp
-- ✅ **Tooltips**: Preview buttons có tooltip rõ ràng
-- ✅ **Validation**: Input fields tự động clamp giá trị hợp lệ
-- ✅ **2-way Sync**: Slider ↔ Input field sync real-time
-
-### 🔧 **TECHNICAL IMPLEMENTATION**:
-- ✅ **Input Handlers**: `update_*_from_input()` cho validation
-- ✅ **Slider Handlers**: `update_*_from_slider()` cho sync
-- ✅ **Character Handlers**: `update_character_*_from_input()` cho per-character settings
-- ✅ **Voice Selection**: `update_character_voice()` cho voice mapping
-- ✅ **Enhanced Preview**: `preview_character_with_settings()` với full parameters
-
-### 📋 **WORKFLOW**:
-1. **Set Global Defaults**: Emotion, Speed, CFG Weight, Voice
-2. **Customize Per Character**: Override settings cho từng nhân vật
-3. **Preview Individual**: Test voice cho character cụ thể
-4. **Generate All**: Sử dụng settings đã cấu hình
-
-### 🎯 **NEXT PRIORITIES**:
-1. Voice cloning integration với character settings
-2. Preset system cho common configurations  
-3. Save/load character configurations
-4. Batch apply settings cho multiple characters
-
-## 🎯 LATEST: AI GENDER ANALYSIS SYSTEM IMPLEMENTED ✅
-
-### 🤖 AI Analysis Features:
-1. **Text Input (max 300 chars)**: Nhập text mẫu để phân tích
-2. **Pattern Recognition**: 
-   - Vietnamese patterns: "cô Anna", "anh Peter", "bé Sarah"
-   - Gender indicators: mẹ, bố, con gái, con trai, công chúa, hoàng tử
-   - Pronouns: cô ấy, anh ấy, chị ấy, chú ấy
-3. **Confidence Scoring**: 60-95% accuracy với color coding
-4. **Auto Voice Assignment**: Gán voice phù hợp dựa trên phân tích
-
-### 🎚️ Voice Parameters cho Gender Optimization:
-
-#### 👩 Female Voice Settings:
-- **emotion_exaggeration**: 1.2 (nhẹ nhàng, biểu cảm hơn)
-- **speed**: 0.95 (chậm hơn một chút)
-- **cfg_weight**: 0.6 (CFG guidance weight)
-- **suggested_voices**: vi-VN-Wavenet-A, vi-VN-Wavenet-C
-- **description**: "Nhẹ nhàng, dịu dàng, biểu cảm phong phú"
-
-#### 👨 Male Voice Settings:
-- **emotion_exaggeration**: 0.8 (mạnh mẽ, ít biểu cảm)
-- **speed**: 1.05 (nhanh hơn một chút)
-- **cfg_weight**: 0.4 
-- **suggested_voices**: vi-VN-Wavenet-B, vi-VN-Wavenet-D
-- **description**: "Mạnh mẽ, rõ ràng, ít biểu cảm"
-
-#### 🗣️ Neutral Voice Settings:
-- **emotion_exaggeration**: 1.0 (cân bằng)
-- **speed**: 1.0 (bình thường)
-- **cfg_weight**: 0.5
-- **suggested_voices**: vi-VN-Standard-C, vi-VN-Standard-A
-- **description**: "Cân bằng, tự nhiên, phù hợp mọi context"
-
-### 📋 Sample Text Templates (max 300 chars):
-1. **Fairy Tale**: "Cô bé Anna đang chơi với em trai trong vườn. Cô ấy rất thích hoa hồng."
-2. **Professional**: "Anh Peter là một chàng trai cao lớn, anh ấy làm việc ở văn phòng."
-3. **Narrator**: "Người kể chuyện mở đầu câu chuyện về một vương quốc xa xôi."
-
-## Trạng thái hiện tại - TTS SYSTEM ENHANCED WITH AI ✅
-
-### ✅ Core TTS Status (Unchanged):
-- ✅ **TTS Functionality CONFIRMED**: Test với 8 dialogues, 100% thành công
-- ✅ **Audio Generation**: 8 files MP3 được tạo thành công từ script JSON
-- ✅ **Device Detection**: CUDA (GTX 1080) hoạt động hoàn hảo
-- ✅ **Multiple Characters**: Narrator + Character1 có giọng riêng biệt
-- ✅ **Vietnamese TTS**: Google Free TTS hoạt động ổn định
-
-### 🆕 NEW: AI-Enhanced Voice Configuration:
-- ✅ **Gender Analysis**: AI phân tích text và gợi ý giọng phù hợp
-- ✅ **Parameter Optimization**: Tự động điều chỉnh emotion/speed theo giới tính
-- ✅ **Quick Apply**: Một click áp dụng kết quả cho multiple characters
-- ✅ **Voice Mapping Intelligence**: Gợi ý voice dựa trên gender detection
-
-### 🎯 UI Enhancements Completed:
-1. **AI Analysis Panel**: 
-   - Text input với placeholder examples
-   - Real-time analysis với confidence scoring
-   - Color-coded results (green/orange/red)
-   - Suggested voice và parameter display
-
-2. **Quick Apply Controls**:
-   - 🎯 Tự động gán giọng (apply AI results)
-   - 👩 Tối ưu giọng nữ (female optimization)
-   - 👨 Tối ưu giọng nam (male optimization)
-   - 🗣️ Tối ưu giọng trung tính (neutral optimization)
-
-3. **Enhanced Styling**:
-   - Purple gradient cho AI Analysis panel
-   - Specialized button styles cho AI features
-   - Improved responsive layout (1200x800 → 1300x850)
-
-## 🔧 Technical Implementation:
-
-### Gender Detection Algorithm:
-```python
-def _calculate_gender_score(name, context):
-    # Vietnamese name patterns
-    # Context analysis (pronouns, titles)
-    # Ending patterns (a, i, y, nh = female; ng, n, c, t = male)
-    # Returns: -1.0 (male) to +1.0 (female)
-```
-
-### Parameter Mapping:
-```python
-gender_optimizations = {
-    'female': {'emotion': 1.2, 'speed': 0.95},
-    'male': {'emotion': 0.8, 'speed': 1.05},
-    'neutral': {'emotion': 1.0, 'speed': 1.0}
-}
-```
-
-## 📋 Recommended Workflow:
-
-### Với AI Gender Analysis:
-1. **Paste sample text** (từ script hoặc prompt) vào AI Analysis panel
-2. **Click "Phân tích giới tính"** để AI analyze characters
-3. **Review results** - check confidence scores và suggested voices
-4. **Click "Tự động gán giọng"** để apply toàn bộ kết quả
-5. **Fine-tune** bằng gender optimization buttons nếu cần
-
-### Manual Override:
-- AI suggestions có thể được override manually trong character widgets
-- Gender optimization buttons áp dụng cho characters có gender matching
-- Preview voice để test trước khi generate final audio
-
-## 🎉 PRODUCTION READY FEATURES:
-
-### Core System:
-- ✅ TTS generation 100% success rate  
-- ✅ JSON format documented và tested
-- ✅ Multiple provider support
-- ✅ Device auto-detection
-
-### NEW AI Features:
-- ✅ Gender analysis với 60-95% accuracy
-- ✅ Auto voice assignment
-- ✅ Parameter optimization theo gender
-- ✅ Quick apply system
-- ✅ Enhanced UI với AI styling
-
-## 💡 User Guide Update:
-
-### Sử dụng AI Gender Analysis:
-1. **Mở Manual Voice Setup Dialog**
-2. **Scroll to AI Analysis panel** (màu tím ở top)
-3. **Nhập text mẫu** (max 300 chars) - có thể paste từ script
-4. **Click "🔍 Phân tích giới tính"**
-5. **Review kết quả** với confidence scores
-6. **Choose action**:
-   - "🎯 Tự động gán giọng" → Apply all AI suggestions
-   - "👩 Tối ưu giọng nữ" → Optimize female voices only
-   - "👨 Tối ưu giọng nam" → Optimize male voices only
-   - Manual adjust individual characters
-
-### Sample Prompts for AI:
-```
-Fairy Tale: "Ngày xưa có cô bé Anna và anh trai Peter..."
-Family: "Mẹ Maria, bố John, con gái Emma và con trai Tommy..."
-Professional: "Chị Sarah làm giám đốc, anh David là kế toán..."
-```
-
-## 🔄 Bước tiếp theo:
-
-### Immediate Testing:
-- ✅ Test gender analysis với various Vietnamese texts
-- ✅ Verify voice parameter application 
-- ✅ Test Quick Apply functionality
-- ⏳ User acceptance testing
-
-### Future Enhancements:
-- 🔧 **Multi-language support** (English gender detection)
-- 🎨 **Context-aware emotion** (sad story = lower emotion)
-- 📊 **Batch processing** (analyze entire script at once)
-- 🎬 **Voice style presets** (cartoon, documentary, audiobook)
-
-### Integration với Video Pipeline:
-- 🔗 Auto-apply AI analysis results to script characters
-- 📋 Save gender analysis results với project
-- 🎭 Character voice consistency across segments
-
-## ✅ SUMMARY: SIMPLIFIED TAB TẠO VIDEO + AI-ENHANCED VOICE STUDIO
-- ✅ Xóa Voice Mapping section khỏi tab Tạo Video (theo yêu cầu user)
-- ✅ Tab Voice Studio vẫn giữ full functionality với AI Gender Analysis
-- ✅ UI gọn gàng hơn, tập trung vào chức năng chính
-- ✅ Workflow rõ ràng: Voice Studio để config, Tạo Video để generate
-- ✅ AI Gender Analysis system ready cho production 
-
 ## 🎯 LATEST: SỬA LỖI UI VOICE STUDIO - DROPDOWN & INPUT FIELDS ✅
 
 ### 🚀 ĐÃ SỬA CÁC LỖI UI:
@@ -1070,144 +641,143 @@ QLineEdit:focus {
 
 # 🎯 ACTIVE CONTEXT - Voice Studio Development
 
-## ✅ Current Focus: SMART AUDIO MERGE Solution Implemented
+## 🔧 Current Focus: Windows Path Compatibility Fix for Audio Merging
 
-**Latest Update**: Triển khai thành công **SMART MERGE** solution giải quyết vấn đề gộp audio với custom output directories.
+**Latest Update**: Đang troubleshoot vấn đề Windows path compatibility trong SMART MERGE - files được detect nhưng vẫn lỗi "file not found".
 
-## 🎉 **PROBLEM SOLVED: Audio Merging Issue**
+## 🚨 **CURRENT ISSUE: Windows Path Compatibility**
 
-### 🔧 **SMART MERGE Solution**
+### 🔍 **Problem Analysis (from latest test)**
+```
+✅ Files được tạo thành công:
+   ./voice_studio_output\segment_2_dialogue_2_character2.mp3
+   ./voice_studio_output\segment_3_dialogue_1_character1.mp3
+   ./voice_studio_output\segment_4_dialogue_2_character1.mp3
 
-#### **Vấn đề trước đây:**
-- Script tìm files theo pattern script data: `segment_1_dialogue_1_narrator.mp3`  
-- Files thực tế được tạo: `segment_2_dialogue_2_character2.mp3`
-- **Mismatch** → Không tìm thấy files để merge
+🔍 SMART MERGE detects files:
+   📋 File order after smart sorting:
+   1. segment_1_dialogue_1_narrator.mp3 (seg:1, dial:1)
+   2. segment_2_dialogue_1_character1.mp3 (seg:2, dial:1)
+   ...
 
-#### **Giải pháp SMART MERGE:**
-1. **🧠 Intelligent File Detection**: Tự động scan và detect tất cả `segment_*.mp3` files
-2. **📊 Smart Sorting**: Extract numbers và sort theo `segment_X_dialogue_Y` pattern
-3. **🔧 Force Merge Button**: Bypass script data, merge bất kỳ files nào có sẵn
-4. **⚡ No Dependencies**: Không cần script data để merge
+❌ But loading fails:
+   Failed to load segment_X_dialogue_Y.mp3: [WinError 2] The system cannot find the file specified
+```
 
-### 🎯 **New Features Implemented**
+### 🧩 **Root Cause Identified**
+1. **Path Separator Mismatch**: 
+   - Files created with Windows `\` backslash
+   - SMART MERGE uses Unix `/` forward slash
+   
+2. **Glob Pattern Issue**:
+   - `glob.glob()` might have issues with relative paths on Windows
+   - Current directory vs absolute path confusion
 
-#### 1. **Smart File Sorting Algorithm**
+### 🔧 **Fixes Implemented**
+
+#### 1. **Path Normalization**
 ```python
-def extract_numbers(filename):
-    # Extract segment_1_dialogue_2 → (1, 2)
-    # Smart fallback for various patterns
-    # Proper ordering regardless of file creation order
+# Fix path separators for Windows compatibility  
+normalized_path = os.path.normpath(file_path)
+
+# Double check file exists before loading
+if not os.path.exists(normalized_path):
+    print(f"⚠️ File not found at: {normalized_path}")
+    continue
 ```
 
-#### 2. **🔧 Force Merge All Button**
-- **Màu xanh nổi bật** trong UI
-- **Tooltip**: "Gộp tất cả file segment_*.mp3 có trong thư mục output"
-- **Independent**: Không cần script data
-- **Smart**: Tự động detect và sort files
+#### 2. **Enhanced Debugging**
+```python
+print(f"📍 Absolute path: {os.path.abspath(output_dir)}")
+print(f"🔍 Search pattern: {search_pattern}")
 
-#### 3. **Enhanced Debugging Output**
-```
-🔍 SMART AUDIO MERGE - Scanning for files...
-📁 Output directory: ./voice_studio_output
-🎵 Found 54 segment MP3 files
-📋 File order after smart sorting:
-   1. segment_1_dialogue_2_mai.mp3 (seg:1, dial:2)
-   2. segment_2_dialogue_1_narrator.mp3 (seg:2, dial:1)
-   3. segment_2_dialogue_2_mai.mp3 (seg:2, dial:2)
-   ... and 51 more files
+# File existence verification in listing
+exists = "✅" if os.path.exists(file_path) else "❌"
+print(f"   {filename} (seg:{seg}, dial:{dial}) {exists}")
+print(f"       Path: {absolute_path}")
 ```
 
-### ✅ **COMPLETED FIXES**
+#### 3. **Fallback File Detection**
+```python
+# If glob fails, try manual directory listing
+if not all_mp3_files:
+    all_files = os.listdir(output_dir)
+    segment_files = [f for f in all_files if f.startswith('segment_') and f.endswith('.mp3')]
+    all_mp3_files = [os.path.join(output_dir, f) for f in segment_files]
+```
 
-#### 1. **Audio Merging Issues** ✅
+## 🎉 **PREVIOUSLY SOLVED ISSUES**
+
+### ✅ **Audio Merging Core Logic** 
 - ✅ **Smart file detection**: Không còn phụ thuộc script data
-- ✅ **Force Merge button**: Merge bất kỳ files nào có sẵn  
-- ✅ **Intelligent sorting**: Đúng thứ tự segment → dialogue
-- ✅ **Custom output support**: Hoạt động với mọi thư mục
+- ✅ **Force Merge button**: UI implementation hoàn thành
+- ✅ **Intelligent sorting**: Extract numbers và sort đúng thứ tự
+- ✅ **File pattern recognition**: Regex matching cho segment_X_dialogue_Y
 
-#### 2. **Emotion Conversion Bug** ✅
-- ✅ **String emotions**: Không còn convert sang float
-- ✅ **Voice generation**: Hoạt động với emotion keywords
-- ✅ **Manual + Auto modes**: Compatibility đầy đủ
+### ✅ **Emotion Conversion Bug** 
+- ✅ **String emotions**: Hoạt động với keywords thay vì float
+- ✅ **Voice generation**: Manual + Auto modes compatibility
+- ✅ **Template updates**: AI Request forms với simplified structure
 
-#### 3. **User Experience** ✅
-- ✅ **Clear error messages**: Phân biệt các loại lỗi khác nhau
+### ✅ **User Experience** 
+- ✅ **Clear UI**: Force Merge button với tooltip
 - ✅ **Progress feedback**: Real-time status updates
-- ✅ **Success confirmations**: Option để play merged file
-- ✅ **Tooltip guidance**: Hướng dẫn sử dụng các tính năng
+- ✅ **Error handling**: Better error messages và debugging
 
-## 📋 **SIMPLIFIED JSON STRUCTURE**
+## 📋 **CURRENT STATUS**
 
-### Core Structure (Stable)
-```json
-{
-  "segments": [
-    {
-      "id": 1, 
-      "dialogues": [
-        {
-          "speaker": "narrator", 
-          "text": "Content text...", 
-          "emotion": "friendly",           // ✅ String keyword only
-          "pause_after": 1.2,             // ✅ Optional
-          "emphasis": ["keyword1"]         // ✅ Optional
-        }
-      ]
-    }
-  ],
-  "characters": [
-    {
-      "id": "narrator", 
-      "name": "Character Name", 
-      "gender": "neutral",
-      "default_emotion": "friendly"       // ✅ String only
-    }
-  ]
-}
+### 🟡 **Investigating**
+- **Windows Path Compatibility**: Path separator và absolute vs relative path issues
+- **PyDub Integration**: FFprobe/avprobe warning có ảnh hưởng không
+- **File Locking**: Audio files có bị lock sau khi tạo không
+
+### ✅ **Working Features**
+- **Voice Generation**: Manual + Auto emotion modes ✅
+- **Multi-file JSON Import**: Smart character merge ✅  
+- **AI Request Templates**: 3 optimized modes (+700-1350 tokens) ✅
+- **File Detection**: SMART MERGE detects files correctly ✅
+- **Custom Output**: UI và path handling ✅
+
+### 🎯 **Next Steps**
+1. **Test với enhanced debugging** để xem absolute paths và file existence
+2. **Kiểm tra FFprobe installation** nếu cần thiết
+3. **Test Force Merge button** sau khi fix path issues
+4. **Verify across different Windows paths** (relative vs absolute)
+
+## 🛠️ **TROUBLESHOOTING WORKFLOW**
+
+### When Audio Merge Fails:
+1. **Check console output** for detailed path information
+2. **Verify file existence** với absolute paths
+3. **Test Force Merge button** as fallback
+4. **Check output directory permissions** 
+5. **Verify no file locks** từ previous operations
+
+### Debug Commands:
+```python
+# Check if files actually exist
+import os
+output_dir = "./voice_studio_output"
+files = os.listdir(output_dir)
+segment_files = [f for f in files if f.startswith('segment_')]
+print(f"Found: {segment_files}")
 ```
 
-## 🎯 **USER WORKFLOW** 
+## 💡 **DEVELOPMENT INSIGHTS**
 
-### Normal Workflow
-1. **Import script** → Load JSON data  
-2. **Generate voices** → Create audio files
-3. **Auto merge** → Automatic after generation
+### Cross-Platform Considerations:
+- **Path separators**: Always use `os.path.join()` và `os.path.normpath()`
+- **Glob patterns**: Test on both Windows và Unix systems
+- **Relative vs absolute**: Be explicit về path expectations
+- **File existence**: Double-check trước khi operations
 
-### Force Merge Workflow (Optimized)
-1. **Check output folder** → See available files
-2. **Click "🔧 Force Merge All"** → Bypass script matching
-3. **Smart sorting** → Automatic order detection  
-4. **Success** → Play merged conversation
-
-### Benefits:
-- ⚡ **Faster**: Không cần script data
-- 🎯 **Reliable**: Hoạt động với mọi file pattern
-- 🧠 **Smart**: Tự động detect đúng thứ tự
-- 🔧 **Flexible**: Merge bất kỳ segment files nào
-
-## 🔄 **CURRENT STATUS**
-
-### ✅ **Fully Working Features**
-- **Voice Generation**: Manual + Auto emotion modes
-- **Multi-file JSON Import**: Smart character merge
-- **AI Request Templates**: 3 optimized modes (+700-1350 tokens)
-- **Audio Merging**: SMART MERGE với Force option
-- **Custom Output**: Hoạt động với mọi thư mục
-
-### 🎯 **Optimizations Achieved**
-1. **Token Savings**: +700 to +1350 tokens cho story content
-2. **Merge Reliability**: 100% success rate với Force Merge
-3. **User Experience**: Clear feedback và error handling
-4. **Flexibility**: Hoạt động với mọi file pattern và output directory
-
-### 💡 **Next Enhancement Ideas**
-- **Batch processing**: Multiple script files cùng lúc
-- **Audio preview**: Quick preview trước khi merge full
-- **Export options**: Multiple formats (MP3, WAV, etc.)
-- **Quality settings**: Bitrate và sample rate control
+### Audio Processing:
+- **PyDub dependencies**: FFprobe/avprobe cho advanced features
+- **File formats**: MP3 loading compatibility across platforms
+- **Memory management**: Large audio files handling
 
 ---
 
-**Status**: 🟢 **FULLY FUNCTIONAL** | All major issues resolved
-**Last Update**: SMART MERGE solution implementation complete
-**Key Achievement**: 🎉 Reliable audio merging regardless of script/file pattern mismatch
+**Status**: 🟡 **Debugging Windows Path Issues** | Core logic working, path compatibility needed
+**Last Update**: Windows path normalization và enhanced debugging implemented
+**Priority**: Fix path compatibility để achieve 100% merge reliability

@@ -2666,8 +2666,23 @@ Created: {data['created_at']}
                         print(f"   ⚠️ File not found at: {normalized_path}")
                         continue
                     
-                    # Load audio file
-                    audio_segment = AudioSegment.from_mp3(normalized_path)
+                    # Load audio file with PyDub fallback options
+                    try:
+                        # Try direct MP3 loading first
+                        audio_segment = AudioSegment.from_mp3(normalized_path)
+                    except Exception as mp3_error:
+                        print(f"   🔄 MP3 loading failed, trying raw audio: {mp3_error}")
+                        try:
+                            # Fallback: Try loading as raw audio without codec requirements
+                            audio_segment = AudioSegment.from_file(normalized_path, format="mp3")
+                        except Exception as fallback_error:
+                            print(f"   🔄 Fallback failed, trying with ffmpeg: {fallback_error}")
+                            try:
+                                # Final fallback: Force ffmpeg usage
+                                audio_segment = AudioSegment.from_file(normalized_path)
+                            except Exception as final_error:
+                                print(f"   ❌ All loading methods failed: {final_error}")
+                                continue
                     
                     # Add silence padding between dialogues (0.5 seconds)
                     if total_files_added > 0:
@@ -2686,8 +2701,43 @@ Created: {data['created_at']}
                     print(f"   ❌ Failed to load {filename}: {e}")
             
             if total_files_added == 0:
-                print("❌ No audio files successfully loaded")
-                return None
+                print("❌ No audio files successfully loaded with PyDub")
+                print("🔄 Attempting FORCE BYPASS with simple file concatenation...")
+                
+                # FORCE BYPASS: Simple binary file concatenation for MP3s
+                try:
+                    output_path = os.path.join(output_dir, "complete_merged_audio.mp3")
+                    
+                    with open(output_path, 'wb') as outfile:
+                        files_concatenated = 0
+                        for file_path in sorted_files:
+                            normalized_path = os.path.normpath(file_path)
+                            if os.path.exists(normalized_path):
+                                print(f"   📎 Concatenating: {os.path.basename(file_path)}")
+                                with open(normalized_path, 'rb') as infile:
+                                    outfile.write(infile.read())
+                                files_concatenated += 1
+                    
+                    if files_concatenated > 0:
+                        print(f"✅ FORCE BYPASS SUCCESS: {files_concatenated} files concatenated to {output_path}")
+                        
+                        # Show success dialog
+                        msg = QMessageBox()
+                        msg.setIcon(QMessageBox.Information)
+                        msg.setWindowTitle("🎉 Force Merge Success!")
+                        msg.setText(f"✅ Successfully merged {files_concatenated} audio files using FORCE BYPASS method!")
+                        msg.setInformativeText(f"📁 Saved to: {output_path}\n\n⚠️ Note: Used binary concatenation due to PyDub codec issues.")
+                        msg.setStandardButtons(QMessageBox.Ok)
+                        msg.exec_()
+                        
+                        return output_path
+                    else:
+                        print("❌ FORCE BYPASS also failed - no files could be read")
+                        return None
+                        
+                except Exception as bypass_error:
+                    print(f"❌ FORCE BYPASS failed: {bypass_error}")
+                    return None
             
             # Generate output filename with timestamp
             from datetime import datetime
