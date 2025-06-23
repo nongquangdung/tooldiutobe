@@ -194,51 +194,65 @@ class ManualVoiceSetupDialog(QDialog):
         chatterbox_layout.setContentsMargins(0, 0, 0, 0)
         chatterbox_frame.setLayout(chatterbox_layout)
         
-        # Emotion control
+        # Emotion dropdown (using predefined emotions)
         chatterbox_layout.addWidget(QLabel("🎭 Emotion:"), 0, 0)
-        emotion_slider = QSlider(Qt.Horizontal)
-        emotion_slider.setRange(0, 200)  # 0.0-2.0 scaled to 0-200
-        emotion_slider.setValue(100)     # Default 1.0
-        emotion_slider.setToolTip("Emotion exaggeration: 0.0 (flat) - 2.0 (very emotional)")
-        chatterbox_layout.addWidget(emotion_slider, 0, 1)
+        emotion_combo = QComboBox()
+        emotion_combo.addItems([
+            "😐 neutral", "😊 happy", "😢 sad", "😮 excited", 
+            "😌 calm", "😠 angry", "😍 romantic", "😨 fearful",
+            "🤔 thoughtful", "😴 sleepy", "💪 confident", "😊 cheerful",
+            "😔 melancholic", "🎭 dramatic", "👻 mysterious", "😱 surprised",
+            "😤 frustrated", "🥺 pleading"
+        ])
+        emotion_combo.setCurrentText("😐 neutral")
+        emotion_combo.setToolTip("Select emotion for voice generation")
+        chatterbox_layout.addWidget(emotion_combo, 0, 1, 1, 2)
         
-        emotion_value = QLabel("1.0")
-        emotion_value.setMinimumWidth(30)
-        chatterbox_layout.addWidget(emotion_value, 0, 2)
+        # Exaggeration control
+        chatterbox_layout.addWidget(QLabel("🎯 Exaggeration:"), 1, 0)
+        exag_slider = QSlider(Qt.Horizontal)
+        exag_slider.setRange(0, 250)     # 0.0-2.5 scaled to 0-250
+        exag_slider.setValue(100)        # Default 1.0
+        exag_slider.setToolTip("Emotion exaggeration: 0.0 (flat) - 2.5 (very dramatic)")
+        chatterbox_layout.addWidget(exag_slider, 1, 1)
+        
+        exag_value = QLabel("1.00")
+        exag_value.setMinimumWidth(40)
+        chatterbox_layout.addWidget(exag_value, 1, 2)
         
         # Speed control
-        chatterbox_layout.addWidget(QLabel("⚡ Speed:"), 1, 0)
+        chatterbox_layout.addWidget(QLabel("⚡ Speed:"), 2, 0)
         speed_slider = QSlider(Qt.Horizontal)
         speed_slider.setRange(50, 200)   # 0.5-2.0 scaled to 50-200
         speed_slider.setValue(100)       # Default 1.0
         speed_slider.setToolTip("Speaking speed: 0.5 (slow) - 2.0 (fast)")
-        chatterbox_layout.addWidget(speed_slider, 1, 1)
+        chatterbox_layout.addWidget(speed_slider, 2, 1)
         
         speed_value = QLabel("1.0")
         speed_value.setMinimumWidth(30)
-        chatterbox_layout.addWidget(speed_value, 1, 2)
+        chatterbox_layout.addWidget(speed_value, 2, 2)
         
         # Voice cloning
-        chatterbox_layout.addWidget(QLabel("🎤 Clone:"), 2, 0)
+        chatterbox_layout.addWidget(QLabel("🎤 Clone:"), 3, 0)
         clone_btn = QPushButton("📁 Upload Voice Sample")
         clone_btn.setToolTip("Upload 3-30s audio file to clone voice")
-        chatterbox_layout.addWidget(clone_btn, 2, 1)
+        chatterbox_layout.addWidget(clone_btn, 3, 1)
         
         clone_status = QLabel("No sample")
         clone_status.setObjectName("clone_status")
-        chatterbox_layout.addWidget(clone_status, 2, 2)
+        chatterbox_layout.addWidget(clone_status, 3, 2)
         
         layout.addWidget(chatterbox_frame, 4, 0, 1, 4)
         chatterbox_frame.setVisible(False)  # Initially hidden
         
         # Update sliders display
-        def update_emotion_display(value):
-            emotion_value.setText(f"{value/100:.1f}")
+        def update_exag_display(value):
+            exag_value.setText(f"{value/100:.2f}")
         
         def update_speed_display(value):
             speed_value.setText(f"{value/100:.1f}")
         
-        emotion_slider.valueChanged.connect(update_emotion_display)
+        exag_slider.valueChanged.connect(update_exag_display)
         speed_slider.valueChanged.connect(update_speed_display)
         
         # Voice cloning handler
@@ -284,7 +298,8 @@ class ManualVoiceSetupDialog(QDialog):
             'provider': provider_combo,
             'voice': voice_combo,
             'chatterbox_frame': chatterbox_frame,
-            'emotion_slider': emotion_slider,
+            'emotion_combo': emotion_combo,
+            'exag_slider': exag_slider,
             'speed_slider': speed_slider,
             'clone_status': clone_status,
             'preview_btn': preview_btn
@@ -334,10 +349,32 @@ class ManualVoiceSetupDialog(QDialog):
                 "vi-VN-Wavenet-D (Nam)"
             ])
         elif "Chatterbox" in provider:
-            voice_combo.addItems([
-                "Default English Voice",
-                "Custom Cloned Voice (upload sample)"
-            ])
+            # Get 28 predefined voices from ChatterboxVoicesManager
+            try:
+                from src.tts.chatterbox_voices_integration import ChatterboxVoicesManager
+                chatterbox_manager = ChatterboxVoicesManager()
+                available_voices = chatterbox_manager.get_available_voices()
+                
+                # Add predefined voices
+                voice_options = []
+                for voice_id, voice_obj in sorted(available_voices.items()):
+                    display_name = f"{voice_obj.name} ({voice_obj.gender})"
+                    voice_options.append(display_name)
+                
+                # Add custom cloning option
+                voice_options.append("🎤 Custom Cloned Voice (upload sample)")
+                voice_combo.addItems(voice_options)
+                
+                print(f"✅ Loaded {len(voice_options)} voice options for Chatterbox TTS")
+                
+            except Exception as e:
+                print(f"⚠️ ChatterboxVoicesManager import failed: {e}")
+                # Fallback if ChatterboxVoicesManager not available
+                voice_combo.addItems([
+                    "Default English Voice",
+                    "🎤 Custom Cloned Voice (upload sample)"
+                ])
+                
         elif "ElevenLabs" in provider:
             voice_combo.addItems([
                 "Rachel (Female)",
@@ -378,20 +415,26 @@ class ManualVoiceSetupDialog(QDialog):
         voices_info = f"""🤖 CHATTERBOX TTS:
 Status: {'✅ Available' if chatterbox_available else '❌ Not available'}
 Device: {chatterbox_status.get('device_name', 'Unknown')}
-Features: Voice cloning, Emotion control
+Features: 28 predefined voices, Voice cloning, Emotion control
+
+🎭 28 PREDEFINED VOICES:
+👨 Male: Adrian, Alexander, Austin, Axel, Connor, Eli, Everett, 
+Gabriel, Henry, Ian, Jeremiah, Jordan, Julian, Leonardo, 
+Michael, Miles, Ryan, Thomas
+👩 Female: Abigail, Alice, Cora, Elena, Emily, Gianna, 
+Jade, Layla, Olivia, Taylor
 
 🇻🇳 GOOGLE TTS (Vietnamese):
-• vi-VN-Standard-A/B/C/D (Standard)
+• vi-VN-Standard-A/B/C/D (Standard)  
 • vi-VN-Wavenet-A/B/C/D (Natural)
 
 🎭 ELEVENLABS (English):
-• Rachel, Drew, Clyde, Paul
-• Domi, Dave, Fin, Sarah
+• Rachel, Drew, Clyde, Paul, Domi, Dave, Fin, Sarah
 
 💡 Tips:
-• Wavenet = Chất lượng cao hơn
-• Chatterbox = SoTA AI voice cloning
-• Auto-select = Tự động chọn provider"""
+• Chatterbox = 28 high-quality voices + emotion control
+• Wavenet = Chất lượng cao cho tiếng Việt
+• Auto-select = Tự động chọn provider tốt nhất"""
         
         self.voices_text.setPlainText(voices_info)
         voices_layout.addWidget(self.voices_text)
@@ -813,7 +856,7 @@ Features: Voice cloning, Emotion control
                     
                     # Add Chatterbox-specific parameters
                     if "Chatterbox" in provider:
-                        emotion_value = widget_refs['emotion_slider'].value() / 100.0  # Convert to 0.0-2.0
+                        emotion_value = widget_refs['exag_slider'].value() / 100.0  # Convert to 0.0-2.0
                         speed_value = widget_refs['speed_slider'].value() / 100.0     # Convert to 0.5-2.0
                         
                         voice_config.update({

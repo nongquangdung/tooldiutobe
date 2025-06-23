@@ -1,0 +1,37 @@
+{
+  "test_timestamp": "2025-06-20 20:00:17",
+  "chatterbox_server_online": false,
+  "total_tests": 3,
+  "successful_tests": 0,
+  "test_results": [
+    {
+      "test_name": "Auto Provider Selection",
+      "success": false,
+      "provider_used": "real_chatterbox",
+      "generation_time": 4.07786750793457,
+      "quality_score": 0.0,
+      "error": "Real Chatterbox error: 'RealChatterboxProvider' object has no attribute 'generate_audio'"
+    },
+    {
+      "test_name": "Chatterbox High Quality",
+      "success": false,
+      "provider_used": "chatterbox",
+      "generation_time": 4.0707361698150635,
+      "quality_score": 0.0,
+      "error": "Connection to Chatterbox TTS Server failed: HTTPConnectionPool(host='localhost', port=8004): Max retries exceeded with url: /tts (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000002A058C8C640>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))"
+    },
+    {
+      "test_name": "Real Chatterbox Fallback",
+      "success": false,
+      "provider_used": "real_chatterbox",
+      "generation_time": 0.00040650367736816406,
+      "quality_score": 0.0,
+      "error": "Real Chatterbox error: 'RealChatterboxProvider' object has no attribute 'generate_audio'"
+    }
+  ],
+  "summary": {
+    "success_rate": "0.0%",
+    "avg_generation_time": "2.72s",
+    "avg_quality_score": "0.0/10"
+  }
+}

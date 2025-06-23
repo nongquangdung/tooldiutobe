@@ -1,0 +1,222 @@
+{
+  "mysterious": {
+    "name": "mysterious",
+    "exaggeration": 1.4,
+    "cfg_weight": 0.45,
+    "temperature": 0.4,
+    "speed": 0.9,
+    "description": "Enigmatic, secretive",
+    "category": "dramatic",
+    "voice_tone": "balanced",
+    "use_case": "narration"
+  },
+  "determined": {
+    "name": "determined",
+    "exaggeration": 0.2999999999999996,
+    "cfg_weight": 0.65,
+    "temperature": 0.8,
+    "speed": 1.1,
+    "description": "Strong will, focused",
+    "category": "dramatic",
+    "voice_tone": "strong",
+    "use_case": "character"
+  },
+  "innocent": {
+    "name": "innocent",
+    "exaggeration": 0.7999999999999998,
+    "cfg_weight": 0.5,
+    "temperature": 0.7,
+    "speed": 1.0,
+    "description": "Childlike, naive expression",
+    "category": "special",
+    "voice_tone": "soft",
+    "use_case": "character"
+  },
+  "cold": {
+    "name": "cold",
+    "exaggeration": 0.35,
+    "cfg_weight": 0.65,
+    "temperature": 0.5,
+    "speed": 1.0,
+    "description": "Emotionless, distant",
+    "category": "special",
+    "voice_tone": "balanced",
+    "use_case": "character"
+  },
+  "angry": {
+    "name": "angry",
+    "exaggeration": 2.0,
+    "cfg_weight": 0.7,
+    "temperature": 0.7000000000000001,
+    "speed": 1.2,
+    "description": "General anger",
+    "category": "negative",
+    "voice_tone": "intense",
+    "use_case": "character"
+  },
+  "contemplative": {
+    "name": "contemplative",
+    "exaggeration": 0.4,
+    "cfg_weight": 0.4,
+    "temperature": 0.9999999999999999,
+    "speed": 0.8,
+    "description": "Deep inner thoughts",
+    "category": "neutral",
+    "voice_tone": "soft",
+    "use_case": "narration"
+  },
+  "confident": {
+    "name": "confident",
+    "exaggeration": 1.5,
+    "cfg_weight": 0.6,
+    "temperature": 0.7000000000000001,
+    "speed": 1.0,
+    "description": "Self-assured, determined",
+    "category": "positive",
+    "voice_tone": "strong",
+    "use_case": "character"
+  },
+  "sad": {
+    "name": "sad",
+    "exaggeration": 0.4,
+    "cfg_weight": 0.35,
+    "temperature": 0.7,
+    "speed": 0.8,
+    "description": "General sadness",
+    "category": "negative",
+    "voice_tone": "soft",
+    "use_case": "character"
+  },
+  "neutral": {
+    "name": "neutral",
+    "exaggeration": 0.5,
+    "cfg_weight": 0.5,
+    "temperature": 0.7,
+    "speed": 0.9,
+    "description": "Balanced, objective narration",
+    "category": "neutral",
+    "voice_tone": "balanced",
+    "use_case": "narration"
+  },
+  "friendly": {
+    "name": "friendly",
+    "exaggeration": 1.2,
+    "cfg_weight": 0.5,
+    "temperature": 0.8,
+    "speed": 1.0,
+    "description": "Warm, welcoming tone",
+    "category": "positive",
+    "voice_tone": "balanced",
+    "use_case": "general"
+  },
+  "epic_narrator": {
+    "name": "epic_narrator",
+    "exaggeration": 2.1,
+    "cfg_weight": 0.75,
+    "temperature": 1.1,
+    "speed": 1.2,
+    "description": "Epic storytelling voice",
+    "category": "dramatic",
+    "voice_tone": "balanced",
+    "use_case": "general"
+  },
+  "soft_meditation": {
+    "name": "soft_meditation",
+    "exaggeration": 0.25,
+    "cfg_weight": 0.25,
+    "temperature": 0.4,
+    "speed": 0.6,
+    "description": "Peaceful meditation guide",
+    "category": "special",
+    "voice_tone": "balanced",
+    "use_case": "general"
+  },
+  "commercial_energy": {
+    "name": "commercial_energy",
+    "exaggeration": 1.6,
+    "cfg_weight": 0.65,
+    "temperature": 0.9,
+    "speed": 1.3,
+    "description": "High-energy commercial",
+    "category": "positive",
+    "voice_tone": "balanced",
+    "use_case": "general"
+  },
+  "test_valid_0": {
+    "name": "test_valid_0",
+    "exaggeration": 1.5,
+    "cfg_weight": 0.6,
+    "temperature": 0.8,
+    "speed": 1.2,
+    "description": "Test emotion",
+    "category": "test",
+    "voice_tone": "balanced",
+    "use_case": "general"
+  },
+  "test_valid_1": {
+    "name": "test_valid_1",
+    "exaggeration": 0.0,
+    "cfg_weight": 0.0,
+    "temperature": 0.1,
+    "speed": 0.5,
+    "description": "Test emotion",
+    "category": "test",
+    "voice_tone": "balanced",
+    "use_case": "general"
+  },
+  "test_valid_2": {
+    "name": "test_valid_2",
+    "exaggeration": 2.5,
+    "cfg_weight": 1.0,
+    "temperature": 1.5,
+    "speed": 2.0,
+    "description": "Test emotion",
+    "category": "test",
+    "voice_tone": "balanced",
+    "use_case": "general"
+  },
+  "test_invalid_0": {
+    "name": "test_invalid_0",
+    "exaggeration": 0.0,
+    "cfg_weight": 0.6,
+    "temperature": 0.8,
+    "speed": 1.2,
+    "description": "Test emotion",
+    "category": "test",
+    "voice_tone": "balanced",
+    "use_case": "general"
+  },
+  "test_invalid_1": {
+    "name": "test_invalid_1",
+    "exaggeration": 1.5,
+    "cfg_weight": 1.0,
+    "temperature": 0.8,
+    "speed": 1.2,
+    "description": "Test emotion",
+    "category": "test",
+    "voice_tone": "balanced",
+    "use_case": "general"
+  },
+  "test_invalid_2": {
+    "name": "test_invalid_2",
+    "exaggeration": 1.5,
+    "cfg_weight": 0.6,
+    "temperature": 0.1,
+    "speed": 1.2,
+    "description": "Test emotion",
+    "category": "test",
+    "voice_tone": "balanced",
+    "use_case": "general"
+  },
+  "test_invalid_3": {
+    "name": "test_invalid_3",
+    "exaggeration": 1.5,
+    "cfg_weight": 0.6,
+    "temperature": 0.8,
+    "speed": 0.5,
+    "description": "Test emotion",
+    "category": "test",
+    "voice_tone": "balanced",
+    "use_case": "general"
+  }
+}

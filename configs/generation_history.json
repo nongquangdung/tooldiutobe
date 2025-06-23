@@ -1,0 +1,57 @@
+[
+  {
+    "timestamp": "2025-06-20T14:44:09.042063",
+    "project_name": "Test Project",
+    "template_used": "YouTube_Standard",
+    "segments_generated": 5,
+    "success_rate": 0.95,
+    "total_duration": 120.5,
+    "output_files": [
+      "segment_1.mp3",
+      "segment_2.mp3"
+    ],
+    "settings_snapshot": {
+      "template": "YouTube_Standard"
+    },
+    "quality_score": 0.92,
+    "errors": []
+  },
+  {
+    "timestamp": "2025-06-20T14:47:31.378476",
+    "project_name": "YouTube Video - AI Tutorial",
+    "template_used": "YouTube_Standard",
+    "segments_generated": 8,
+    "success_rate": 0.95,
+    "total_duration": 245.3,
+    "output_files": [
+      "segment_1.mp3",
+      "segment_2.mp3",
+      "merged_complete.mp3"
+    ],
+    "settings_snapshot": {
+      "template": "YouTube_Standard",
+      "quality": "high"
+    },
+    "quality_score": 0.92,
+    "errors": []
+  },
+  {
+    "timestamp": "2025-06-20T14:47:31.378496",
+    "project_name": "Podcast Episode 15",
+    "template_used": "Podcast_Professional",
+    "segments_generated": 12,
+    "success_rate": 0.98,
+    "total_duration": 1820.7,
+    "output_files": [
+      "intro.mp3",
+      "main_content.mp3",
+      "outro.mp3"
+    ],
+    "settings_snapshot": {
+      "template": "Podcast_Professional",
+      "quality": "broadcast"
+    },
+    "quality_score": 0.96,
+    "errors": []
+  }
+]

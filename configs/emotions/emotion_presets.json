@@ -1,0 +1,280 @@
+{
+  "story_narration": {
+    "name": "story_narration",
+    "description": "Optimal emotions for story narration",
+    "emotions": {
+      "neutral": {
+        "name": "neutral",
+        "exaggeration": 0.5,
+        "cfg_weight": 0.5,
+        "temperature": 0.7,
+        "speed": 1.0,
+        "description": "Balanced, objective narration",
+        "category": "neutral",
+        "voice_tone": "balanced",
+        "use_case": "narration"
+      },
+      "happy": {
+        "name": "happy",
+        "exaggeration": 1.8,
+        "cfg_weight": 0.55,
+        "temperature": 0.8,
+        "speed": 1.3,
+        "description": "Super enthusiastic happiness",
+        "category": "positive",
+        "voice_tone": "balanced",
+        "use_case": "dialogue"
+      },
+      "sad": {
+        "name": "sad",
+        "exaggeration": 0.4,
+        "cfg_weight": 0.35,
+        "temperature": 0.6,
+        "speed": 0.8,
+        "description": "General sadness",
+        "category": "negative",
+        "voice_tone": "soft",
+        "use_case": "character"
+      },
+      "dramatic": {
+        "name": "dramatic",
+        "exaggeration": 1.8,
+        "cfg_weight": 0.6,
+        "temperature": 1.0,
+        "speed": 1.0,
+        "description": "Theatrical, intense",
+        "category": "dramatic",
+        "voice_tone": "intense",
+        "use_case": "character"
+      },
+      "epic_battle": {
+        "name": "epic_battle",
+        "exaggeration": 2.3,
+        "cfg_weight": 0.8,
+        "temperature": 1.2,
+        "speed": 1.4,
+        "description": "Epic battle scene with intense drama",
+        "category": "dramatic",
+        "voice_tone": "intense",
+        "use_case": "general"
+      }
+    },
+    "created_date": "D:\\LearnCusor\\tooldiutobe",
+    "author": "User",
+    "version": "1.0"
+  },
+  "audiobook_complete": {
+    "name": "audiobook_complete",
+    "description": "Complete audiobook emotion set",
+    "emotions": {
+      "neutral": {
+        "name": "neutral",
+        "exaggeration": 0.5,
+        "cfg_weight": 0.5,
+        "temperature": 0.7,
+        "speed": 0.9,
+        "description": "Balanced, objective narration",
+        "category": "neutral",
+        "voice_tone": "balanced",
+        "use_case": "narration"
+      },
+      "contemplative": {
+        "name": "contemplative",
+        "exaggeration": 0.4,
+        "cfg_weight": 0.4,
+        "temperature": 0.9999999999999999,
+        "speed": 0.8,
+        "description": "Deep inner thoughts",
+        "category": "neutral",
+        "voice_tone": "soft",
+        "use_case": "narration"
+      },
+      "gentle": {
+        "name": "gentle",
+        "exaggeration": 0.35,
+        "cfg_weight": 0.35,
+        "temperature": 0.6,
+        "speed": 0.9,
+        "description": "Soft, tender expressions",
+        "category": "positive",
+        "voice_tone": "soft",
+        "use_case": "character"
+      },
+      "dramatic": {
+        "name": "dramatic",
+        "exaggeration": 1.8,
+        "cfg_weight": 0.6,
+        "temperature": 1.0,
+        "speed": 1.0,
+        "description": "Theatrical, intense",
+        "category": "dramatic",
+        "voice_tone": "intense",
+        "use_case": "character"
+      },
+      "mysterious": {
+        "name": "mysterious",
+        "exaggeration": 1.4,
+        "cfg_weight": 0.45,
+        "temperature": 0.4,
+        "speed": 0.9,
+        "description": "Enigmatic, secretive",
+        "category": "dramatic",
+        "voice_tone": "balanced",
+        "use_case": "narration"
+      },
+      "epic_narrator": {
+        "name": "epic_narrator",
+        "exaggeration": 2.1,
+        "cfg_weight": 0.75,
+        "temperature": 1.1,
+        "speed": 1.2,
+        "description": "Epic storytelling voice",
+        "category": "dramatic",
+        "voice_tone": "balanced",
+        "use_case": "general"
+      }
+    },
+    "created_date": "D:\\LearnCusor\\tooldiutobe",
+    "author": "User",
+    "version": "1.0"
+  },
+  "character_dialogue": {
+    "name": "character_dialogue",
+    "description": "Character dialogue emotions",
+    "emotions": {
+      "happy": {
+        "name": "happy",
+        "exaggeration": 1.35,
+        "cfg_weight": 0.55,
+        "temperature": 0.8,
+        "speed": 1.1,
+        "description": "General joy, positive mood",
+        "category": "positive",
+        "voice_tone": "balanced",
+        "use_case": "dialogue"
+      },
+      "sad": {
+        "name": "sad",
+        "exaggeration": 0.4,
+        "cfg_weight": 0.35,
+        "temperature": 0.7,
+        "speed": 0.8,
+        "description": "General sadness",
+        "category": "negative",
+        "voice_tone": "soft",
+        "use_case": "character"
+      },
+      "angry": {
+        "name": "angry",
+        "exaggeration": 2.0,
+        "cfg_weight": 0.7,
+        "temperature": 0.7000000000000001,
+        "speed": 1.2,
+        "description": "General anger",
+        "category": "negative",
+        "voice_tone": "intense",
+        "use_case": "character"
+      },
+      "excited": {
+        "name": "excited",
+        "exaggeration": 1.6,
+        "cfg_weight": 0.6,
+        "temperature": 0.9,
+        "speed": 1.3,
+        "description": "High energy, enthusiastic",
+        "category": "positive",
+        "voice_tone": "strong",
+        "use_case": "character"
+      },
+      "confident": {
+        "name": "confident",
+        "exaggeration": 1.5,
+        "cfg_weight": 0.6,
+        "temperature": 0.7000000000000001,
+        "speed": 1.0,
+        "description": "Self-assured, determined",
+        "category": "positive",
+        "voice_tone": "strong",
+        "use_case": "character"
+      },
+      "sarcastic": {
+        "name": "sarcastic",
+        "exaggeration": 0.85,
+        "cfg_weight": 0.45,
+        "temperature": 0.8,
+        "speed": 1.1,
+        "description": "Mocking, ironic tone",
+        "category": "negative",
+        "voice_tone": "balanced",
+        "use_case": "dialogue"
+      }
+    },
+    "created_date": "D:\\LearnCusor\\tooldiutobe",
+    "author": "User",
+    "version": "1.0"
+  },
+  "commercial_package": {
+    "name": "commercial_package",
+    "description": "Commercial voice package",
+    "emotions": {
+      "friendly": {
+        "name": "friendly",
+        "exaggeration": 1.2,
+        "cfg_weight": 0.5,
+        "temperature": 0.8,
+        "speed": 1.0,
+        "description": "Warm, welcoming tone",
+        "category": "positive",
+        "voice_tone": "balanced",
+        "use_case": "general"
+      },
+      "excited": {
+        "name": "excited",
+        "exaggeration": 1.6,
+        "cfg_weight": 0.6,
+        "temperature": 0.9,
+        "speed": 1.3,
+        "description": "High energy, enthusiastic",
+        "category": "positive",
+        "voice_tone": "strong",
+        "use_case": "character"
+      },
+      "persuasive": {
+        "name": "persuasive",
+        "exaggeration": 1.35,
+        "cfg_weight": 0.55,
+        "temperature": 0.8,
+        "speed": 1.0,
+        "description": "Convincing argument",
+        "category": "positive",
+        "voice_tone": "balanced",
+        "use_case": "dialogue"
+      },
+      "confident": {
+        "name": "confident",
+        "exaggeration": 1.5,
+        "cfg_weight": 0.6,
+        "temperature": 0.7000000000000001,
+        "speed": 1.0,
+        "description": "Self-assured, determined",
+        "category": "positive",
+        "voice_tone": "strong",
+        "use_case": "character"
+      },
+      "commercial_energy": {
+        "name": "commercial_energy",
+        "exaggeration": 1.6,
+        "cfg_weight": 0.65,
+        "temperature": 0.9,
+        "speed": 1.3,
+        "description": "High-energy commercial",
+        "category": "positive",
+        "voice_tone": "balanced",
+        "use_case": "general"
+      }
+    },
+    "created_date": "D:\\LearnCusor\\tooldiutobe",
+    "author": "User",
+    "version": "1.0"
+  }
+}

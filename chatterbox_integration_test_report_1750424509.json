@@ -1,0 +1,37 @@
+{
+  "test_timestamp": "2025-06-20 20:01:49",
+  "chatterbox_server_online": false,
+  "total_tests": 3,
+  "successful_tests": 3,
+  "test_results": [
+    {
+      "test_name": "Auto Provider Selection",
+      "success": true,
+      "provider_used": "real_chatterbox",
+      "generation_time": 14.054815530776978,
+      "quality_score": 7.5,
+      "error": null
+    },
+    {
+      "test_name": "Chatterbox High Quality",
+      "success": true,
+      "provider_used": "real_chatterbox",
+      "generation_time": 9.117175579071045,
+      "quality_score": 7.5,
+      "error": null
+    },
+    {
+      "test_name": "Real Chatterbox Fallback",
+      "success": true,
+      "provider_used": "real_chatterbox",
+      "generation_time": 5.833551406860352,
+      "quality_score": 7.5,
+      "error": null
+    }
+  ],
+  "summary": {
+    "success_rate": "100.0%",
+    "avg_generation_time": "9.67s",
+    "avg_quality_score": "7.5/10"
+  }
+}

@@ -1,0 +1,187 @@
+{
+  "YouTube_Standard": {
+    "name": "YouTube_Standard",
+    "description": "Optimized cho YouTube videos - natural và engaging",
+    "category": "youtube",
+    "voice_profiles": {
+      "narrator": {
+        "name": "YouTube Narrator",
+        "voice_id": "narrator",
+        "gender": "neutral",
+        "language": "vietnamese",
+        "default_emotion": "friendly",
+        "default_speed": 1.1,
+        "default_pitch": 1.0,
+        "description": "Energetic narrator cho YouTube content"
+      },
+      "character1": {
+        "name": "Main Character",
+        "voice_id": "character1",
+        "gender": "male",
+        "language": "vietnamese",
+        "default_emotion": "confident",
+        "default_speed": 1.0,
+        "default_pitch": 1.0,
+        "description": "Confident male voice cho main character"
+      }
+    },
+    "audio_settings": {
+      "normalize_volume": true,
+      "target_lufs": -16.0,
+      "remove_silence": true,
+      "silence_threshold": 0.15,
+      "apply_compression": true,
+      "compression_ratio": 2.5,
+      "export_formats": [
+        "mp3",
+        "wav"
+      ]
+    },
+    "default_output_dir": "./voice_studio_output",
+    "created_date": "2025-06-20T14:44:09.003153"
+  },
+  "Podcast_Professional": {
+    "name": "Podcast_Professional",
+    "description": "Professional podcast quality - clear và consistent",
+    "category": "podcast",
+    "voice_profiles": {
+      "host": {
+        "name": "Podcast Host",
+        "voice_id": "narrator",
+        "gender": "neutral",
+        "language": "vietnamese",
+        "default_emotion": "professional",
+        "default_speed": 0.95,
+        "default_pitch": 1.0,
+        "description": "Clear và authoritative host voice"
+      },
+      "guest": {
+        "name": "Podcast Guest",
+        "voice_id": "character1",
+        "gender": "female",
+        "language": "vietnamese",
+        "default_emotion": "friendly",
+        "default_speed": 1.0,
+        "default_pitch": 1.0,
+        "description": "Warm guest voice"
+      }
+    },
+    "audio_settings": {
+      "normalize_volume": true,
+      "target_lufs": -23.0,
+      "remove_silence": true,
+      "silence_threshold": 0.1,
+      "apply_compression": true,
+      "compression_ratio": 3.0,
+      "export_formats": [
+        "mp3",
+        "wav",
+        "flac"
+      ]
+    },
+    "default_output_dir": "./voice_studio_output",
+    "created_date": "2025-06-20T14:44:09.003186"
+  },
+  "Audiobook_Premium": {
+    "name": "Audiobook_Premium",
+    "description": "Premium audiobook quality - immersive storytelling",
+    "category": "audiobook",
+    "voice_profiles": {
+      "narrator": {
+        "name": "Audiobook Narrator",
+        "voice_id": "narrator",
+        "gender": "neutral",
+        "language": "vietnamese",
+        "default_emotion": "storytelling",
+        "default_speed": 0.9,
+        "default_pitch": 1.0,
+        "description": "Rich storytelling voice"
+      },
+      "character_male": {
+        "name": "Male Character",
+        "voice_id": "character1",
+        "gender": "male",
+        "language": "vietnamese",
+        "default_emotion": "dramatic",
+        "default_speed": 0.95,
+        "default_pitch": 1.0,
+        "description": "Expressive male character"
+      },
+      "character_female": {
+        "name": "Female Character",
+        "voice_id": "character2",
+        "gender": "female",
+        "language": "vietnamese",
+        "default_emotion": "emotional",
+        "default_speed": 1.0,
+        "default_pitch": 1.0,
+        "description": "Emotional female character"
+      }
+    },
+    "audio_settings": {
+      "normalize_volume": true,
+      "target_lufs": -20.0,
+      "remove_silence": false,
+      "silence_threshold": 0.05,
+      "apply_compression": false,
+      "compression_ratio": 2.0,
+      "export_formats": [
+        "mp3",
+        "flac"
+      ]
+    },
+    "default_output_dir": "./voice_studio_output",
+    "created_date": "2025-06-20T14:44:09.003197"
+  },
+  "Gaming_Character": {
+    "name": "Gaming_Character",
+    "description": "Dynamic gaming characters - expressive và dramatic",
+    "category": "gaming",
+    "voice_profiles": {
+      "hero": {
+        "name": "Hero Voice",
+        "voice_id": "character1",
+        "gender": "male",
+        "language": "vietnamese",
+        "default_emotion": "heroic",
+        "default_speed": 1.1,
+        "default_pitch": 1.0,
+        "description": "Strong heroic voice"
+      },
+      "villain": {
+        "name": "Villain Voice",
+        "voice_id": "character2",
+        "gender": "male",
+        "language": "vietnamese",
+        "default_emotion": "sinister",
+        "default_speed": 0.9,
+        "default_pitch": 1.0,
+        "description": "Dark villainous voice"
+      },
+      "narrator": {
+        "name": "Game Narrator",
+        "voice_id": "narrator",
+        "gender": "neutral",
+        "language": "vietnamese",
+        "default_emotion": "epic",
+        "default_speed": 1.0,
+        "default_pitch": 1.0,
+        "description": "Epic gaming narrator"
+      }
+    },
+    "audio_settings": {
+      "normalize_volume": true,
+      "target_lufs": -18.0,
+      "remove_silence": true,
+      "silence_threshold": 0.2,
+      "apply_compression": true,
+      "compression_ratio": 2.0,
+      "export_formats": [
+        "mp3",
+        "wav"
+      ]
+    },
+    "default_output_dir": "./voice_studio_output",
+    "created_date": "2025-06-20T14:44:09.003203"
+  }
+}

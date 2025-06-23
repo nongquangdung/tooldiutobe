@@ -192,6 +192,10 @@ class RealChatterboxProvider:
         
         return info
     
+    def get_provider_status(self) -> Dict[str, Any]:
+        """Get provider status for compatibility with EnhancedVoiceGenerator"""
+        return self.get_device_info()
+    
     def generate_voice(self, 
                       text: str, 
                       save_path: str, 
@@ -238,30 +242,29 @@ class RealChatterboxProvider:
                 selected_voice = self._resolve_voice_selection(voice_name)
                 print(f"   🗣️ Voice: {selected_voice['name']} ({selected_voice['gender']})")
             
-            # Voice cloning setup
+            # Voice cloning setup - SỬ DỤNG PREDEFINED VOICE FILE
             reference_audio = None
             if voice_sample_path and os.path.exists(voice_sample_path):
+                # User-provided voice cloning file
                 reference_audio = voice_sample_path
-                print(f"   🎤 Voice cloning: {os.path.basename(voice_sample_path)} (REAL cloning!)")
-            elif selected_voice['id'] == 'cloned' and not voice_sample_path:
-                print(f"   ⚠️ Voice cloning selected nhưng không có sample audio, dùng default")
-            
-            # Generate audio với REAL ChatterboxTTS
-            if self.chatterbox_model:
-                print("🎤 Using REAL ChatterboxTTS for audio generation...")
-                success = self._generate_real_chatterbox_audio(
-                    text=text,
-                    save_path=save_path,
-                    reference_audio=reference_audio,
-                    emotion_exaggeration=emotion_exaggeration,
-                    speed=speed,
-                    cfg_weight=cfg_weight,
-                    voice_prompt=voice_prompt
-                )
+                print(f"   🎤 Voice cloning: {os.path.basename(voice_sample_path)} (User-provided)")
+            elif selected_voice.get('file_path') and os.path.exists(selected_voice['file_path']):
+                # Use predefined voice file as cloning sample
+                reference_audio = selected_voice['file_path']
+                print(f"   🎤 Voice cloning: {os.path.basename(reference_audio)} (Predefined voice)")
             else:
-                print("🔄 FALLBACK: Using gTTS for audio generation...")
-                print("   🔧 Real ChatterboxTTS not available, using fallback")
-                success = self._generate_fallback_audio(text, save_path, speed, selected_voice)
+                print(f"   🗣️ Using default voice (no voice file available)")
+            
+            # Generate real audio
+            success = self._generate_real_chatterbox_audio(
+                text=text,
+                save_path=save_path,
+                reference_audio=reference_audio,  # Either user file or predefined voice
+                emotion_exaggeration=emotion_exaggeration,
+                speed=speed,
+                cfg_weight=cfg_weight,
+                voice_prompt=voice_prompt
+            )
             
             if not success:
                 # Create demo file nếu cả real và fallback đều fail
@@ -304,17 +307,47 @@ class RealChatterboxProvider:
     def _resolve_voice_selection(self, voice_name: Optional[str]) -> Dict[str, str]:
         """
         Resolve voice selection from voice_name parameter
-        Supports both direct voice IDs and gender-based selection
+        Returns voice info including file path for voice cloning
         """
         available_voices = self.get_available_voices()
         
         # If no voice specified, use default
         if not voice_name:
-            return available_voices[0]  # Default to first female voice
+            return available_voices[0]  # Default to first voice
         
-        # Direct voice ID match
+        # Direct voice ID match - THÊM VOICE FILE PATH
         for voice in available_voices:
             if voice['id'] == voice_name:
+                # Load voice file path từ ChatterboxVoicesManager
+                try:
+                    import sys
+                    import os
+                    sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'ui'))
+                    
+                    from .chatterbox_voices_integration import ChatterboxVoicesManager
+                    voices_manager = ChatterboxVoicesManager()
+                    available_voices = voices_manager.get_available_voices()
+                    
+                    if voice_name in available_voices:
+                        voice_info = available_voices[voice_name]
+                        # Try both lowercase and capitalize case for file name
+                        voice_file_path_lower = str(voices_manager.voices_directory / f"{voice_name}.wav")
+                        voice_file_path_capital = str(voices_manager.voices_directory / f"{voice_name.capitalize()}.wav")
+                        
+                        if os.path.exists(voice_file_path_lower):
+                            voice['file_path'] = voice_file_path_lower
+                            print(f"🎤 Voice found: {voice['name']} → {voice_file_path_lower}")
+                        elif os.path.exists(voice_file_path_capital):
+                            voice['file_path'] = voice_file_path_capital
+                            print(f"🎤 Voice found: {voice['name']} → {voice_file_path_capital}")
+                        else:
+                            print(f"⚠️ Voice file not found for: {voice_name} (tried {voice_file_path_lower} and {voice_file_path_capital})")
+                    else:
+                        print(f"⚠️ Voice file not found for: {voice_name}")
+                        
+                except Exception as e:
+                    print(f"⚠️ Error loading voice file for {voice_name}: {e}")
+                
                 return voice
         
         # Gender-based matching (for integration with other TTS providers)
@@ -569,24 +602,50 @@ class RealChatterboxProvider:
             torch.cuda.empty_cache()
     
     def get_available_voices(self) -> List[Dict[str, str]]:
-        """Get available voices with gender support"""
-        # Real Chatterbox supports multiple voice styles + voice cloning
-        return [
-            # Female voices
-            {"id": "female_young", "name": "Young Female", "gender": "female", "description": "Giọng nữ trẻ, tươi tắn"},
-            {"id": "female_mature", "name": "Mature Female", "gender": "female", "description": "Giọng nữ trưởng thành, ấm áp"},
-            {"id": "female_gentle", "name": "Gentle Female", "gender": "female", "description": "Giọng nữ dịu dàng"},
+        """Get available voices - use 28 predefined voices from voices/ directory"""
+        try:
+            # Load voices từ ChatterboxVoicesManager
+            import sys
+            import os
+            sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'ui'))
             
-            # Male voices  
-            {"id": "male_young", "name": "Young Male", "gender": "male", "description": "Giọng nam trẻ, năng động"},
-            {"id": "male_mature", "name": "Mature Male", "gender": "male", "description": "Giọng nam trưởng thành, uy tín"},
-            {"id": "male_deep", "name": "Deep Male", "gender": "male", "description": "Giọng nam trầm, khỏe khoắn"},
+            from .chatterbox_voices_integration import ChatterboxVoicesManager
+            voices_manager = ChatterboxVoicesManager()
             
-            # Neutral/Character voices
-            {"id": "neutral_narrator", "name": "Narrator", "gender": "neutral", "description": "Giọng kể chuyện trung tính"},
-            {"id": "neutral_child", "name": "Child Voice", "gender": "neutral", "description": "Giọng trẻ em"},
-            {"id": "neutral_elder", "name": "Elder Voice", "gender": "neutral", "description": "Giọng người lớn tuổi"},
+            available_chatterbox_voices = voices_manager.get_available_voices()
             
-            # Voice cloning
-            {"id": "cloned", "name": "Voice Cloning", "gender": "variable", "description": "Nhân bản giọng từ mẫu audio"}
-        ] 
+            # Convert to format expected by RealChatterboxProvider
+            available_voices = []
+            for voice_id, voice_data in available_chatterbox_voices.items():
+                available_voices.append({
+                    "id": voice_id,
+                    "name": voice_data.name,
+                    "gender": voice_data.gender,
+                    "description": f"Predefined voice: {voice_data.name} ({voice_data.gender})"
+                })
+            
+            print(f"🎙️ Loaded {len(available_voices)} predefined voices từ ChatterboxVoicesManager")
+            return available_voices
+            
+        except Exception as e:
+            print(f"⚠️ Failed to load predefined voices: {e}")
+            # Fallback to basic voices if loading fails
+            return [
+                # Female voices
+                {"id": "female_young", "name": "Young Female", "gender": "female", "description": "Giọng nữ trẻ, tươi tắn"},
+                {"id": "female_mature", "name": "Mature Female", "gender": "female", "description": "Giọng nữ trưởng thành, ấm áp"},
+                {"id": "female_gentle", "name": "Gentle Female", "gender": "female", "description": "Giọng nữ dịu dàng"},
+                
+                # Male voices  
+                {"id": "male_young", "name": "Young Male", "gender": "male", "description": "Giọng nam trẻ, năng động"},
+                {"id": "male_mature", "name": "Mature Male", "gender": "male", "description": "Giọng nam trưởng thành, uy tín"},
+                {"id": "male_deep", "name": "Deep Male", "gender": "male", "description": "Giọng nam trầm, khỏe khoắn"},
+                
+                # Neutral/Character voices
+                {"id": "neutral_narrator", "name": "Narrator", "gender": "neutral", "description": "Giọng kể chuyện trung tính"},
+                {"id": "neutral_child", "name": "Child Voice", "gender": "neutral", "description": "Giọng trẻ em"},
+                {"id": "neutral_elder", "name": "Elder Voice", "gender": "neutral", "description": "Giọng người lớn tuổi"},
+                
+                # Voice cloning
+                {"id": "cloned", "name": "Voice Cloning", "gender": "variable", "description": "Nhân bản giọng từ mẫu audio"}
+            ] 

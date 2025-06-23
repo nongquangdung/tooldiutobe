@@ -18,6 +18,7 @@ import traceback
 import shutil
 import glob
 from .manual_voice_setup_dialog import ManualVoiceSetupDialog
+from .emotion_config_tab import EmotionConfigTab
 
 # Import pipeline
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
@@ -99,6 +100,7 @@ class AdvancedMainWindow(QMainWindow):
         # Tạo các tabs
         self.create_video_tab()
         self.create_voice_studio_tab()
+        self.create_emotion_config_tab()
         self.create_projects_tab()
         self.create_settings_tab()
         
@@ -640,26 +642,52 @@ class AdvancedMainWindow(QMainWindow):
         char_specific_label.setStyleSheet("font-weight: bold; margin-top: 10px;")
         chatterbox_manual_layout.addWidget(char_specific_label)
         
-        # Character settings table
+        # Character settings table với styling cải thiện
         self.character_settings_table = QTableWidget()
-        self.character_settings_table.setColumnCount(9)  # Giữ nguyên 9 columns
+        self.character_settings_table.setColumnCount(10)  # Tăng lên 10 columns để thêm Exaggeration
         self.character_settings_table.setHorizontalHeaderLabels([
-            "Nhân vật", "Emotion", "Speed", "CFG Weight", "Mode", "Voice/Prompt/Clone", "Quick", "Status", "Preview"
+            "Nhân vật", "Emotion", "Exaggeration", "Speed", "CFG Weight", "Mode", "Voice/Prompt/Clone", "Quick", "Status", "Preview"
         ])
         self.character_settings_table.horizontalHeader().setStretchLastSection(False)
         self.character_settings_table.setMaximumHeight(200)  # Tăng height cho table
         
+        # Cải thiện styling và font size tương tự emotion table
+        self.character_settings_table.setAlternatingRowColors(True)
+        self.character_settings_table.setSelectionBehavior(QTableWidget.SelectRows)
+        self.character_settings_table.verticalHeader().setDefaultSectionSize(40)  # Row height phù hợp
+        self.character_settings_table.setStyleSheet("""
+            QTableWidget {
+                gridline-color: #e0e0e0;
+                background-color: white;
+                alternate-background-color: #f8f9fa;
+                font-size: 11px;
+            }
+            QHeaderView::section {
+                background-color: #f1f3f4;
+                padding: 6px;
+                border: 1px solid #e0e0e0;
+                font-weight: bold;
+                font-size: 11px;
+            }
+            QTableWidget::item {
+                padding: 6px;
+                border-bottom: 1px solid #e0e0e0;
+                font-size: 11px;
+            }
+        """)
+        
         # Set column widths
         header = self.character_settings_table.horizontalHeader()
         header.resizeSection(0, 120)  # Character name
-        header.resizeSection(1, 80)   # Emotion
-        header.resizeSection(2, 80)   # Speed  
-        header.resizeSection(3, 80)   # CFG Weight
-        header.resizeSection(4, 150)  # Mode
-        header.resizeSection(5, 150)  # Voice/Prompt/Clone
-        header.resizeSection(6, 60)   # Quick
-        header.resizeSection(7, 60)   # Status
-        header.resizeSection(8, 60)   # Preview
+        header.resizeSection(1, 80)   # Emotion  
+        header.resizeSection(2, 80)   # Exaggeration (NEW)
+        header.resizeSection(3, 80)   # Speed
+        header.resizeSection(4, 80)   # CFG Weight
+        header.resizeSection(5, 130)  # Mode (reduced width)
+        header.resizeSection(6, 130)  # Voice/Prompt/Clone (reduced width)
+        header.resizeSection(7, 60)   # Quick
+        header.resizeSection(8, 60)   # Status
+        header.resizeSection(9, 60)   # Preview
         
         chatterbox_manual_layout.addWidget(self.character_settings_table)
         
@@ -823,6 +851,21 @@ class AdvancedMainWindow(QMainWindow):
         tab.setLayout(tab_layout)
         
         self.tabs.addTab(tab, "🎙️ Voice Studio")
+    
+    def create_emotion_config_tab(self):
+        """Tạo tab Emotion Configuration"""
+        try:
+            self.emotion_config_tab = EmotionConfigTab()
+            self.tabs.addTab(self.emotion_config_tab, "🎭 Cấu hình Cảm xúc")
+        except Exception as e:
+            # Fallback nếu có lỗi
+            fallback_tab = QWidget()
+            layout = QVBoxLayout()
+            error_label = QLabel(f"⚠️ Lỗi load Emotion Config: {str(e)}")
+            error_label.setWordWrap(True)
+            layout.addWidget(error_label)
+            fallback_tab.setLayout(layout)
+            self.tabs.addTab(fallback_tab, "🎭 Cấu hình Cảm xúc")
     
     def create_projects_tab(self):
         """Tab quản lý projects với layout tối ưu cho MacOS"""
@@ -2201,15 +2244,40 @@ Created: {data['created_at']}
         try:
             # Get character info
             character_id = self.character_settings_table.item(current_row, 0).text()
-            voice_combo = self.character_settings_table.cellWidget(current_row, 4)  # Voice column
-            selected_voice = voice_combo.currentData()  # Get Chatterbox voice ID
             
-            # Get settings from character_settings_table
-            emotion_input = self.character_settings_table.cellWidget(current_row, 1)
-            speed_input = self.character_settings_table.cellWidget(current_row, 2)
-            cfg_weight_input = self.character_settings_table.cellWidget(current_row, 3)
+            # Get voice combo from stacked widget (column 6 after adding Exaggeration column)
+            voice_widget = self.character_settings_table.cellWidget(current_row, 6)  # Voice stacked widget
+            voice_combo = None
+            selected_voice = None
             
-            emotion = emotion_input.text() if emotion_input else "friendly"  # Now emotion is string
+            if voice_widget and hasattr(voice_widget, 'currentWidget'):
+                current_widget = voice_widget.currentWidget()
+                if current_widget:
+                    # Find voice combo in the current widget
+                    for child in current_widget.findChildren(QComboBox):
+                        if child.count() > 20:  # Voice combo should have 28+ items
+                            voice_combo = child
+                            selected_voice = child.currentData()
+                            break
+            
+            if not voice_combo or not selected_voice:
+                QMessageBox.warning(self, "Cảnh báo", "Không thể lấy thông tin voice. Vui lòng chọn voice cho nhân vật!")
+                return
+            
+            # Get settings from character_settings_table - UPDATED COLUMN INDEXES
+            emotion_combo = self.character_settings_table.cellWidget(current_row, 1)  # Emotion dropdown
+            exag_input = self.character_settings_table.cellWidget(current_row, 2)     # Exaggeration input
+            speed_input = self.character_settings_table.cellWidget(current_row, 3)    # Speed input
+            cfg_weight_input = self.character_settings_table.cellWidget(current_row, 4)  # CFG Weight input
+            
+            # Extract emotion from dropdown (format: "😊 happy")
+            emotion = "friendly"  # Default
+            if emotion_combo and hasattr(emotion_combo, 'currentText'):
+                emotion_text = emotion_combo.currentText()
+                if ' ' in emotion_text:
+                    emotion = emotion_text.split(' ', 1)[1]  # Get "happy" from "😊 happy"
+            
+            exaggeration = float(exag_input.text()) if exag_input and exag_input.text() else 1.35
             speed = float(speed_input.text()) if speed_input else 1.0
             cfg_weight = float(cfg_weight_input.text()) if cfg_weight_input else 0.5
             
@@ -2238,7 +2306,7 @@ Created: {data['created_at']}
                 text=preview_text,
                 save_path=preview_path,
                 voice_sample_path=None,
-                emotion_exaggeration=emotion,
+                emotion_exaggeration=exaggeration,  # ✅ FIX: Use exaggeration (float), not emotion (string)
                 speed=speed,
                 voice_name=selected_voice if not voice_prompt else None,  # Skip voice_name if using prompt
                 cfg_weight=cfg_weight,
@@ -2323,15 +2391,39 @@ Created: {data['created_at']}
             current_voice_mapping = {}
             for i in range(self.character_settings_table.rowCount()):
                 char_id = self.character_settings_table.item(i, 0).text()
-                voice_combo = self.character_settings_table.cellWidget(i, 4)  # Voice column
-                emotion_input = self.character_settings_table.cellWidget(i, 1)
-                speed_input = self.character_settings_table.cellWidget(i, 2)
-                cfg_weight_input = self.character_settings_table.cellWidget(i, 3)
+                
+                # ✅ FIX: Updated column indexes after adding Exaggeration column
+                emotion_combo = self.character_settings_table.cellWidget(i, 1)  # Emotion dropdown 
+                exag_input = self.character_settings_table.cellWidget(i, 2)     # Exaggeration input
+                speed_input = self.character_settings_table.cellWidget(i, 3)    # Speed input
+                cfg_weight_input = self.character_settings_table.cellWidget(i, 4)  # CFG Weight input
+                # Mode at column 5, Voice at column 6
+                voice_widget = self.character_settings_table.cellWidget(i, 6)   # Voice stacked widget
+                
+                # ✅ FIX: Get voice combo from stacked widget
+                voice_combo = None
+                if voice_widget and hasattr(voice_widget, 'currentWidget'):
+                    current_widget = voice_widget.currentWidget()
+                    if current_widget:
+                        # Find voice combo in the current widget
+                        for child in current_widget.findChildren(QComboBox):
+                            if child.count() > 20:  # Voice combo should have 28+ items
+                                voice_combo = child
+                                break
+                
+                # ✅ FIX: Get emotion from dropdown, not input
+                emotion_text = 'friendly'  # Default
+                if emotion_combo and hasattr(emotion_combo, 'currentText'):
+                    emotion_text = emotion_combo.currentText()
+                    # Extract emotion name from "😊 happy" format
+                    if ' ' in emotion_text:
+                        emotion_text = emotion_text.split(' ', 1)[1]  # Get "happy" from "😊 happy"
                 
                 current_voice_mapping[char_id] = {
                     'name': char_id,
-                    'suggested_voice': voice_combo.currentData() if voice_combo else 'female_young',
-                    'emotion': emotion_input.text() if emotion_input and emotion_input.text() else 'friendly',  # Now string
+                    'suggested_voice': voice_combo.currentData() if voice_combo else 'abigail',  # Use real voice ID
+                    'emotion': emotion_text,  # String emotion from dropdown
+                    'exaggeration': float(exag_input.text()) if exag_input and exag_input.text() else 1.35,
                     'speed': float(speed_input.text()) if speed_input and speed_input.text() else 1.0,
                     'cfg_weight': float(cfg_weight_input.text()) if cfg_weight_input and cfg_weight_input.text() else 0.5
                 }
@@ -2370,13 +2462,14 @@ Created: {data['created_at']}
                     
                     # Get voice settings from character_settings_table
                     voice_settings = current_voice_mapping.get(speaker, {})
-                    voice_name = voice_settings.get('suggested_voice', 'female_young')
+                    voice_name = voice_settings.get('suggested_voice', 'abigail')  # Use real voice ID
                     table_emotion = voice_settings.get('emotion', 'friendly')  # String emotion from table
+                    exaggeration = voice_settings.get('exaggeration', 1.35)  # Get exaggeration from table
                     speed = voice_settings.get('speed', 1.0)
                     cfg_weight = voice_settings.get('cfg_weight', 0.5)
                     
                     # Default emotion_exaggeration - will be overridden by emotion mapping if enabled
-                    emotion_exaggeration = 1.0
+                    emotion_exaggeration = exaggeration  # Use table exaggeration as base
                     
                     # Get per-character settings từ character_chatterbox_settings
                     char_settings = self.character_chatterbox_settings.get(speaker, {})
@@ -2418,7 +2511,7 @@ Created: {data['created_at']}
                             text=text,
                             save_path=file_path,
                             voice_sample_path=voice_clone_path if voice_mode == 'clone' else None,
-                            emotion_exaggeration=emotion_exaggeration,
+                            emotion_exaggeration=emotion_exaggeration,  # ✅ FIX: Use correct parameter name
                             speed=speed,
                             voice_name=voice_name if voice_mode == 'selection' else None,
                             cfg_weight=cfg_weight,
@@ -3306,27 +3399,76 @@ Tạo script video về "[TOPIC]" theo Enhanced Format 2.0:
             # Simplified: Only use emotion keywords now
             default_emotion = character.get('default_emotion', 'friendly')
             
-            # Emotion input field với default emotion
-            emotion_input = QLineEdit()
-            emotion_input.setText(str(default_emotion))
-            emotion_input.setAlignment(Qt.AlignCenter)
-            emotion_input.setMaximumWidth(60)
-            emotion_input.setStyleSheet("""
+            # Emotion dropdown với 18 emotions predefined
+            emotion_combo = QComboBox()
+            emotion_combo.setStyleSheet("""
+                QComboBox {
+                    background-color: white;
+                    border: 1px solid #ccc;
+                    border-radius: 4px;
+                    padding: 2px;
+                    color: black;
+                    font-size: 11px;
+                }
+                QComboBox::drop-down {
+                    background-color: white;
+                }
+                QComboBox::down-arrow {
+                    color: black;
+                }
+                QComboBox QAbstractItemView {
+                    background-color: white;
+                    color: black;
+                    selection-background-color: #007AFF;
+                    selection-color: white;
+                    font-size: 11px;
+                }
+            """)
+            
+            # Add 18 emotions từ emotion system
+            emotions = [
+                "😐 neutral", "😊 happy", "😢 sad", "😮 excited", 
+                "😌 calm", "😠 angry", "😍 romantic", "😨 fearful",
+                "🤔 thoughtful", "😴 sleepy", "💪 confident", "😊 cheerful",
+                "😔 melancholic", "🎭 dramatic", "👻 mysterious", "😱 surprised",
+                "😤 frustrated", "🥺 soft_meditation"
+            ]
+            emotion_combo.addItems(emotions)
+            
+            # Set default emotion based on character
+            default_emotion = character.get('default_emotion', 'neutral')
+            for emotion_idx, emotion in enumerate(emotions):
+                if default_emotion.lower() in emotion.lower():
+                    emotion_combo.setCurrentIndex(emotion_idx)
+                    break
+            
+            emotion_combo.currentTextChanged.connect(
+                lambda text, cid=char_id: self.update_character_emotion_from_input(cid, text.split()[-1])  # Extract emotion name
+            )
+            self.character_settings_table.setCellWidget(i, 1, emotion_combo)
+            
+            # Exaggeration input field (NEW COLUMN)
+            exag_input = QLineEdit()
+            exag_input.setText("1.35")  # Default exaggeration value
+            exag_input.setAlignment(Qt.AlignCenter)
+            exag_input.setMaximumWidth(60)
+            exag_input.setStyleSheet("""
                 QLineEdit {
                     background-color: white;
                     border: 1px solid #ccc;
                     border-radius: 4px;
                     padding: 2px;
                     color: black;
+                    font-size: 11px;
                 }
                 QLineEdit:focus {
                     border: 2px solid #007AFF;
                 }
             """)
-            emotion_input.textChanged.connect(
-                lambda text, cid=char_id: self.update_character_emotion_from_input(cid, text)
+            exag_input.textChanged.connect(
+                lambda text, cid=char_id: self.update_character_exaggeration_from_input(cid, text)
             )
-            self.character_settings_table.setCellWidget(i, 1, emotion_input)
+            self.character_settings_table.setCellWidget(i, 2, exag_input)
             
             # Enhanced Format 2.0: Use default_speed hoặc fallback to 1.0  
             default_speed = character.get('default_speed', 1.0)
@@ -3343,6 +3485,7 @@ Tạo script video về "[TOPIC]" theo Enhanced Format 2.0:
                     border-radius: 4px;
                     padding: 2px;
                     color: black;
+                    font-size: 11px;
                 }
                 QLineEdit:focus {
                     border: 2px solid #007AFF;
@@ -3351,7 +3494,7 @@ Tạo script video về "[TOPIC]" theo Enhanced Format 2.0:
             speed_input.textChanged.connect(
                 lambda text, cid=char_id: self.update_character_speed_from_input(cid, text)
             )
-            self.character_settings_table.setCellWidget(i, 2, speed_input)
+            self.character_settings_table.setCellWidget(i, 3, speed_input)
             
             # CFG Weight input field (NEW) - Fix màu đen
             cfg_weight_input = QLineEdit()
@@ -3365,6 +3508,7 @@ Tạo script video về "[TOPIC]" theo Enhanced Format 2.0:
                     border-radius: 4px;
                     padding: 2px;
                     color: black;
+                    font-size: 11px;
                 }
                 QLineEdit:focus {
                     border: 2px solid #007AFF;
@@ -3373,9 +3517,9 @@ Tạo script video về "[TOPIC]" theo Enhanced Format 2.0:
             cfg_weight_input.textChanged.connect(
                 lambda text, cid=char_id: self.update_character_cfg_weight_from_input(cid, text)
             )
-            self.character_settings_table.setCellWidget(i, 3, cfg_weight_input)
+            self.character_settings_table.setCellWidget(i, 4, cfg_weight_input)
             
-            # Voice selection combo (NEW) - Fix dropdown đen
+            # Voice selection combo (NEW) - Fix dropdown đen với font size cải thiện
             voice_combo = QComboBox()
             voice_combo.setStyleSheet("""
                 QComboBox {
@@ -3384,6 +3528,7 @@ Tạo script video về "[TOPIC]" theo Enhanced Format 2.0:
                     border-radius: 4px;
                     padding: 2px;
                     color: black;
+                    font-size: 11px;
                 }
                 QComboBox::drop-down {
                     background-color: white;
@@ -3396,25 +3541,47 @@ Tạo script video về "[TOPIC]" theo Enhanced Format 2.0:
                     color: black;
                     selection-background-color: #007AFF;
                     selection-color: white;
+                    font-size: 11px;
                 }
             """)
             
-            # Always use fallback voices để đảm bảo có data
-            fallback_voices = [
-                ("👩 Young Female (female)", "female_young"),
-                ("👨 Young Male (male)", "male_young"),
-                ("🗣️ Narrator (neutral)", "neutral_narrator"),
-                ("👩 Mature Female (female)", "female_mature"),
-                ("👨 Mature Male (male)", "male_mature"),
-                ("👩 Gentle Female (female)", "female_gentle"),
-                ("👨 Deep Male (male)", "male_deep"),
-                ("👶 Child Voice (neutral)", "child_voice"),
-                ("👴 Elder Voice (neutral)", "elder_voice"),
-                ("🎤 Voice Cloning (variable)", "cloned")
-            ]
-            
-            for display, voice_id in fallback_voices:
-                voice_combo.addItem(display, voice_id)
+            # Load 28 predefined voices từ ChatterboxVoicesManager
+            try:
+                import sys
+                import os
+                sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+                from src.tts.chatterbox_voices_integration import ChatterboxVoicesManager
+                chatterbox_manager = ChatterboxVoicesManager()
+                available_voices = chatterbox_manager.get_available_voices()
+                
+                # Add 28 predefined voices
+                for voice_id, voice_obj in sorted(available_voices.items()):
+                    display_name = f"{voice_obj.name} ({voice_obj.gender})"
+                    voice_combo.addItem(display_name, voice_id)
+                
+                # Add custom cloning option
+                voice_combo.addItem("🎤 Custom Cloned Voice", "cloned")
+                
+                print(f"✅ Loaded {len(available_voices)} predefined voices trong character table")
+                
+            except Exception as e:
+                print(f"⚠️ Không thể load 28 predefined voices: {e}")
+                # Fallback voices nếu không load được
+                fallback_voices = [
+                    ("👩 Young Female (female)", "female_young"),
+                    ("👨 Young Male (male)", "male_young"),
+                    ("🗣️ Narrator (neutral)", "neutral_narrator"),
+                    ("👩 Mature Female (female)", "female_mature"),
+                    ("👨 Mature Male (male)", "male_mature"),
+                    ("👩 Gentle Female (female)", "female_gentle"),
+                    ("👨 Deep Male (male)", "male_deep"),
+                    ("👶 Child Voice (neutral)", "child_voice"),
+                    ("👴 Elder Voice (neutral)", "elder_voice"),
+                    ("🎤 Voice Cloning (variable)", "cloned")
+                ]
+                
+                for display, voice_id in fallback_voices:
+                    voice_combo.addItem(display, voice_id)
             
             # Enhanced Format 2.0: Use suggested_voice hoặc default selection
             default_voice_index = 0  # Default to Young Female
@@ -3466,7 +3633,7 @@ Tạo script video về "[TOPIC]" theo Enhanced Format 2.0:
                 lambda index, cid=char_id, combo=voice_combo: self.update_character_voice(cid, combo.currentData())
             )
             
-            # Voice Mode selector (NEW) - Chọn giữa Voice Selection vs Voice Clone
+            # Voice Mode selector (NEW) - Chọn giữa Voice Selection vs Voice Clone với font size cải thiện
             # NOTE: Voice Prompt bị loại bỏ vì ChatterboxTTS không hỗ trợ text prompt
             mode_combo = QComboBox()
             mode_combo.setMaximumWidth(120)
@@ -3480,6 +3647,7 @@ Tạo script video về "[TOPIC]" theo Enhanced Format 2.0:
                     border-radius: 4px;
                     padding: 2px;
                     color: black;
+                    font-size: 11px;
                 }
                 QComboBox::drop-down {
                     border: none;
@@ -3492,12 +3660,13 @@ Tạo script video về "[TOPIC]" theo Enhanced Format 2.0:
                     color: black;
                     selection-background-color: #007AFF;
                     selection-color: white;
+                    font-size: 11px;
                 }
             """)
             mode_combo.currentIndexChanged.connect(
                 lambda index, cid=char_id, combo=mode_combo: self.update_character_voice_mode(cid, combo.currentData())
             )
-            self.character_settings_table.setCellWidget(i, 4, mode_combo)
+            self.character_settings_table.setCellWidget(i, 5, mode_combo)
 
             # Stacked widget để chuyển đổi giữa Voice/Prompt/Clone
             stacked_widget = QStackedWidget()
@@ -3527,28 +3696,28 @@ Tạo script video về "[TOPIC]" theo Enhanced Format 2.0:
             stacked_widget.addWidget(clone_widget)     # Index 1 - Voice Clone
             stacked_widget.setCurrentIndex(0)  # Default to voice selection
             
-            self.character_settings_table.setCellWidget(i, 5, stacked_widget)
+            self.character_settings_table.setCellWidget(i, 6, stacked_widget)
             
             # Quick action button (test for clone, etc.)
             quick_btn = QPushButton("🔧")
             quick_btn.setMaximumWidth(30)
             quick_btn.setToolTip("Quick actions")
             quick_btn.clicked.connect(lambda checked, cid=char_id: self.show_voice_quick_actions(cid))
-            self.character_settings_table.setCellWidget(i, 6, quick_btn)
+            self.character_settings_table.setCellWidget(i, 7, quick_btn)
             
             # Status indicator
             status_label = QLabel("🗣️")
             status_label.setMaximumWidth(30)
             status_label.setAlignment(Qt.AlignCenter)
             status_label.setToolTip("Voice Selection mode")
-            self.character_settings_table.setCellWidget(i, 7, status_label)
+            self.character_settings_table.setCellWidget(i, 8, status_label)
             
             # Preview button
             preview_btn = QPushButton("🎧")
             preview_btn.setMaximumWidth(40)
             preview_btn.setToolTip(f"Preview {character['name']}")
             preview_btn.clicked.connect(lambda checked, cid=char_id: self.preview_character_with_settings(cid))
-            self.character_settings_table.setCellWidget(i, 8, preview_btn)
+            self.character_settings_table.setCellWidget(i, 9, preview_btn)
             
             # Initialize character settings với voice mode
             self.character_chatterbox_settings[char_id] = {
@@ -3582,10 +3751,27 @@ Tạo script video về "[TOPIC]" theo Enhanced Format 2.0:
             self.character_chatterbox_settings[char_id]['emotion'] = text.strip()
         # No try/catch needed since emotion is now just a string
     
-    # Speed field has been removed from simplified JSON structure
-    # def update_character_speed_from_input(self, char_id, text):
-    #     """Speed no longer supported - simplified to emotion only"""
-    #     pass
+    def update_character_exaggeration_from_input(self, char_id, text):
+        """Cập nhật exaggeration cho nhân vật cụ thể từ input"""
+        try:
+            value = float(text)
+            value = max(0.0, min(2.5, value))  # Clamp to 0.0-2.5
+            if char_id not in self.character_chatterbox_settings:
+                self.character_chatterbox_settings[char_id] = {}
+            self.character_chatterbox_settings[char_id]['exaggeration'] = value
+        except ValueError:
+            pass  # Ignore invalid input
+    
+    def update_character_speed_from_input(self, char_id, text):
+        """Cập nhật speed cho nhân vật cụ thể từ input"""
+        try:
+            value = float(text)
+            value = max(0.5, min(2.0, value))  # Clamp to 0.5-2.0
+            if char_id not in self.character_chatterbox_settings:
+                self.character_chatterbox_settings[char_id] = {}
+            self.character_chatterbox_settings[char_id]['speed'] = value
+        except ValueError:
+            pass  # Ignore invalid input
     
     def update_character_cfg_weight_from_input(self, char_id, text):
         """Cập nhật CFG weight cho nhân vật cụ thể từ input"""
@@ -3614,22 +3800,33 @@ Tạo script video về "[TOPIC]" theo Enhanced Format 2.0:
         self.character_chatterbox_settings[char_id]['speed'] = voice_gender_params['speed'] 
         self.character_chatterbox_settings[char_id]['cfg_weight'] = voice_gender_params['cfg_weight']
         
-        # 🔄 CẬP NHẬT UI: Tìm và update input fields trong table
+        # 🔄 CẬP NHẬT UI: Tìm và update input fields trong table bằng cách match character ID
+        characters = self.voice_studio_script_data.get('characters', [])
         for row in range(self.character_settings_table.rowCount()):
-            name_item = self.character_settings_table.item(row, 0)
-            if name_item and name_item.text() == char_id:
-                # Update emotion input (now string)
-                emotion_input = self.character_settings_table.cellWidget(row, 1)
-                if emotion_input:
-                    emotion_input.setText(str(voice_gender_params['emotion']))  # No .1f formatting
+            if row < len(characters) and characters[row]['id'] == char_id:
+                # Found the matching character row
                 
-                # Update speed input  
-                speed_input = self.character_settings_table.cellWidget(row, 2)
+                # Update emotion dropdown (column 1)
+                emotion_combo = self.character_settings_table.cellWidget(row, 1)
+                if emotion_combo:
+                    # Find and set emotion in dropdown
+                    for idx in range(emotion_combo.count()):
+                        if voice_gender_params['emotion'] in emotion_combo.itemText(idx).lower():
+                            emotion_combo.setCurrentIndex(idx)
+                            break
+                
+                # Update exaggeration input (column 2 - NEW)
+                exag_input = self.character_settings_table.cellWidget(row, 2)
+                if exag_input:
+                    exag_input.setText(f"{voice_gender_params.get('exaggeration', 1.35):.2f}")
+                
+                # Update speed input (column 3)
+                speed_input = self.character_settings_table.cellWidget(row, 3)
                 if speed_input:
                     speed_input.setText(f"{voice_gender_params['speed']:.1f}")
                 
-                # Update cfg weight input
-                cfg_weight_input = self.character_settings_table.cellWidget(row, 3)
+                # Update cfg weight input (column 4)
+                cfg_weight_input = self.character_settings_table.cellWidget(row, 4)
                 if cfg_weight_input:
                     cfg_weight_input.setText(f"{voice_gender_params['cfg_weight']:.2f}")
                 
@@ -3676,6 +3873,7 @@ Tạo script video về "[TOPIC]" theo Enhanced Format 2.0:
         if voice_id in female_voices:
             return {
                 'emotion': 'gentle',    # Emotion keyword
+                'exaggeration': 1.35,   # Higher exaggeration for emotion
                 'speed': 0.95,          # Chậm hơn một chút  
                 'cfg_weight': 0.6       # Chất lượng cao
             }
@@ -3685,6 +3883,7 @@ Tạo script video về "[TOPIC]" theo Enhanced Format 2.0:
         if voice_id in male_voices:
             return {
                 'emotion': 'confident', # Strong emotion keyword
+                'exaggeration': 1.15,   # Lower exaggeration for steady voice
                 'speed': 1.05,          # Nhanh hơn một chút
                 'cfg_weight': 0.4       # Cân bằng
             }
@@ -3694,6 +3893,7 @@ Tạo script video về "[TOPIC]" theo Enhanced Format 2.0:
         if voice_id in neutral_voices:
             return {
                 'emotion': 'friendly',  # Cân bằng emotion
+                'exaggeration': 1.25,   # Balanced exaggeration
                 'speed': 1.0,           # Bình thường  
                 'cfg_weight': 0.5       # Cân bằng
             }
@@ -3702,6 +3902,7 @@ Tạo script video về "[TOPIC]" theo Enhanced Format 2.0:
         if voice_id == 'cloned':
             return {
                 'emotion': 'friendly',  # Default emotion
+                'exaggeration': 1.35,   # Default exaggeration  
                 'speed': 1.0,           # Bình thường
                 'cfg_weight': 0.5       # Cân bằng
             }
@@ -3709,6 +3910,7 @@ Tạo script video về "[TOPIC]" theo Enhanced Format 2.0:
         # Default fallback
         return {
             'emotion': 'friendly',  # String emotion
+            'exaggeration': 1.35,   # Default exaggeration
             'speed': 1.0, 
             'cfg_weight': 0.5
         }
@@ -3720,51 +3922,59 @@ Tạo script video về "[TOPIC]" theo Enhanced Format 2.0:
             voice_mode = self.validate_character_voice_settings(char_id)
             
             settings = self.character_chatterbox_settings.get(char_id, {})
-            emotion = settings.get('emotion', 1.0)
+            emotion = settings.get('emotion', 'friendly')  # Now string emotion
+            exaggeration = settings.get('exaggeration', 1.35)  # NEW: exaggeration parameter
             speed = settings.get('speed', 1.0) 
             cfg_weight = settings.get('cfg_weight', 0.5)
             voice_id = settings.get('voice_id', 'female_young')
             voice_clone_path = settings.get('voice_clone_path', None)
-            voice_prompt = settings.get('voice_prompt', '').strip()
             
             char_name = self.get_character_name_by_id(char_id)
             
-            # Tạo preview text dựa trên voice mode
+            # Get real voice display name từ 28 predefined voices
+            voice_display_name = voice_id
+            try:
+                import sys
+                import os
+                sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+                from src.tts.chatterbox_voices_integration import ChatterboxVoicesManager
+                chatterbox_manager = ChatterboxVoicesManager()
+                available_voices = chatterbox_manager.get_available_voices()
+                
+                if voice_id in available_voices:
+                    voice_obj = available_voices[voice_id]
+                    voice_display_name = f"{voice_obj.name} ({voice_obj.gender})"
+                else:
+                    # Fallback cho old voice IDs
+                    fallback_mapping = {
+                        'female_young': 'Abigail (female)',
+                        'male_young': 'Adrian (male)', 
+                        'neutral_narrator': 'Thomas (male)',
+                        'cloned': 'Custom Cloned Voice'
+                    }
+                    voice_display_name = fallback_mapping.get(voice_id, voice_id)
+                    
+            except Exception as e:
+                print(f"⚠️ Could not load voice display name: {e}")
+            
+            # ✅ FIX: Tạo English text cho Chatterbox TTS
             if voice_mode == 'clone':
-                preview_text = f"Xin chào, tôi là {char_name}. Đây là giọng được clone từ voice samples."
+                preview_text = f"Hello, I am {char_name}. This is my cloned voice from audio samples."
             else:
-                # Tìm voice display name
-                voice_display_name = voice_id
-                fallback_voices = [
-                    ("👩 Young Female (female)", "female_young"),
-                    ("👨 Young Male (male)", "male_young"),
-                    ("🗣️ Narrator (neutral)", "neutral_narrator"),
-                    ("👩 Mature Female (female)", "female_mature"),
-                    ("👨 Mature Male (male)", "male_mature"),
-                    ("👩 Gentle Female (female)", "female_gentle"),
-                    ("👨 Deep Male (male)", "male_deep"),
-                    ("👶 Child Voice (neutral)", "child_voice"),
-                    ("👴 Elder Voice (neutral)", "elder_voice"),
-                    ("🎤 Voice Cloning (variable)", "cloned")
-                ]
-                
-                for display, vid in fallback_voices:
-                    if vid == voice_id:
-                        voice_display_name = display
-                        break
-                
-                preview_text = f"Xin chào, tôi là {char_name}. Đây là giọng {voice_display_name} với emotion {emotion}, speed {speed:.1f}x và CFG weight {cfg_weight:.2f}"
+                preview_text = f"Hello, I am {char_name}. This is {voice_display_name} voice with {emotion} emotion, {speed:.1f}x speed, and {exaggeration:.2f} exaggeration."
             
             # Generate preview
             import tempfile
+            import os
             temp_dir = tempfile.mkdtemp()
-            preview_path = os.path.join(temp_dir, f"preview_{char_id}.mp3")
+            preview_path = os.path.join(temp_dir, f"preview_{char_id}.wav")
                 
+            # ✅ FIX: Use correct parameters cho Real Chatterbox
             result = self.voice_generator.generate_voice_chatterbox(
                 text=preview_text,
                 save_path=preview_path,
                 voice_sample_path=voice_clone_path if voice_mode == 'clone' else None,
-                emotion_exaggeration=emotion,
+                emotion_exaggeration=exaggeration,  # ✅ FIX: Use correct parameter name
                 speed=speed,
                 voice_name=voice_id if voice_mode == 'selection' else None,
                 cfg_weight=cfg_weight
@@ -3783,10 +3993,11 @@ Tạo script video về "[TOPIC]" theo Enhanced Format 2.0:
                 else:
                     message += f"Voice: {voice_display_name}\n"
                 
-                message += f"Emotion: {emotion:.1f}\n"
+                message += f"Emotion: {emotion}\n"
+                message += f"Exaggeration: {exaggeration:.2f}\n"
                 message += f"Speed: {speed:.1f}x\n"
                 message += f"CFG Weight: {cfg_weight:.2f}\n"
-                message += f"\n🤖 Generated by Chatterbox TTS"
+                message += f"\n🤖 Generated by Real Chatterbox TTS"
                 
                 QMessageBox.information(self, "🎧 Preview Voice", message)
             else:

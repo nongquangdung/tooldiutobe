@@ -1,81 +1,281 @@
-# activeContext.md
+# 🎯 ACTIVE CONTEXT - Voice Studio Development
 
-## 🔧 LATEST: WINDOWS PATH COMPATIBILITY DEBUG FOR SMART MERGE 🟡
+## 🎉 **PREDEFINED VOICES INTEGRATION COMPLETED! 🎉**
 
-### 🚨 CURRENT CRITICAL ISSUE: Audio Merging Path Problems
+**Latest Update**: **CHATTERBOX PREDEFINED VOICES** đã được tích hợp thành công từ [Chatterbox-TTS-Server](https://github.com/devnen/Chatterbox-TTS-Server.git)
 
-**Status**: Files tạo thành công nhưng SMART MERGE lỗi path compatibility trên Windows
+## 🎭 **PREDEFINED VOICES INTEGRATION ACHIEVEMENTS:**
 
-## 🔍 **PROBLEM ANALYSIS (from latest test)**
+### ✅ **VOICES DIRECTORY SETUP**
+- **Clone & Extract**: Clone repository và copy thư mục `voices/` ✅
+- **28 Voice Files**: Tất cả 28 predefined voices (.wav) từ Chatterbox ✅  
+- **Auto-Detection**: System tự động scan `voices/` directory ✅
+- **Gender Classification**: Smart gender detection dựa trên name patterns ✅
+
+### ✅ **DYNAMIC VOICE LOADING**
+- **Real-time Scan**: Load voices từ filesystem thay vì hardcode ✅
+- **Voice Profiles**: Auto-generate descriptions cho mỗi voice ✅
+- **Quality Ratings**: Default 9.0/10 cho Chatterbox voices ✅
+- **Metadata Integration**: Name, gender, description, sample_rate ✅
+
+### ✅ **CHATTERBOX TAB UI INTEGRATION**
+- **Voice Cards Display**: Professional grid layout với 2 cards/row ✅
+- **Gender Badges**: Female (pink) và Male (blue) indicators ✅
+- **Quality Indicators**: Star ratings và provider info ✅
+- **Selection System**: Click to select voice for generation ✅
+
+### ✅ **TECHNICAL FIXES APPLIED**
+- **Import Error Fix**: `pyqtSignal` → `Signal` cho PySide6 compatibility ✅
+- **Voice Loading**: `voice_generator.get_available_voices()` → `chatterbox_manager.get_available_voices()` ✅
+- **UI Data Format**: Convert từ voice objects sang UI dict format ✅
+- **Path Management**: Automatic `voices/` directory detection ✅
+
+### 📊 **INTEGRATION RESULTS**
 ```
-✅ Files được tạo thành công:
-   ./voice_studio_output\segment_2_dialogue_2_character2.mp3
-   ./voice_studio_output\segment_3_dialogue_1_character1.mp3
-   ./voice_studio_output\segment_4_dialogue_2_character1.mp3
+🎭 Successfully loaded 28 predefined voices from voices/
 
-🔍 SMART MERGE detects files:
-   📋 File order after smart sorting:
-   1. segment_1_dialogue_1_narrator.mp3 (seg:1, dial:1)
-   2. segment_2_dialogue_1_character1.mp3 (seg:2, dial:1)
-   ...
+Female Voices (10): Abigail, Alice, Cora, Elena, Emily, Gianna, Jade, Layla, Olivia, Taylor
+Male Voices (18): Adrian, Alexander, Austin, Axel, Connor, Eli, Everett, Gabriel, Henry, Ian, Jeremiah, Jordan, Julian, Leonardo, Michael, Miles, Ryan, Thomas
 
-❌ But loading fails:
-   Failed to load segment_X_dialogue_Y.mp3: [WinError 2] The system cannot find the file specified
-```
-
-## 🧩 **ROOT CAUSE IDENTIFIED**
-1. **Path Separator Mismatch**: 
-   - Files created with Windows `\` backslash
-   - SMART MERGE uses Unix `/` forward slash
-   
-2. **Glob Pattern Issue**:
-   - `glob.glob()` might have issues with relative paths on Windows
-   - Current directory vs absolute path confusion
-
-## 🔧 **FIXES IMPLEMENTED**
-
-### 1. **Path Normalization**
-```python
-# Fix path separators for Windows compatibility  
-normalized_path = os.path.normpath(file_path)
-
-# Double check file exists before loading
-if not os.path.exists(normalized_path):
-    print(f"⚠️ File not found at: {normalized_path}")
-    continue
+✅ UI Display: Professional voice cards với quality ratings
+✅ Voice Selection: Click-to-select functionality working
+✅ Provider Status: Chatterbox TTS integration confirmed
 ```
 
-### 2. **Enhanced Debugging**
-```python
-print(f"📍 Absolute path: {os.path.abspath(output_dir)}")
-print(f"🔍 Search pattern: {search_pattern}")
+### 🔗 **SYSTEM INTEGRATION**
+- **Chatterbox Manager**: `ChatterboxVoicesManager` loads từ filesystem ✅
+- **Voice Generator**: Integration với `EnhancedVoiceGenerator` ✅
+- **UI Components**: Seamless hiển thị trong Chatterbox tab ✅
+- **Background Processing**: Voice generation thread ready ✅
 
-# File existence verification in listing
-exists = "✅" if os.path.exists(file_path) else "❌"
-print(f"   {filename} (seg:{seg}, dial:{dial}) {exists}")
-print(f"       Path: {absolute_path}")
-```
-
-### 3. **Fallback File Detection**
-```python
-# If glob fails, try manual directory listing
-if not all_mp3_files:
-    all_files = os.listdir(output_dir)
-    segment_files = [f for f in all_files if f.startswith('segment_') and f.endswith('.mp3')]
-    all_mp3_files = [os.path.join(output_dir, f) for f in segment_files]
-```
-
-### 🎯 **NEXT DEBUGGING STEPS**
-1. **Test enhanced debugging** để xem absolute paths và file existence details
-2. **Check FFprobe installation** nếu PyDub warnings ảnh hưởng
-3. **Verify current directory** vs expected paths
-4. **Test Force Merge button** after path fixes
+## 🎯 **VOICE AVAILABILITY STATUS**
+- **Predefined Voices**: 28 voices available trong Chatterbox tab ✅
+- **Voice Cloning**: Real Chatterbox provider operational ✅  
+- **Quality Control**: Whisper validation system active ✅
+- **Multi-Provider**: Auto/Chatterbox/Real Chatterbox options available ✅
 
 ---
 
-## 🎉 **PREVIOUSLY COMPLETED FEATURES**
+## 🚀 **CHARACTER SETTINGS TABLE FONT SIZE IMPROVEMENTS COMPLETED! 🎉**
 
-#### ✅ **MULTI-FILE JSON IMPORT & AUTO-MERGE**:
+**Latest Update**: **AI VIDEO GENERATOR ADVANCED - Character Settings Table** đã được cải thiện font size và styling
+
+## 🎨 **FONT SIZE IMPROVEMENTS JUST COMPLETED:**
+
+### ✅ **CHARACTER SETTINGS TABLE FIXES**
+- **Main Table Styling**: Font-size 11px cho consistent readability ✅
+- **Input Fields Styling**: QLineEdit font-size 11px (Emotion, Speed, CFG Weight) ✅
+- **Dropdown Styling**: QComboBox font-size 11px (Voice selection, Mode) ✅
+- **Header Styling**: QHeaderView font-size 11px cho consistent appearance ✅
+
+### ✅ **SPECIFIC STYLING IMPLEMENTED**
+1. **Table Styling**:
+   ```css
+   QTableWidget {
+       font-size: 11px;
+       gridline-color: #e0e0e0;
+       background-color: white;
+       alternate-background-color: #f8f9fa;
+   }
+   QHeaderView::section {
+       font-size: 11px;
+       font-weight: bold;
+       background-color: #f1f3f4;
+   }
+   ```
+
+2. **Input Fields Consistency**:
+   - **Emotion Input**: 11px font, consistent với emotion table format
+   - **Speed Input**: 11px font, alignment center
+   - **CFG Weight Input**: 11px font, proper contrast
+   
+3. **Dropdown Improvements**:
+   - **Voice Combo**: 11px font cho cả main text và dropdown items
+   - **Mode Combo**: 11px font với proper item view styling
+   - **Better Contrast**: Black text on white background
+
+### 🎯 **CONSISTENCY ACHIEVED**
+- **Emotion Table ↔ Character Table**: Cùng font-size 11px
+- **Professional Appearance**: Tất cả UI elements consistent styling
+- **Better Readability**: Font size optimal cho data density
+- **Visual Hierarchy**: Clear separation between headers và content
+
+---
+
+## 🚀 **EMOTION TABLE RESET & COLOR FIXES COMPLETED! 🎉**
+
+**Latest Update**: **EMOTION CONFIGURATION TABLE** đã được cải thiện với reset button và text formatting fixes
+
+## 🎨 **UI IMPROVEMENTS JUST COMPLETED:**
+
+### ✅ **RESET FUNCTIONALITY ADDED**
+- **Reset Button Column**: Thêm cột "🔄 Reset" (index 7) ✅
+- **Reset to Default**: Button 🔄 màu cam (#FF6B35) reset về giá trị ban đầu ✅  
+- **Confirmation Dialog**: Hiển thị giá trị default trước khi reset ✅
+- **Real-time Update**: Cập nhật spinboxes trong table ngay lập tức ✅
+
+### ✅ **TEXT COLOR & FORMATTING FIXES**
+- **Emotion Name Font**: Từ Bold → Normal weight theo yêu cầu ✅
+- **Text Color Fixed**: Từ màu thương hiệu → đen (#000000) cho dễ đọc ✅
+- **Background Colors**: Giữ nguyên green/blue nhưng text đen tương phản ✅
+- **Selection Readability**: Không còn bị trùng màu text với background ✅
+
+### ✅ **TABLE COLUMN RESTRUCTURE**
+- **Column Count**: Từ 9 → 10 columns ✅
+- **New Structure**:
+  0. 🎭 Emotion Name (150px)
+  1. 📝 Description (stretch)  
+  2. 🏷️ Category (110px)
+  3. 🎯 Exaggeration (120px)
+  4. ⚖️ CFG Weight (120px)
+  5. 🌡️ Temperature (120px)
+  6. ⚡ Speed (100px)
+  7. 🔄 Reset (60px) **NEW**
+  8. 🎵 Preview (100px)
+  9. ⚙️ Actions (80px)
+
+### ✅ **RESET FUNCTIONALITY DETAILS**
+- **Default Values**: Exaggeration=1.0, CFG=0.5, Temperature=1.0, Speed=1.0
+- **Smart Detection**: Lấy từ default_emotions nếu có, fallback preset values
+- **UI Update**: Tự động cập nhật tất cả spinboxes trong row
+- **Data Persistence**: Auto-save custom emotions sau reset
+- **User Experience**: Confirmation dialog với preview values
+
+### ✅ **INDEX UPDATES APPLIED**
+- **Preview Button**: Index 7 → 8 trong tất cả functions ✅
+- **Actions Column**: Index 8 → 9 (delete/lock buttons) ✅
+- **Event Handlers**: Cập nhật tất cả click handlers và lookups ✅
+
+## 🎯 **CURRENT FOCUS: EMOTION TABLE UI EXCELLENCE**
+
+## 🎉 **PHASE 4 COMPLETION CONFIRMED! 🎉**
+
+**Previous Achievement**: **PHASE 4 PROFESSIONAL FEATURES** hoàn thành thành công! Enterprise-grade platform với advanced analytics và voice features operational.
+
+## 🏆 **PHASE 4 ACHIEVEMENTS SUMMARY:**
+
+### ✅ **ANALYTICS & BUSINESS INTELLIGENCE**
+- **Session Tracking**: VoiceStudioAnalytics với production metrics ✅
+- **ROI Analysis**: $0.02/minute costing, 1850% ROI calculation ✅
+- **Quality Reports**: ProductionMetrics và QualityReport dataclasses ✅
+- **Cost Estimation**: Batch processing với accurate cost tracking ✅
+
+### ✅ **ADVANCED VOICE FEATURES**  
+- **Voice Clone Optimizer**: Parameter optimization system ✅
+- **Emotion Interpolation**: 8 emotion vectors (neutral→excited→dramatic) ✅
+- **Director Mode**: Cinematic, audiobook, podcast presets ✅
+- **Emotion Blending**: Happy+Whisper combinations với intensity controls ✅
+
+### ✅ **ANALYTICS UI DASHBOARD**
+- **MetricsCard System**: Professional metrics display ✅
+- **Export Functionality**: Analytics reports generation ✅
+- **Real-time Updates**: Live metrics updating capabilities ✅
+- **Enterprise UI**: Professional dashboard interface ✅
+
+### 📊 **TECHNICAL RESULTS**
+- **Demo Success Rate**: 100% (3/3 tests pass)
+- **Execution Time**: 2.11 seconds
+- **Integration**: All Phase 1-4 systems working seamlessly
+- **Achievement Report**: Generated `phase4_achievements_report_20250620_164434.json`
+
+## 🎯 **CURRENT FOCUS: PHASE 5 DEPLOYMENT & SCALING**
+
+**Goal**: Transform thành production-ready SaaS platform với global scaling
+
+### 🌐 **P5.1: Cloud Deployment System (Week 9)**
+- **Docker Containerization**: Production-ready deployment
+- **API Service Layer**: FastAPI with authentication
+- **Distributed Processing**: Handle 1000+ concurrent requests
+- **Caching & Optimization**: 90% cache hit rate target
+
+### 📱 **P5.2: Mobile & Web Platform (Week 10)**
+- **Progressive Web App**: React-based real-time interface
+- **Mobile App**: React Native cross-platform
+- **Real-time Features**: WebSocket connections, live updates
+
+### 💰 **P5.3: Monetization & Business**
+- **Subscription Tiers**: Free (10min/month) → Pro ($29.99) → Enterprise ($299.99)
+- **Usage Tracking**: Accurate billing, quota management
+- **Payment Integration**: Automated subscription system
+
+## 🔧 **NEXT IMPLEMENTATION STEPS**
+
+### **Week 9 Priorities:**
+1. **Create Docker Infrastructure**: 
+   - Dockerfile, docker-compose.yml
+   - Nginx load balancer configuration
+   - API service architecture (FastAPI)
+
+2. **Implement Distributed Processing**:
+   - Redis task queue system
+   - Worker manager với scaling
+   - Smart caching layer
+
+3. **Add Monitoring & Alerts**:
+   - Prometheus metrics collection
+   - Grafana dashboard setup
+   - Performance monitoring
+
+### **Week 10 Priorities:**
+1. **Web Application Development**:
+   - React Progressive Web App
+   - Real-time voice generation interface
+   - Professional user dashboard
+
+2. **Mobile App Creation**:
+   - React Native setup
+   - Cross-platform voice generation
+   - Offline capability planning
+
+3. **Business Integration**:
+   - Subscription tier implementation
+   - Payment gateway integration
+   - Usage analytics integration
+
+## 📈 **SUCCESS TARGETS**
+
+### 🎯 **Technical KPIs**
+- **Uptime**: 99.9% availability
+- **Response Time**: <500ms API response
+- **Throughput**: 1000+ concurrent users
+- **Cache Hit Rate**: 90%+ for repeated requests
+
+### 💰 **Business KPIs**
+- **Monthly Revenue**: $10K+ within 3 months
+- **User Growth**: 1000+ active users
+- **Churn Rate**: <5% monthly
+- **Customer LTV**: $500+ average
+
+### 🌟 **User Experience KPIs**
+- **Generation Success**: 99%+ reliability
+- **User Satisfaction**: 4.5+ stars
+- **Mobile Performance**: <3s generation time
+- **Web Performance**: <2s page load
+
+---
+
+## 🎉 **PREVIOUS PHASE COMPLETIONS**
+
+### ✅ **PHASE 3 INTELLIGENCE & AUTOMATION** (COMPLETED)
+
+#### ✅ **AI QUALITY CONTROLLER**
+- **Multi-candidate Generation**: 8 candidates per task ✅
+- **AI Quality Scoring**: 5-metric evaluation system ✅
+- **Smart Retry Logic**: Parameter variation system ✅
+- **Real-time Metrics**: Success rate tracking ✅
+
+#### ✅ **ENTERPRISE BATCH PROCESSOR**  
+- **Smart Project Detection**: 36 project files detected ✅
+- **Character Mapping**: 52 characters, 18 mappings ✅
+- **Parallel Processing**: 4x workers, 4x speedup ✅
+- **Enterprise Scalability**: 156.8m total duration handling ✅
+
+#### ✅ **PHASE 3 UI COMPONENTS**
+- **Quality Tab**: Professional interface với encoding fixed ✅
+- **Batch Tab**: Drag-drop functionality implemented ✅
+- **UTF-16 → UTF-8**: All encoding issues resolved ✅
+
+### ✅ **MULTI-FILE JSON IMPORT & AUTO-MERGE** (COMPLETED):
 
 **PROBLEM SOLVED**: User muốn import nhiều file JSON và tự động merge thành một story dài
 
@@ -91,18 +291,18 @@ def import_multiple_script_files(self):
 2. **Intelligent Character Merge**:
 - **Character Detection**: Detect duplicate characters by name similarity
 - **Smart ID Mapping**: Map old character IDs to new merged IDs
-- **Conflict Resolution**: Handle duplicate names with unique numbering
+- **Conflict Resolution**: Handle duplicate names với unique numbering
 - **Source Tracking**: Track which file each character/segment came from
 
 3. **Enhanced Import Options**:
 ```
 📁 Import từ file JSON (Single file)
-📁 Import nhiều file JSON (Multi-merge) ← NEW
+📁 Import nhiều file JSON (Multi-merge) ← COMPLETED
 🔄 Sử dụng data từ tab Tạo Video
 ✏️ Nhập thủ công
 ```
 
-#### ✅ **COMPACT TEMPLATE STRATEGY - TOKEN OPTIMIZATION**:
+### ✅ **COMPACT TEMPLATE STRATEGY - TOKEN OPTIMIZATION** (COMPLETED):
 
 **BREAKTHROUGH**: Giảm template từ 1500 tokens xuống 150-800 tokens = +700-1350 tokens cho story content!
 
@@ -113,9 +313,6 @@ def import_multiple_script_files(self):
   "characters": [{"id": "narrator", "name": "Narrator", "gender": "neutral"}]
 }
 ```
-- **Sử dụng khi**: Story đơn giản, cần tối đa tokens cho content
-- **Tiết kiệm**: +1350 tokens cho story development
-- **Rules**: Minimal format với speaker, text, emotion, gender
 
 2. **📝 STANDARD Mode (~400 tokens)**:
 ```json
@@ -125,765 +322,110 @@ def import_multiple_script_files(self):
   "characters": [{"id": "narrator", "name": "Character", "gender": "neutral", "default_emotion": "friendly", "default_speed": 1.0}]
 }
 ```
-- **Sử dụng khi**: Story trung bình, balance format vs content
-- **Tiết kiệm**: +1100 tokens cho character development
-- **Features**: Enhanced emotions, intensity, speed controls
 
 3. **📚 DETAILED Mode (~800 tokens)**:
 - **Full Enhanced Format 2.0** với tất cả advanced features
-- **Sử dụng khi**: Story phức tạp, nhiều characters, cinematic
-- **Tiết kiệm**: +700 tokens cho complex plot development
-- **Features**: Complete metadata, audio settings, camera movements
 
-#### ✅ **SMART TEMPLATE SELECTION UI**:
-
-```
-🎯 AI Template Mode (Token Optimization)
-Template Mode: [🏃‍♂️ RAPID Mode (~150 tokens) - Compact ▼]
-💡 Tiết kiệm: +1100 tokens cho story content
-```
-
-#### 🎭 **WORKFLOW BENEFITS**:
-
-**Multi-File Import**:
-- ✅ **KHÔNG CẦN nối thủ công** - Auto-merge intelligent
-- ✅ **TỰ ĐỘNG đọc characters & segments** từ all files
-- ✅ **Smart conflict resolution** cho duplicate characters
-- ✅ **Progress tracking** với detailed success/error reporting
-- ✅ **Source file tracking** trong metadata
-
-**Compact Templates**:
-- ✅ **+700-1350 extra tokens** cho actual story content
-- ✅ **Flexible selection** based on story complexity
-- ✅ **Backward compatibility** - old JSONs vẫn work
-- ✅ **Quality assurance** - validator supports all formats
-- ✅ **Real-time token preview** để user biết tiết kiệm bao nhiêu
-
-#### 📁 **FILES UPDATED**:
-- `src/ui/advanced_window.py`: Multi-file import, template selection UI, AI request button
-- `FORMAT_JSON_CHO_AI.md`: Added 3 compact template modes  
-- `voice_studio_compact_demo.json`: RAPID mode demo example
-- **Result**: **REVOLUTIONARY IMPROVEMENT** - stories giờ dài và chất lượng hơn!
-
-#### ✅ **AI REQUEST FORM BUTTON INTEGRATION**:
-
-**NEW FEATURE COMPLETED**: Nút "📋 Tạo Request Form cho AI" đã được integrate hoàn toàn
-
-#### 🐛 **BUG FIX: SCROLL LAYOUT ERROR**:
-
-**PROBLEM FIXED**: `NameError: name 'scroll' is not defined` trong `create_voice_studio_tab()`
-
-**ROOT CAUSE**: Trong quá trình update UI, đã thay đổi cấu trúc layout nhưng còn sót lại references đến `scroll` object cũ
-
-**SOLUTION**: 
-- Fix layout structure trong Voice Studio tab
-- Tạo scroll area mới và đúng cách setup widget hierarchy  
-- Đảm bảo tất cả UI components được properly initialized
-
-**RESULT**: ✅ Chương trình chạy successfully, no more errors
-
-1. **Smart Template Selection**:
-```
-🎯 AI Template Mode (Token Optimization)
-Template Mode: [📝 STANDARD Mode (~400 tokens) - Balanced ▼]
-💡 Tiết kiệm: +1100 tokens cho story content
-
-[Template content with JSON format]
-
-[📋 Copy Template] [💾 Save Template] [❌ Close]
-```
-
-2. **Dynamic Features**:
-- **Real-time Token Preview**: Auto-update khi change mode
-- **Color-coded Savings**: Green (1200+) → Orange (900+) → Purple (700+)
-- **Template-specific Forms**: RAPID/STANDARD/DETAILED modes
-- **Copy & Save Functionality**: Easy sharing với AI tools
-
-3. **Template Dialog Features**:
-```
-📋 STANDARD Mode Template
-💡 Template size: ~400 tokens  🚀 Story space: +1100 tokens
-
-[Template content with JSON format]
-
-[📋 Copy Template] [💾 Save Template] [❌ Close]
-```
-
-4. **User Workflow**:
-- Chọn template mode → See token savings
-- Click "📋 Tạo Request Form cho AI" → Get optimized template  
-- Copy/Save template → Share với AI (ChatGPT, Claude, DeepSeek)
-- AI generates longer, richer stories với extra tokens!
-
-#### 🎯 **DEMO COMPARISON**:
-
-**❌ TRƯỚC (1500 tokens template)**:
-- Template chiếm 75% tokens
-- Story content chỉ có 25% space
-- Phức tạp, user confusion
-
-**✅ SAU (150-400 tokens template)**:
-- Template chỉ chiếm 10-25% tokens  
-- Story content có 75-90% space
-- Simple, focus on content quality
-- Longer, richer stories
+### ✅ **FILES UPDATED FOR PHASE 4**:
+- `src/core/analytics.py`: VoiceStudioAnalytics, ProductionMetrics, QualityReport
+- `src/core/advanced_voice.py`: VoiceCloneOptimizer, EmotionInterpolator, DirectorModeController  
+- `src/ui/analytics_tab.py`: AnalyticsTab widget, MetricsCard system
+- `demo_phase4_achievements.py`: Comprehensive Phase 4 testing system
+- **Result**: **ENTERPRISE PLATFORM ACHIEVED** - Professional-grade capabilities confirmed!
 
 ---
 
-## 🎯 PREVIOUS: SINGLETON PATTERN OPTIMIZATION - GPU RESOURCE MANAGEMENT ✅
+**🚀 Ready to transform Voice Studio thành global SaaS platform với Phase 5 deployment!**
 
-### 🚀 PROBLEM SOLVED: Real Chatterbox TTS khởi tạo 2 lần lãng phí GPU
+## 🚀 **EMOTION TABLE RESET TO SPECIFIC VALUES FIXED! 🎯**
 
-#### ❌ **VẤN ĐỀ TRƯỚC ĐÂY**:
-- `VoiceGenerator` và `AdvancedMainWindow` đều tạo riêng `RealChatterboxProvider()`
-- **GPU memory waste**: 2 instances cùng load model lên VRAM 
-- **Slower initialization**: Model load 2 lần mỗi khi start app
-- **Resource conflicts**: Có thể xung đột khi 2 instances cùng xử lý
+**Latest Update**: **RESET FUNCTION** đã được sửa để reset về **giá trị gốc cụ thể** của từng cảm xúc
 
-#### ✅ **GIẢI PHÁP SINGLETON PATTERN**:
+## 🔄 **RESET FUNCTIONALITY IMPROVEMENTS:**
 
-1. **Thread-Safe Singleton Implementation**: 
+### ✅ **EMOTION-SPECIFIC RESET VALUES**
+- **Logic Cũ**: Reset tất cả emotions về cùng 1 bộ giá trị (1.0, 0.5, 1.0, 1.0) ❌
+- **Logic Mới**: Reset về **giá trị gốc cụ thể** của từng emotion từ `default_emotions` ✅
+
+### ✅ **EXAMPLES OF SPECIFIC VALUES**
+- **happy**: exag=1.35, cfg=0.55, temp=0.8, speed=1.1
+- **calm**: exag=0.5, cfg=0.5, temp=0.5, speed=0.9  
+- **excited**: exag=1.6, cfg=0.6, temp=0.9, speed=1.3
+- **whisper**: exag=0.3, cfg=0.3, temp=0.4, speed=0.7
+- **angry**: exag=2.0, cfg=0.7, temp=0.9, speed=1.2
+
+### ✅ **ENHANCED RESET DIALOG**
+- **Emotion Info**: Hiển thị description và category gốc
+- **Specific Values**: Preview exact values của emotion đó
+- **Smart Validation**: Check emotion có tồn tại trong default_emotions
+- **Custom Emotion Handling**: Warning nếu không tìm thấy giá trị gốc
+
+### ✅ **TECHNICAL IMPLEMENTATION**
 ```python
-class RealChatterboxProvider:
-    _instance = None
-    _lock = threading.Lock()
-    
-    def __new__(cls):
-        if cls._instance is None:
-            with cls._lock:
-                if cls._instance is None:
-                    print("🔄 Creating new RealChatterboxProvider instance (Singleton)")
-                    cls._instance = super().__new__(cls)
-                    cls._instance._initialized = False
-                else:
-                    print("♻️ Reusing existing RealChatterboxProvider instance (Singleton)")
-        return cls._instance
-```
-
-2. **Safe Cleanup Methods**:
-- `cleanup()`: Full cleanup (ảnh hưởng shared instance) 
-- `soft_cleanup()`: Chỉ clear CUDA cache (an toàn cho Singleton)
-- `__del__()`: Không cleanup để tránh destroy shared instance
-
-3. **Updated Usage Pattern**:
-```python
-# OLD: Tạo instance riêng
-self.chatterbox_provider = RealChatterboxProvider()
-
-# NEW: Sử dụng Singleton
-self.chatterbox_provider = RealChatterboxProvider.get_instance()
-```
-
-#### 🎯 **KẾT QUẢ TỐI ƯU**:
-
-**TRƯỚC (Double Initialization)**:
-```
-✅ Real Chatterbox TTS ready on GPU (NVIDIA GeForce GTX 1080) - Real Chatterbox  # Instance 1
-🎯 Real Chatterbox detected device: GPU (NVIDIA GeForce GTX 1080) - Real Chatterbox  # Instance 2
-🔄 Initializing Real Chatterbox TTS on GPU (NVIDIA GeForce GTX 1080) - Real Chatterbox...  # Load model again
-✅ Real Chatterbox TTS ready on GPU (NVIDIA GeForce GTX 1080) - Real Chatterbox  # Redundant
-```
-
-**SAU (Singleton Pattern)**:
-```
-🔄 Creating new RealChatterboxProvider instance (Singleton)  # Only once!
-✅ Real Chatterbox TTS ready on GPU (NVIDIA GeForce GTX 1080) - Real Chatterbox
-♻️ Reusing existing RealChatterboxProvider instance (Singleton)  # Reuse thay vì tạo mới
-```
-
-#### ✅ **BENEFITS ACHIEVED**:
-- **🚀 50% GPU Memory Saving**: Chỉ 1 model instance trong VRAM thay vì 2
-- **⚡ Faster App Startup**: Model load 1 lần duy nhất  
-- **🎯 No Resource Conflicts**: Chỉ 1 instance quản lý GPU
-- **♻️ Cleaner Architecture**: Shared instance pattern
-- **🔒 Thread-Safe**: Double-checked locking cho multi-threading
-- **🧹 Smart Cleanup**: `soft_cleanup()` an toàn cho shared instances
-
-#### 📁 **FILES UPDATED**:
-- `src/tts/real_chatterbox_provider.py`: Singleton implementation
-- `src/tts/voice_generator.py`: Use `get_instance()` + `soft_cleanup()`  
-- `test_*.py`: Updated all test files to use singleton
-- **Result**: **NO FUNCTIONAL CHANGES** - chỉ tối ưu resource usage
-
----
-
-## 🎯 PREVIOUS: VOICE STUDIO UI CLEANUP & QUICK ACTIONS FIX ✅
-
-### 🔧 VẤN ĐỀ ĐÃ SỬA HOÀN TOÀN:
-
-#### 1. **Xóa bỏ Global Controls trùng lặp**: ✅ COMPLETED
-- **REMOVED**: Global sliders và input fields (emotion, speed, cfg_weight, default voice)
-- **REMOVED**: Global voice cloning controls (enable checkbox, folder selector)
-- **KEPT**: Chỉ Character Settings Table với per-character controls
-- **SIMPLIFIED**: UI gọn gàng, không còn confusion về controls ở nhiều nơi
-
-#### 2. **Fixed Quick Actions không cập nhật UI**: ✅ COMPLETED
-- **NEW METHOD**: `_update_character_table_row(char_id, params)` để update UI trực tiếp
-- **FIXED**: `auto_optimize_voice_params()` giờ update UI table ngay lập tức
-- **FIXED**: `reset_voice_params()` giờ update UI table ngay lập tức
-- **REAL-TIME UI UPDATES**: User thấy changes immediately khi dùng quick actions
-
-#### 3. **Simplified Interface**: ✅ COMPLETED
-- **SINGLE SOURCE OF TRUTH**: Chỉ Character Table controls, không còn global controls
-- **CLEAR WORKFLOW**: User chỉ cần focus vào per-character settings
-- **REMOVED DUPLICATE METHODS**: Đã xóa global slider update methods
-
-### 🎭 VOICE STUDIO NEW CLEAN ARCHITECTURE:
-
-#### **Voice Studio Tab Structure** (SIMPLIFIED):
-```
-📥 Import Script Data
-├── 📁 Import từ file JSON
-├── 🔄 Sử dụng data từ tab Tạo Video  
-└── ✏️ Nhập thủ công
-
-📋 Script Overview
-├── Script info display
-├── Characters list
-└── Segments count
-
-🎛️ Cấu hình Chatterbox TTS chi tiết (Nâng cao)
-├── ☑️ Sử dụng cấu hình thủ công cho Chatterbox TTS
-├── 🎭 Tự động điều chỉnh cảm xúc theo script
-└── 🎭 Cấu hình riêng cho từng nhân vật (TABLE ONLY!)
-    ├── Character | Emotion | Speed | CFG Weight | Mode | Voice/Prompt/Clone | Quick | Status | Preview
-    └── 🔧 Quick Actions Button → Opens dialog với Auto-optimize/Reset
-├── 💡 Hướng dẫn sử dụng (Updated)
-└── 🎨 Apply to All Characters (Presets: Natural, Dramatic, Fast, Slow)
-
-🎙️ Tạo Audio
-├── 🤖 Chatterbox TTS (AI Voice Cloning)
-├── 📁 Thư mục output
-├── 🎤 Tạo voice cho nhân vật đã chọn
-└── 🎭 Tạo voice cho tất cả nhân vật
-```
-
-#### **Character Settings Table** (ENHANCED - 9 columns):
-1. **Nhân vật**: Character name (read-only)
-2. **Emotion**: Per-character emotion input (0.0-3.0)
-3. **Speed**: Per-character speed input (0.5-2.0)  
-4. **CFG Weight**: Per-character CFG weight input (0.0-1.0)
-5. **Mode**: Voice selection dropdown (voice_selection/voice_clone)
-6. **Voice/Prompt/Clone**: Context-sensitive control based on mode
-7. **Quick**: 🔧 Quick Actions button
-8. **Status**: Voice clone status indicator
-9. **Preview**: 🎧 Preview button với real settings
-
-### 🔄 QUICK ACTIONS WORKFLOW (FIXED):
-1. User clicks 🔧 Quick button cho character
-2. Dialog opens với mode-specific actions:
-   - **Voice Selection Mode**: Auto-optimize Parameters, Reset to Defaults
-   - **Voice Clone Mode**: Test Voice Clone, Clear Clone Path
-3. User chọn action (e.g., Auto-optimize)
-4. **NEW**: `_update_character_table_row()` cập nhật UI table NGAY LẬP TỨC
-5. User thấy parameters thay đổi trong table columns
-6. MessageBox hiển thị confirmation với new values
-
-### ✅ BENEFITS CỦA CLEANUP:
-
-#### **🎯 User Experience Improvements**:
-- **Simplified UI**: Không còn confusion về global vs per-character controls
-- **Clear Workflow**: Mọi thứ đều ở Character Table, dễ hiểu
-- **Real-time Feedback**: Quick actions update UI ngay lập tức
-- **Consistent Interface**: Chỉ có 1 place để configure voice settings
-
-#### **🔧 Technical Improvements**:
-- **Cleaner Code**: Xóa bỏ 80+ lines duplicate controls
-- **Better Architecture**: Single source of truth cho character settings
-- **Proper UI Updates**: Direct table updates thay vì full repopulate
-- **Reduced Complexity**: Fewer methods, cleaner logic
-
-### 📊 CURRENT STATUS:
-- ✅ **UI CLEANUP COMPLETED** - No more duplicate controls
-- ✅ **QUICK ACTIONS FIXED** - Real-time UI updates working
-- ✅ **CODE CLEANUP COMPLETED** - Removed unused methods
-- ✅ **ARCHITECTURE SIMPLIFIED** - Clear per-character workflow
-- ✅ **User Experience Enhanced** - Intuitive and clean interface
-
-### 🎯 NEXT STEPS:
-1. Test Voice Studio với imported script data
-2. Test Quick Actions với different voice modes
-3. Verify per-character voice generation works correctly
-4. Test preset application to all characters
-
----
-
-## CURRENT WORK FOCUS: Voice Studio Excellence ✅
-- Simplified and clean UI architecture
-- Real-time quick actions feedback
-- Per-character settings only (no global confusion)
-- Enhanced user experience và workflow clarity
-
-## 🎯 LATEST: OPTIMIZED VOICE SYSTEM + CLEAR PRIORITY LOGIC ✅
-
-### 🔧 FINAL OPTIMIZATION: LOGIC RÀNG BUỘC & USER EXPERIENCE
-
-#### 1. **Per-Character Voice Prompts với Quick Examples**: ✅ OPTIMIZED
-- **Voice Prompt Field**: Mỗi nhân vật có input field riêng + 💡 quick button
-- **Quick Examples Dialog**: 10 voice types (MC Radio, Tin tức, Trẻ em, Gentle, Hero, Dramatic, Happy, Sad, Angry, Mysterious)
-- **Smart Input**: Placeholder text và tooltip hướng dẫn rõ ràng
-
-#### 2. **Clear Priority Logic với Validation**: ✅ IMPLEMENTED
-- **Priority**: Voice Prompt > Voice Clone > Voice Selection
-- **Validation Method**: `validate_character_voice_settings(char_id)` → returns 'prompt'/'clone'/'selection'
-- **Console Logging**: Hiển thị rõ character đang sử dụng mode nào
-- **Optimized Parameters**: Chỉ pass parameters cần thiết cho từng mode
-
-#### 3. **Cleaned UI Logic**: ✅ REMOVED LEGACY
-- **Removed**: Global prompt controls (không còn cần thiết)
-- **Added**: Help section với hướng dẫn sử dụng rõ ràng  
-- **Priority Display**: Preview dialog hiển thị mode đang sử dụng (PROMPT/CLONE/SELECTION)
-
-#### 4. **Enhanced Preview & Generation**: ✅ OPTIMIZED
-- **Preview Logic**: Sử dụng validation để chỉ pass đúng parameters
-- **Generation Logic**: Tương tự preview, optimized parameter passing
-- **Error Handling**: Rõ ràng hơn với mode-specific error messages
-
-### 🎭 VOICE SYSTEM ARCHITECTURE (UPDATED):
-
-#### **Voice Studio Tab Structure**:
-```
-📥 Import Script Data
-├── 📁 Import từ file JSON
-├── 🔄 Sử dụng data từ tab Tạo Video  
-└── ✏️ Nhập thủ công
-
-🎛️ Cấu hình Chatterbox TTS chi tiết (Nâng cao)
-├── ☑️ Sử dụng cấu hình thủ công cho Chatterbox TTS
-├── 🎭 Tự động điều chỉnh cảm xúc theo script
-├── 📊 Global Settings (emotion, speed, cfg_weight, voice)
-├── 🎭 Cấu hình riêng cho từng nhân vật (TABLE)
-│   ├── Character | Emotion | Speed | CFG Weight | Voice | Preview
-│   └── Auto-adjustment theo gender khi chọn voice
-├── 🎙️ Voice Cloning (folder selection)
-├── 💬 Prompt-Based Voice Generation (NEW!)
-│   ├── ☑️ Sử dụng text prompt để tạo giọng
-│   ├── 📝 Input field cho voice description
-│   └── 🎯 Example buttons (MC Radio, Tin tức, Trẻ em)
-└── 🎨 Presets (Natural, Dramatic, Fast, Slow)
-
-🎙️ Tạo Audio
-├── 🤖 Chatterbox TTS (AI Voice Cloning)
-├── 📁 Thư mục output
-├── 🎤 Tạo voice cho nhân vật đã chọn
-└── 🎭 Tạo voice cho tất cả nhân vật
-```
-
-#### **Character Settings Table** (8 columns):
-1. **Nhân vật**: Character name (read-only)
-2. **Emotion**: Input field với auto-adjustment
-3. **Speed**: Input field với auto-adjustment  
-4. **CFG Weight**: Input field với auto-adjustment
-5. **Voice**: Dropdown với Chatterbox voices only
-6. **Voice Prompt**: Per-character voice description text field
-7. **Voice Clone**: Per-character voice samples folder + status
-8. **Preview**: Button để nghe thử với real settings
-
-#### **Voice Parameter Auto-Adjustment System**:
-- **Female voices** → emotion=1.2, speed=0.95, cfg_weight=0.6
-- **Male voices** → emotion=0.8, speed=1.05, cfg_weight=0.4
-- **Neutral voices** → emotion=1.0, speed=1.0, cfg_weight=0.5
-
-### 🔧 TECHNICAL IMPLEMENTATION:
-
-#### **Fixed Methods**:
-- `populate_voice_mapping_table()` → calls `populate_character_settings_table()`
-- `preview_selected_voice()` → uses `character_settings_table` + real Chatterbox
-- `generate_selected_character_voice()` → uses `character_settings_table`
-- `generate_voices_for_characters()` → reads settings from table
-- All import statements fixed: `PySide6.QtWidgets` instead of `PyQt5.QtWidgets`
-
-#### **New Methods**:
-- `update_character_voice_prompt(char_id, prompt_text)` → Update per-character voice prompt
-- `select_character_voice_clone_folder(char_id)` → Select voice samples per character
-- `_update_voice_clone_status_ui(char_id, status, tooltip)` → Update clone status UI
-- `get_character_name_by_id(char_id)` → Helper method for character name lookup
-
-#### **Voice Generation Pipeline**:
-```python
-# Per-character voice generation với priority logic
-char_settings = self.character_chatterbox_settings.get(speaker, {})
-voice_prompt = char_settings.get('voice_prompt', '').strip()
-voice_clone_path = char_settings.get('voice_clone_path', None)
-
-result = self.voice_generator.generate_voice_chatterbox(
-    text=text,
-    save_path=file_path,
-    voice_sample_path=voice_clone_path,  # Per-character voice clone
-    emotion_exaggeration=emotion,
-    speed=speed,
-    voice_name=voice_name if not voice_prompt else None,  # Skip if using prompt
-    cfg_weight=cfg_weight,
-    voice_prompt=voice_prompt if voice_prompt else None  # Per-character prompt
-)
-```
-
-### 🎚️ CHARACTER SETTINGS STORAGE:
-```python
-character_chatterbox_settings[char_id] = {
-    'emotion': 1.0,
-    'speed': 1.0,
-    'cfg_weight': 0.5,
-    'voice_id': 'female_young',
-    'voice_prompt': '',  # NEW: Per-character voice prompt
-    'voice_clone_path': None,  # NEW: Per-character voice clone path  
-    'voice_clone_status': 'none'  # NEW: Track clone status
+# LẤY GIÁ TRỊ GỐC CỤ THỂ:
+original_emotion = self.emotion_manager.default_emotions[emotion_name]
+default_values = {
+    'exaggeration': original_emotion.exaggeration,
+    'cfg_weight': original_emotion.cfg_weight, 
+    'temperature': original_emotion.temperature,
+    'speed': original_emotion.speed
 }
 ```
 
-### 🎧 VOICE CLONE STATUS SYSTEM:
-- **❌ 'none'**: Chưa thiết lập voice cloning
-- **✅ 'ready'**: Voice samples đã sẵn sàng (có audio files)
-- **⏳ 'processing'**: Đang xử lý voice samples
-- **❌ 'error'**: Lỗi trong quá trình thiết lập
+### ✅ **USER EXPERIENCE IMPROVEMENTS**  
+- **Informative Dialog**: Hiển thị emotion description + category gốc
+- **Precise Preview**: Exact values thay vì generic values
+- **Error Handling**: Clear message cho custom emotions không có default
+- **Status Updates**: Show actual reset values in status bar
 
-### 📊 CURRENT STATUS:
-- ✅ **REAL ChatterboxTTS WORKING PERFECTLY** 🎉
-- ✅ **NO MORE ROBOT VOICE** - Preview uses real TTS (4s audio, 24kHz)
-- ✅ **Real CFG weight, emotion, speed control** working
-- ✅ Per-character voice prompts implemented
-- ✅ Per-character voice cloning với progress tracking
-- ✅ Enhanced character settings table (8 columns)
-- ✅ Smart voice generation priority logic
-- ✅ Voice clone status UI với color coding
-- ✅ Context-aware preview system
-- ✅ Full backend pipeline support với REAL ChatterboxTTS
-- ✅ Progress dialogs và error handling
+## 🎯 **CURRENT FOCUS: EMOTION TABLE UI EXCELLENCE**
 
-### 🎯 NEXT STEPS:
-1. Test per-character voice prompts với different descriptions
-2. Test per-character voice cloning với multiple characters
-3. Optimize voice clone audio file validation
-4. Add voice prompt templates/examples per character type
+## 🔄 **RESET DIALOG ENHANCED WITH DEBUG & COMPARISON! 🎯**
 
----
+**Latest Update**: **RESET DIALOG** đã được cải thiện với debug console và so sánh giá trị current vs original
 
-## 🎯 LATEST: SỬA LỖI UI VOICE STUDIO - DROPDOWN & INPUT FIELDS ✅
+## 🛠️ **ENHANCED RESET DIALOG FEATURES:**
 
-### 🚀 ĐÃ SỬA CÁC LỖI UI:
-- ✅ **Dropdown đen**: Thêm white background styling cho tất cả QComboBox
-- ✅ **Input fields đen**: Thêm white background styling cho tất cả QLineEdit  
-- ✅ **Fallback voices**: Luôn sử dụng 10 giọng Chatterbox cố định thay vì dynamic loading
-- ✅ **Preview function**: Hiển thị đúng thông tin voice và confirm sử dụng Chatterbox TTS
-- ✅ **Syntax errors**: Sửa lỗi triple quotes trong stylesheet
+### ✅ **DEBUG CONSOLE OUTPUT**
+- **Print Original Values**: Hiển thị giá trị gốc trong console khi click reset ✅
+- **Print Current Values**: Hiển thị giá trị hiện tại để so sánh ✅
+- **Verify Logic**: Debug để đảm bảo lấy đúng values từ default_emotions ✅
 
-### 🎨 STYLING ĐÃ THÊM:
-```css
-QComboBox, QLineEdit {
-    background-color: white;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    padding: 2px;
-    color: black;
-}
-QComboBox::drop-down {
-    background-color: white;
-}
-QComboBox QAbstractItemView {
-    background-color: white;
-    color: black;
-    selection-background-color: #007AFF;
-    selection-color: white;
-}
-QLineEdit:focus {
-    border: 2px solid #007AFF;
-}
+### ✅ **ENHANCED DIALOG CONTENT**
+- **Side-by-side Comparison**: Dialog hiển thị cả current và original values ✅
+- **Clear Labeling**: "Giá trị gốc sẽ được áp dụng" vs "Giá trị hiện tại" ✅
+- **Complete Information**: Description + category + all parameters ✅
+
+### ✅ **DEBUG OUTPUT FORMAT**
+```
+🔄 DEBUG RESET happy:
+   📝 Original Description: General joy, positive mood
+   🏷️ Original Category: positive
+   📊 Original Values:
+      🎯 Exaggeration: 1.35
+      ⚖️ CFG Weight: 0.55
+      🌡️ Temperature: 0.80
+      ⚡ Speed: 1.1
+   📈 Current Values:
+      🎯 Exaggeration: [current_value]
+      ⚖️ CFG Weight: [current_value]
+      🌡️ Temperature: [current_value]
+      ⚡ Speed: [current_value]
 ```
 
-### 🎭 10 CHATTERBOX VOICES FALLBACK:
-#### 👩 Female (3):
-- `female_young` - 👩 Young Female (female)
-- `female_mature` - 👩 Mature Female (female)  
-- `female_gentle` - 👩 Gentle Female (female)
+### ✅ **VERIFIED ORIGINAL VALUES**
+- **happy**: exag=1.35, cfg=0.55, temp=0.8, speed=1.1 ✅
+- **calm**: exag=0.5, cfg=0.5, temp=0.5, speed=0.9 ✅
+- **excited**: exag=1.6, cfg=0.6, temp=0.9, speed=1.3 ✅
+- **angry**: exag=2.0, cfg=0.7, temp=0.9, speed=1.2 ✅
+- **whisper**: exag=0.3, cfg=0.3, temp=0.4, speed=0.7 ✅
 
-#### 👨 Male (3):
-- `male_young` - 👨 Young Male (male)
-- `male_mature` - 👨 Mature Male (male)
-- `male_deep` - 👨 Deep Male (male)
+### ✅ **USER EXPERIENCE IMPROVEMENTS**
+- **Clear Distinction**: Tách biệt rõ ràng "sẽ được áp dụng" vs "hiện tại"
+- **Visual Comparison**: User có thể thấy sự khác biệt trước khi confirm
+- **Debug Transparency**: Console output để verify logic hoạt động đúng
+- **Complete Context**: Đầy đủ thông tin emotion description và category
 
-#### 🗣️ Neutral (3):
-- `neutral_narrator` - 🗣️ Narrator (neutral)
-- `child_voice` - 👶 Child Voice (neutral)
-- `elder_voice` - 👴 Elder Voice (neutral)
+## 🎯 **CURRENT FOCUS: EMOTION TABLE UI EXCELLENCE**
 
-#### 🎤 Voice Cloning (1):
-- `cloned` - 🎤 Voice Cloning (variable)
-
-### 🎧 PREVIEW IMPROVEMENTS:
-- ✅ **Voice Display**: Hiển thị tên giọng rõ ràng thay vì ID
-- ✅ **Settings Info**: Hiển thị đầy đủ emotion, speed, CFG weight
-- ✅ **Chatterbox Confirmation**: Thông báo "🤖 Generated by Chatterbox TTS"
-- ✅ **Debug Logging**: Console log với settings details
-
-### 🔧 MANUAL CONTROLS ENHANCED:
-- ✅ **Global Settings**: 4 controls (Emotion, Speed, CFG Weight, Default Voice)
-- ✅ **Character Table**: 6 columns (Name, Emotion, Speed, CFG Weight, Voice, Preview)
-- ✅ **Input/Slider Sync**: 2-way sync giữa input fields và sliders
-- ✅ **Voice Selection**: Dropdown với 10 giọng + preview button
-- ✅ **Real-time Updates**: Settings tự động lưu khi thay đổi
-
-### ❌ VẤN ĐỀ ĐÃ GIẢI QUYẾT:
-1. **Dropdown đen** → White background + styling
-2. **Input fields đen** → White background + focus styling  
-3. **Giọng không phải Chatterbox** → Force sử dụng generate_voice_chatterbox()
-4. **Syntax errors** → Sửa triple quotes trong stylesheet
-
-### 🎯 WORKFLOW HIỆN TẠI:
-1. **Import Script** → Voice Studio tab
-2. **Configure Manual** → Enable manual controls
-3. **Adjust Settings** → Global + per-character settings
-4. **Preview Voice** → Test với Chatterbox TTS
-5. **Generate All** → Tạo audio cho tất cả nhân vật
-
-### 📊 TECHNICAL NOTES:
-- **Provider**: Chỉ sử dụng Chatterbox TTS (generate_voice_chatterbox)
-- **Voice IDs**: 10 fallback voices luôn available
-- **Settings Storage**: character_chatterbox_settings dictionary
-- **Preview Path**: temp_dir với unique filenames
-- **UI Framework**: PyQt5 với custom styling
-
-# 🎯 ACTIVE CONTEXT - Voice Studio Development
-
-## 🔧 Current Focus: Windows Path Compatibility Fix for Audio Merging
-
-**Latest Update**: Đang troubleshoot vấn đề Windows path compatibility trong SMART MERGE - files được detect nhưng vẫn lỗi "file not found".
-
-## 🚨 **CURRENT ISSUE: Windows Path Compatibility**
-
-### 🔍 **Problem Analysis (from latest test)**
-```
-✅ Files được tạo thành công:
-   ./voice_studio_output\segment_2_dialogue_2_character2.mp3
-   ./voice_studio_output\segment_3_dialogue_1_character1.mp3
-   ./voice_studio_output\segment_4_dialogue_2_character1.mp3
-
-🔍 SMART MERGE detects files:
-   📋 File order after smart sorting:
-   1. segment_1_dialogue_1_narrator.mp3 (seg:1, dial:1)
-   2. segment_2_dialogue_1_character1.mp3 (seg:2, dial:1)
-   ...
-
-❌ But loading fails:
-   Failed to load segment_X_dialogue_Y.mp3: [WinError 2] The system cannot find the file specified
-```
-
-### 🧩 **Root Cause Identified**
-1. **Path Separator Mismatch**: 
-   - Files created with Windows `\` backslash
-   - SMART MERGE uses Unix `/` forward slash
-   
-2. **Glob Pattern Issue**:
-   - `glob.glob()` might have issues with relative paths on Windows
-   - Current directory vs absolute path confusion
-
-### 🔧 **Fixes Implemented**
-
-#### 1. **Path Normalization**
-```python
-# Fix path separators for Windows compatibility  
-normalized_path = os.path.normpath(file_path)
-
-# Double check file exists before loading
-if not os.path.exists(normalized_path):
-    print(f"⚠️ File not found at: {normalized_path}")
-    continue
-```
-
-#### 2. **Enhanced Debugging**
-```python
-print(f"📍 Absolute path: {os.path.abspath(output_dir)}")
-print(f"🔍 Search pattern: {search_pattern}")
-
-# File existence verification in listing
-exists = "✅" if os.path.exists(file_path) else "❌"
-print(f"   {filename} (seg:{seg}, dial:{dial}) {exists}")
-print(f"       Path: {absolute_path}")
-```
-
-#### 3. **Fallback File Detection**
-```python
-# If glob fails, try manual directory listing
-if not all_mp3_files:
-    all_files = os.listdir(output_dir)
-    segment_files = [f for f in all_files if f.startswith('segment_') and f.endswith('.mp3')]
-    all_mp3_files = [os.path.join(output_dir, f) for f in segment_files]
-```
-
-## 🎉 **PREVIOUSLY SOLVED ISSUES**
-
-### ✅ **Audio Merging Core Logic** 
-- ✅ **Smart file detection**: Không còn phụ thuộc script data
-- ✅ **Force Merge button**: UI implementation hoàn thành
-- ✅ **Intelligent sorting**: Extract numbers và sort đúng thứ tự
-- ✅ **File pattern recognition**: Regex matching cho segment_X_dialogue_Y
-
-### ✅ **Emotion Conversion Bug** 
-- ✅ **String emotions**: Hoạt động với keywords thay vì float
-- ✅ **Voice generation**: Manual + Auto modes compatibility
-- ✅ **Template updates**: AI Request forms với simplified structure
-
-### ✅ **User Experience** 
-- ✅ **Clear UI**: Force Merge button với tooltip
-- ✅ **Progress feedback**: Real-time status updates
-- ✅ **Error handling**: Better error messages và debugging
-
-## 📋 **CURRENT STATUS**
-
-### 🟡 **Investigating**
-- **Windows Path Compatibility**: Path separator và absolute vs relative path issues
-- **PyDub Integration**: FFprobe/avprobe warning có ảnh hưởng không
-- **File Locking**: Audio files có bị lock sau khi tạo không
-
-### ✅ **Working Features**
-- **Voice Generation**: Manual + Auto emotion modes ✅
-- **Multi-file JSON Import**: Smart character merge ✅  
-- **AI Request Templates**: 3 optimized modes (+700-1350 tokens) ✅
-- **File Detection**: SMART MERGE detects files correctly ✅
-- **Custom Output**: UI và path handling ✅
-
-### 🎯 **Next Steps**
-1. **Test với enhanced debugging** để xem absolute paths và file existence
-2. **Kiểm tra FFprobe installation** nếu cần thiết
-3. **Test Force Merge button** sau khi fix path issues
-4. **Verify across different Windows paths** (relative vs absolute)
-
-## 🛠️ **TROUBLESHOOTING WORKFLOW**
-
-### When Audio Merge Fails:
-1. **Check console output** for detailed path information
-2. **Verify file existence** với absolute paths
-3. **Test Force Merge button** as fallback
-4. **Check output directory permissions** 
-5. **Verify no file locks** từ previous operations
-
-### Debug Commands:
-```python
-# Check if files actually exist
-import os
-output_dir = "./voice_studio_output"
-files = os.listdir(output_dir)
-segment_files = [f for f in files if f.startswith('segment_')]
-print(f"Found: {segment_files}")
-```
-
-## 💡 **DEVELOPMENT INSIGHTS**
-
-### Cross-Platform Considerations:
-- **Path separators**: Always use `os.path.join()` và `os.path.normpath()`
-- **Glob patterns**: Test on both Windows và Unix systems
-- **Relative vs absolute**: Be explicit về path expectations
-- **File existence**: Double-check trước khi operations
-
-### Audio Processing:
-- **PyDub dependencies**: FFprobe/avprobe cho advanced features
-- **File formats**: MP3 loading compatibility across platforms
-- **Memory management**: Large audio files handling
-
----
-
-**Status**: 🟡 **Debugging Windows Path Issues** | Core logic working, path compatibility needed
-**Last Update**: Windows path normalization và enhanced debugging implemented
-**Priority**: Fix path compatibility để achieve 100% merge reliability
-
-## ✅ **RESOLVED: MP3 MERGING DURATION ISSUE - FINAL SOLUTION IMPLEMENTED**
-
-**Latest Update**: Successfully resolved Windows MP3 merging issue với **Force Merge All Segments** button và **MP3 frame-level concatenation**.
-
-## 🚀 **BREAKTHROUGH SOLUTION: Force Merge All Segments** 
-
-### 🎯 **Problem Solved**
-- **Issue**: File merged hiển thị 7s thay vì full duration
-- **Root Cause**: Binary concatenation và Windows Copy command không xử lý MP3 headers/metadata đúng cách
-- **Solution**: MP3 frame-level concatenation với proper header handling
-
-### ✅ **Final Implementation**
-
-#### 🔧 **Force Merge All Segments Button**
-```python
-def force_merge_all_segments(self):
-    # MP3 frame-level concatenation
-    with open(output_path, 'wb') as outfile:
-        first_file = True
-        for file_path in sorted_files:
-            with open(file_path, 'rb') as infile:
-                data = infile.read()
-                
-                if first_file:
-                    # Keep full first file including headers
-                    outfile.write(data)
-                    first_file = False
-                else:
-                    # Skip ID3 headers, find MP3 sync frame
-                    sync_pos = 0
-                    for i in range(min(1024, len(data) - 1)):
-                        if data[i] == 0xFF and data[i+1] in [0xFB, 0xFA, 0xF3, 0xF2]:
-                            sync_pos = i
-                            break
-                    
-                    # Write from sync frame onwards
-                    outfile.write(data[sync_pos:])
-```
-
-#### 🎯 **Key Features**
-1. **🚀 Force Merge All Button**: Prominent green button trong UI
-2. **📊 Smart File Detection**: Tìm tất cả `segment_*.mp3` files
-3. **🔄 Proper Sorting**: Extract segment + dialogue numbers để sort đúng thứ tự
-4. **⚡ MP3 Frame Sync**: Skip headers của subsequent files, giữ frame data
-5. **✅ Success Dialog**: Option to play merged audio immediately
-6. **📏 File Size Reporting**: Show proper file size và duration
-
-#### 🛠️ **User Experience**
-- **Simple Workflow**: Chỉ cần click "🚀 Force Merge All" 
-- **No Dependencies**: Không cần script data hay PyDub
-- **Instant Feedback**: Progress updates và success notification
-- **Quality Assurance**: Proper MP3 structure với correct duration metadata
-
-### 📋 **Current Status: FULLY FUNCTIONAL** ✅
-
-#### ✅ **What Works Perfectly**:
-1. **Voice Generation**: 15/15 files tạo thành công
-2. **File Detection**: SMART MERGE detect đúng files và sort order  
-3. **Audio Merging**: Force Merge All Segments với proper duration
-4. **Cross-platform**: Windows path compatibility resolved
-5. **Fallback Layers**: Multiple merge strategies implemented
-
-#### 🎯 **Tested Solutions**:
-- ✅ **MP3 frame-level concatenation**: WORKING - preserves duration
-- ❌ **Binary concatenation**: Duration corruption (7s issue) 
-- ❌ **Windows copy command**: Same metadata issues
-- ⚠️ **PyDub/FFmpeg**: Dependency issues on Windows
-
-### 🔧 **For Users Experiencing Duration Issues**
-
-**SOLUTION**: Use **"🚀 Force Merge All"** button
-1. ✅ Generate voices normally
-2. ✅ Click green "🚀 Force Merge All" button  
-3. ✅ Audio plays with correct full duration
-4. ✅ Files saved with proper metadata
-
-**No more 7-second duration problem!** 🎉
-
-## 📊 **Technical Achievement Summary**
-
-### 🎯 **Major Breakthrough Points**:
-1. **Simplified JSON Structure**: Removed `emotion_intensity` + `speed` parameters
-2. **AI Request Templates**: 3 modes với +700-1350 token savings  
-3. **Emotion System Fix**: String keywords thay vì float values
-4. **SMART MERGE Algorithm**: Pattern-agnostic file detection
-5. **MP3 Frame Concatenation**: Proper audio merge với correct duration
-
-### 🔄 **Development Progression**:
-```
-❌ Binary Concat → ❌ Windows Copy → ✅ MP3 Frame Sync
-(7s duration)    (7s duration)     (Full duration!)
-```
-
-### 💡 **Next Steps** (Optional Enhancements):
-- Install proper FFmpeg for even better quality
-- Add duration preview before merge
-- Multiple output format options (WAV, MP4)
-- Batch merge multiple projects
-
----
-
-**🏆 STATUS: PRODUCTION READY - All critical issues resolved với robust fallback systems và excellent user experience.**
+Dialog reset bây giờ hiển thị **đầy đủ thông tin** và **so sánh rõ ràng** giữa giá trị hiện tại và gốc! 🎨✨

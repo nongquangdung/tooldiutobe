@@ -1,0 +1,62 @@
+{
+  "total_tests": 6,
+  "passed": 6,
+  "failed": 0,
+  "errors": [],
+  "timings": {
+    "emotion_loading": 0.00019288063049316406,
+    "voice_emotion_integration": 0.0013017654418945312,
+    "custom_emotion_creation": 0.05284738540649414,
+    "emotion_presets": 0.03291606903076172,
+    "parameter_validation": 0.04390406608581543,
+    "export_import": 0.06771039962768555
+  },
+  "emotion_tests": {
+    "generation_results": {
+      "neutral": {
+        "voice": "Alice",
+        "parameters": {
+          "exaggeration": 0.5,
+          "cfg_weight": 0.5,
+          "temperature": 0.7,
+          "speed": 0.9
+        },
+        "config_valid": true,
+        "estimated_quality": 8.5
+      },
+      "happy": {
+        "voice": "Alice",
+        "parameters": {
+          "exaggeration": 1.35,
+          "cfg_weight": 0.55,
+          "temperature": 0.8,
+          "speed": 1.1
+        },
+        "config_valid": true,
+        "estimated_quality": 8.5
+      },
+      "dramatic": {
+        "voice": "Alice",
+        "parameters": {
+          "exaggeration": 1.8,
+          "cfg_weight": 0.6,
+          "temperature": 1.0,
+          "speed": 1.0
+        },
+        "config_valid": true,
+        "estimated_quality": 8.5
+      },
+      "whisper": {
+        "voice": "Alice",
+        "parameters": {
+          "exaggeration": 0.3,
+          "cfg_weight": 0.3,
+          "temperature": 0.4,
+          "speed": 0.7
+        },
+        "config_valid": true,
+        "estimated_quality": 8.5
+      }
+    }
+  }
+}
