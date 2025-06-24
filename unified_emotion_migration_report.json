@@ -1,0 +1,82 @@
+{
+  "migration_date": "2025-06-23T23:46:39.738898",
+  "unified_system_stats": {
+    "total_emotions": 37,
+    "total_aliases": 93,
+    "categories": [
+      "dramatic",
+      "negative",
+      "neutral",
+      "positive",
+      "special"
+    ],
+    "expert_compliance": {
+      "summary": {
+        "temperature": {
+          "compliance_rate": 100.0,
+          "compliant": 37,
+          "total": 37,
+          "violations": 0
+        },
+        "exaggeration": {
+          "compliance_rate": 100.0,
+          "compliant": 37,
+          "total": 37,
+          "violations": 0
+        },
+        "cfg_weight": {
+          "compliance_rate": 100.0,
+          "compliant": 37,
+          "total": 37,
+          "violations": 0
+        },
+        "speed": {
+          "compliance_rate": 100.0,
+          "compliant": 37,
+          "total": 37,
+          "violations": 0
+        }
+      },
+      "details": {
+        "temperature": {
+          "compliant": 37,
+          "total": 37,
+          "violations": []
+        },
+        "exaggeration": {
+          "compliant": 37,
+          "total": 37,
+          "violations": []
+        },
+        "cfg_weight": {
+          "compliant": 37,
+          "total": 37,
+          "violations": []
+        },
+        "speed": {
+          "compliant": 37,
+          "total": 37,
+          "violations": []
+        }
+      },
+      "total_emotions": 37
+    }
+  },
+  "legacy_systems_replaced": [
+    "93 UI Mapping Labels (advanced_window.py)",
+    "8 Basic Chatterbox Emotions (chatterbox_voices_integration.py)",
+    "28 Core Emotions (emotion_config_manager.py)"
+  ],
+  "files_updated": [
+    "src/ui/advanced_window.py",
+    "src/ui/emotion_config_tab.py",
+    "src/tts/chatterbox_voices_integration.py"
+  ],
+  "benefits": [
+    "100% compliance với expert recommendations",
+    "Loại bỏ duplicate emotions",
+    "Unified API cho toàn bộ hệ thống",
+    "Backward compatibility đầy đủ",
+    "Easier maintenance và updates"
+  ]
+}

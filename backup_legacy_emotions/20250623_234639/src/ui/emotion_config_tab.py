@@ -22,17 +22,15 @@ from PySide6.QtWidgets import (
     QSlider, QLineEdit, QMessageBox, QFileDialog,
     QCheckBox, QScrollArea, QFormLayout, QDialog,
     QTableWidget, QTableWidgetItem, QHeaderView,
-    QSpinBox, QDoubleSpinBox, QProgressBar, QProgressDialog
+    QSpinBox, QDoubleSpinBox, QProgressBar
 )
 from PySide6.QtCore import Qt, Signal, QThread, QTimer
 from PySide6.QtGui import QFont, QColor
-from PySide6.QtWidgets import QApplication
 
 import sys
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-from core.unified_emotion_system import UnifiedEmotionSystem
-from core.unified_emotion_helpers import get_emotion_parameters
+from core.emotion_config_manager import EmotionConfigManager, EmotionParameters
 
 # Import TTS provider để preview âm thanh thật
 try:
@@ -51,56 +49,11 @@ class AudioPreviewThread(QThread):
     preview_progress = Signal(str, int)  # emotion_name, progress_percent
     preview_error = Signal(str, str)  # emotion_name, error_message
     
-    # High-quality emotion prompts for better preview
-    EMOTION_PROMPTS = {
-        "admiring": "Wow... I've never seen anything quite so beautiful. The way it moves, the colors, the elegance—it's absolutely breathtaking. I could stand here and watch it for hours.",
-        "angry": "Don't talk to me like that again! I've had enough of your lies and your disrespect. If you cross the line one more time, I swear I won't hold back.",
-        "anxious": "I... I don't know if this is going to work. Everything feels like it's falling apart and I can't catch a breath. What if I mess it up again?",
-        "bewildered": "Wait, what just happened? I walked in and suddenly everyone was gone—it doesn't make any sense. Am I missing something obvious?",
-        "calm": "Everything is going to be just fine. Let's take a deep breath and approach this with clarity. There's no need to rush.",
-        "cheerful": "Good morning! Isn't it just a perfect day to start something new? I can't stop smiling, everything feels so full of energy and promise!",
-        "cold": "I don't care what your excuse is. You made your decision, now deal with the consequences. Don't expect me to feel anything about it.",
-        "commanding": "Stand back! I'm in control of this situation now. Do exactly as I say and no one will get hurt—this is not a request.",
-        "confident": "I know exactly what I'm doing. I've prepared for this moment and I'm ready to show everyone what I'm capable of. There's no room for doubt.",
-        "confused": "Wait, that doesn't add up. You said one thing yesterday and now it's completely different? I'm trying to understand but I'm lost here.",
-        "contemplative": "Hm... It's strange how choices from years ago still echo today. I wonder what would have happened if I had chosen the other path.",
-        "contemptuous": "Really? That's what you're proud of? It's laughable, honestly—I've seen better from someone half your age.",
-        "disappointed": "I expected more from you. After everything we've been through, this is what it comes down to? It really hurts to see this.",
-        "dramatic": "This is it—the final act, the climax of everything we've worked toward! Every decision has led to this moment of truth!",
-        "encouraging": "You can do this—I believe in you! Even if it's hard, you're stronger than you think. Just take it step by step.",
-        "excited": "Did you hear the news? This changes everything! I can barely sit still—I just want to jump up and celebrate!",
-        "fearful": "No... please, don't go in there. Something feels wrong, like we're not alone. We should turn back while we still can.",
-        "flirtatious": "Oh, you're such a tease. Every time you smile like that, it makes my heart skip a beat. You really know how to charm me.",
-        "friendly": "Hey there! I'm so glad to see you again. Let's catch up—it's been way too long and I've missed this.",
-        "happy": "I can't stop smiling—today's just perfect! Everything feels like it's going right, and I'm so grateful to be here.",
-        "humorous": "So get this—he walks in wearing socks and sandals and says it's high fashion! I couldn't stop laughing for hours!",
-        "innocent": "I didn't mean to cause any trouble... I was only trying to help. Please don't be mad, I really didn't know.",
-        "mysterious": "They say if you follow the lantern light into the forest, you might never come back. But some say that's where secrets are revealed.",
-        "neutral": "The report was submitted on time and everything is proceeding according to plan. Let me know if you need anything else.",
-        "persuasive": "Look, I know you're hesitant, but just imagine the possibilities. This isn't just a good idea—it's the right one.",
-        "playful": "Tag! You're it! Catch me if you can—but I bet you won't, I'm way too fast for you!",
-        "pleading": "Please, just hear me out. I didn't mean for any of this to happen. I need you to understand—I'm begging you.",
-        "romantic": "When I look into your eyes, everything else fades away. You make the world feel like it's standing still just for us.",
-        "sad": "I tried everything... and yet here I am, alone again. It's like nothing I do ever makes a difference.",
-        "sarcastic": "Oh, brilliant plan! What could possibly go wrong, right? Because that always works out *so well*.",
-        "shy": "Um... hi. I didn't expect to run into you here. You look... nice. I mean, not that I've been looking—just... yeah.",
-        "sleepy": "Mmm... just five more minutes. I stayed up too late again and now I can't keep my eyes open.",
-        "soft": "Hey... you're okay now. Everything's going to be alright. Just rest, I've got you.",
-        "surprised": "Whoa! That was totally unexpected. I had no idea that would happen—what a twist!",
-        "suspenseful": "The lights flickered... then silence. Something—or someone—was out there, watching. Waiting.",
-        "urgent": "Quick! There's no time to waste—we need to move now or it's going to be too late!",
-        "whisper": "Shhh... keep your voice down. They might hear us. Every sound could give us away."
-    }
-    
     def __init__(self, emotion_name: str, parameters: dict):
         super().__init__()
         self.emotion_name = emotion_name
         self.parameters = parameters
-        # Use high-quality prompt nếu có, fallback to generic
-        self.preview_text = self.EMOTION_PROMPTS.get(
-            emotion_name.lower(), 
-            f"This is a preview of the {emotion_name} emotion with custom parameters."
-        )
+        self.preview_text = f"Đây là preview của emotion {emotion_name}."
     
     def run(self):
         try:
@@ -155,7 +108,7 @@ class EmotionConfigTab(QWidget):
     
     def __init__(self):
         super().__init__()
-        self.unified_emotion_system = UnifiedEmotionSystem()
+        self.emotion_manager = EmotionConfigManager()
         self.preview_threads = {}  # Track active preview threads
         self.setup_ui()
         self.load_emotions_to_table()
@@ -227,29 +180,6 @@ class EmotionConfigTab(QWidget):
         """)
         self.import_btn.clicked.connect(self.import_config)
         header_layout.addWidget(self.import_btn)
-        
-        # Reset All button - đặt trước spacer
-        self.reset_all_btn = QPushButton("🔄 Reset All")
-        self.reset_all_btn.setStyleSheet("""
-            QPushButton {
-                background-color: white;
-                color: #FF6B35;
-                border: 1px solid #FF6B35;
-                padding: 8px 15px;
-                border-radius: 6px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #FFF5F5;
-                border-color: #E55A2B;
-            }
-            QPushButton:pressed {
-                background-color: #FED7CC;
-                border-color: #CC4C26;
-            }
-        """)
-        self.reset_all_btn.clicked.connect(self.reset_all_emotions_to_default)
-        header_layout.addWidget(self.reset_all_btn)
         
         layout.addLayout(header_layout)
         
@@ -359,14 +289,13 @@ class EmotionConfigTab(QWidget):
     
     def load_emotions_to_table(self):
         """Load tất cả emotions vào table với styling cải tiến"""
-        all_emotions = self.unified_emotion_system.get_all_emotions()
+        all_emotions = self.emotion_manager.get_all_emotions()
         
         self.emotions_table.setRowCount(len(all_emotions))
         
         row = 0
         for emotion_name, emotion in all_emotions.items():
-            # All emotions are editable in unified system
-            is_custom = False
+            is_custom = emotion_name in self.emotion_manager.custom_emotions
             
             # Column 0: Emotion Name - sửa font weight và màu chữ
             name_item = QTableWidgetItem(emotion_name)
@@ -584,8 +513,11 @@ class EmotionConfigTab(QWidget):
         try:
             # Cập nhật trong emotion manager
             kwargs = {parameter: value}
-            # Unified system handles parameter updates automatically
-            pass
+            self.emotion_manager.modify_emotion(emotion_name, **kwargs)
+            
+            # Lưu custom emotions
+            if emotion_name in self.emotion_manager.custom_emotions:
+                self.emotion_manager.save_custom_emotions()
             
             self.update_status(f"✅ Cập nhật {emotion_name}: {parameter}={value}")
             
@@ -593,52 +525,16 @@ class EmotionConfigTab(QWidget):
             self.update_status(f"❌ Lỗi cập nhật {emotion_name}: {str(e)}")
     
     def preview_emotion(self, emotion_name: str):
-        """Preview emotion với âm thanh thật - sử dụng real-time parameters từ UI"""
+        """Preview emotion với âm thanh thật - cải thiện error handling"""
         try:
-            # Get REAL-TIME parameters từ UI spinboxes, không phải từ unified system
-            parameters = {}
-            
-            # Find row và lấy current values từ spinboxes
-            for row in range(self.emotions_table.rowCount()):
-                name_item = self.emotions_table.item(row, 0)
-                if name_item and name_item.text() == emotion_name:
-                    # Get real-time values từ UI widgets
-                    exag_spinbox = self.emotions_table.cellWidget(row, 3)
-                    cfg_spinbox = self.emotions_table.cellWidget(row, 4)
-                    temp_spinbox = self.emotions_table.cellWidget(row, 5)
-                    speed_spinbox = self.emotions_table.cellWidget(row, 6)
-                    
-                    parameters = {
-                        'exaggeration': exag_spinbox.value() if exag_spinbox else 1.0,
-                        'cfg_weight': cfg_spinbox.value() if cfg_spinbox else 0.6,
-                        'temperature': temp_spinbox.value() if temp_spinbox else 0.8,
-                        'speed': speed_spinbox.value() if speed_spinbox else 1.0
-                    }
-                    
-                    # Get preview text being used
-                    preview_text = AudioPreviewThread.EMOTION_PROMPTS.get(
-                        emotion_name.lower(), 
-                        f"This is a preview of the {emotion_name} emotion with custom parameters."
-                    )
-                    
-                    print(f"\n🎵 PREVIEW {emotion_name} với REAL-TIME parameters:")
-                    print(f"   🎯 Exaggeration: {parameters['exaggeration']:.2f} (từ UI)")
-                    print(f"   ⚖️ CFG Weight: {parameters['cfg_weight']:.2f} (từ UI)")
-                    print(f"   🌡️ Temperature: {parameters['temperature']:.2f} (từ UI)")
-                    print(f"   ⚡ Speed: {parameters['speed']:.1f} (từ UI)")
-                    print(f"   📝 Text: \"{preview_text[:50]}...\" ({len(preview_text)} chars)")
-                    break
-            
-            # Fallback nếu không tìm thấy row
-            if not parameters:
-                emotion = self.unified_emotion_system.get_all_emotions()[emotion_name]
-                parameters = {
-                    'exaggeration': emotion.exaggeration,
-                    'cfg_weight': emotion.cfg_weight,
-                    'temperature': emotion.temperature,
-                    'speed': emotion.speed
-                }
-                print(f"\n⚠️ FALLBACK: Sử dụng default parameters cho {emotion_name}")
+            # Get current parameters
+            emotion = self.emotion_manager.get_all_emotions()[emotion_name]
+            parameters = {
+                'exaggeration': emotion.exaggeration,
+                'cfg_weight': emotion.cfg_weight,
+                'temperature': emotion.temperature,
+                'speed': emotion.speed
+            }
             
             # Find preview button từ wrapper widget
             preview_btn = None
@@ -734,48 +630,20 @@ class EmotionConfigTab(QWidget):
                     self.update_status(f"❌ Không thể phát audio: {str(e)}")
                     
             else:
-                # Simulated preview với REAL-TIME parameters từ UI
-                # Get current UI values
-                current_params = {}
-                emotion_details = self.unified_emotion_system.get_all_emotions()[emotion_name]
-                
-                for row in range(self.emotions_table.rowCount()):
-                    name_item = self.emotions_table.item(row, 0)
-                    if name_item and name_item.text() == emotion_name:
-                        exag_spinbox = self.emotions_table.cellWidget(row, 3)
-                        cfg_spinbox = self.emotions_table.cellWidget(row, 4)
-                        temp_spinbox = self.emotions_table.cellWidget(row, 5)
-                        speed_spinbox = self.emotions_table.cellWidget(row, 6)
-                        
-                        current_params = {
-                            'exaggeration': exag_spinbox.value() if exag_spinbox else emotion_details.exaggeration,
-                            'cfg_weight': cfg_spinbox.value() if cfg_spinbox else emotion_details.cfg_weight,
-                            'temperature': temp_spinbox.value() if temp_spinbox else emotion_details.temperature,
-                            'speed': speed_spinbox.value() if speed_spinbox else emotion_details.speed
-                        }
-                        break
-                
-                # Use current UI values hoặc fallback
-                if not current_params:
-                    current_params = {
-                        'exaggeration': emotion_details.exaggeration,
-                        'cfg_weight': emotion_details.cfg_weight,
-                        'temperature': emotion_details.temperature,
-                        'speed': emotion_details.speed
-                    }
-                
+                # Simulated preview với thông tin chi tiết
+                emotion_details = self.emotion_manager.get_all_emotions()[emotion_name]
                 QMessageBox.information(
                     self,
                     f"🎵 Preview Simulation: {emotion_name}",
-                    f"Preview simulation với REAL-TIME parameters!\n\n"
+                    f"Preview simulation hoàn thành!\n\n"
                     f"🎭 Emotion: {emotion_name}\n"
                     f"📝 Description: {emotion_details.description}\n"
-                    f"🏷️ Category: {emotion_details.category}\n\n"
-                    f"🎯 Exaggeration: {current_params['exaggeration']:.2f} (real-time)\n"
-                    f"⚖️ CFG Weight: {current_params['cfg_weight']:.2f} (real-time)\n"
-                    f"🌡️ Temperature: {current_params['temperature']:.2f} (real-time)\n"
-                    f"⚡ Speed: {current_params['speed']:.1f} (real-time)\n\n"
-                    f"💡 Parameters được lấy từ UI spinboxes hiện tại!"
+                    f"🏷️ Category: {emotion_details.category}\n"
+                    f"🎯 Exaggeration: {emotion_details.exaggeration:.2f}\n"
+                    f"⚖️ CFG Weight: {emotion_details.cfg_weight:.2f}\n"
+                    f"🌡️ Temperature: {emotion_details.temperature:.2f}\n"
+                    f"⚡ Speed: {emotion_details.speed:.1f}\n\n"
+                    f"💡 Để nghe preview thật, cần TTS engine hoạt động."
                 )
                 
                 self.update_status(f"✅ Preview simulation {emotion_name} hoàn thành")
@@ -832,47 +700,18 @@ class EmotionConfigTab(QWidget):
         )
         
         if reply == QMessageBox.Yes:
-            # Show simulation fallback với real-time parameters
-            emotion_details = self.unified_emotion_system.get_all_emotions()[emotion_name]
-            
-            # Get real-time parameters từ UI
-            current_params = {}
-            for row in range(self.emotions_table.rowCount()):
-                name_item = self.emotions_table.item(row, 0)
-                if name_item and name_item.text() == emotion_name:
-                    exag_spinbox = self.emotions_table.cellWidget(row, 3)
-                    cfg_spinbox = self.emotions_table.cellWidget(row, 4)
-                    temp_spinbox = self.emotions_table.cellWidget(row, 5)
-                    speed_spinbox = self.emotions_table.cellWidget(row, 6)
-                    
-                    current_params = {
-                        'exaggeration': exag_spinbox.value() if exag_spinbox else emotion_details.exaggeration,
-                        'cfg_weight': cfg_spinbox.value() if cfg_spinbox else emotion_details.cfg_weight,
-                        'temperature': temp_spinbox.value() if temp_spinbox else emotion_details.temperature,
-                        'speed': speed_spinbox.value() if speed_spinbox else emotion_details.speed
-                    }
-                    break
-            
-            # Fallback nếu không tìm thấy
-            if not current_params:
-                current_params = {
-                    'exaggeration': emotion_details.exaggeration,
-                    'cfg_weight': emotion_details.cfg_weight,
-                    'temperature': emotion_details.temperature,
-                    'speed': emotion_details.speed
-                }
-            
+            # Show simulation fallback
+            emotion_details = self.emotion_manager.get_all_emotions()[emotion_name]
             QMessageBox.information(
                 self,
                 f"🎵 Preview Simulation: {emotion_name}",
-                f"Preview simulation cho {emotion_name} (fallback):\n\n"
+                f"Preview simulation cho {emotion_name}:\n\n"
                 f"🎭 Emotion: {emotion_name}\n"
-                f"📝 Description: {emotion_details.description}\n\n"
-                f"🎯 Exaggeration: {current_params['exaggeration']:.2f} (real-time)\n"
-                f"⚖️ CFG Weight: {current_params['cfg_weight']:.2f} (real-time)\n"
-                f"🌡️ Temperature: {current_params['temperature']:.2f} (real-time)\n"
-                f"⚡ Speed: {current_params['speed']:.1f} (real-time)\n\n"
-                f"💡 Sử dụng parameters từ UI spinboxes!"
+                f"📝 Description: {emotion_details.description}\n"
+                f"🎯 Exaggeration: {emotion_details.exaggeration:.2f}\n"
+                f"⚖️ CFG Weight: {emotion_details.cfg_weight:.2f}\n"
+                f"🌡️ Temperature: {emotion_details.temperature:.2f}\n"
+                f"⚡ Speed: {emotion_details.speed:.1f}"
             )
         
         self.update_status(f"❌ Preview {emotion_name} thất bại - hiển thị simulation")
@@ -965,58 +804,27 @@ class EmotionConfigTab(QWidget):
                 QMessageBox.warning(dialog, "Thiếu thông tin", "Vui lòng nhập tên emotion!")
                 return
             
-            if name.lower() in self.unified_emotion_system.get_all_emotions():
+            if name in self.emotion_manager.get_all_emotions():
                 QMessageBox.warning(dialog, "Trùng tên", f"Emotion '{name}' đã tồn tại!")
                 return
             
             try:
-                # Validate name format
-                if not name.replace('_', '').isalnum():
-                    QMessageBox.warning(dialog, "Tên không hợp lệ", 
-                                      "Tên emotion chỉ được chứa chữ cái, số và dấu gạch dưới (_)")
-                    return
-                
-                # Add custom emotion với default expert-compliant parameters
-                success = self.unified_emotion_system.add_custom_emotion(
+                self.emotion_manager.create_custom_emotion(
                     name=name,
                     description=description or f"Custom emotion: {name}",
-                    category="neutral",
-                    temperature=0.8,   # Expert compliant defaults
-                    exaggeration=1.0,
-                    cfg_weight=0.6,
-                    speed=1.0,
-                    aliases=[]
+                    category=category_combo.currentText(),
+                    exaggeration=exag_spinbox.value(),
+                    cfg_weight=cfg_spinbox.value(),
+                    temperature=temp_spinbox.value(),
+                    speed=speed_spinbox.value()
                 )
                 
-                if success:
-                    # Reload UI table to show new emotion
-                    self.load_emotions_to_table()
-                    self.update_statistics()
-                    
-                    print(f"\n🎭 CUSTOM EMOTION ADDED:")
-                    print(f"   📝 Name: {name}")
-                    print(f"   📖 Description: {description or f'Custom emotion: {name}'}")
-                    print(f"   📊 Parameters: T=0.8, E=1.0, C=0.6, S=1.0 (Expert Compliant)")
-                    
-                    # Success dialog
-                    QMessageBox.information(
-                        dialog,
-                        "Thành Công!",
-                        f"✅ Đã thêm custom emotion thành công!\n\n"
-                        f"📝 Tên: {name}\n"
-                        f"📖 Mô tả: {description or f'Custom emotion: {name}'}\n"
-                        f"🏷️ Category: neutral\n"
-                        f"📊 Parameters: Expert-compliant defaults\n\n"
-                        f"💡 Emotion đã được thêm vào bảng và bạn có thể tuỉnh chỉnh parameters!"
-                    )
-                    
-                    self.update_status(f"✅ Đã thêm custom emotion: {name}")
-                    dialog.accept()
-                else:
-                    QMessageBox.critical(dialog, "Lỗi", "Không thể thêm emotion. Vui lòng thử lại.")
+                dialog.accept()
+                self.load_emotions_to_table()  # Reload table
+                self.update_status(f"✅ Đã tạo emotion '{name}'")
                 
             except Exception as e:
-                QMessageBox.critical(dialog, "Lỗi", f"Không thể tạo emotion:\n{str(e)}")
+                QMessageBox.critical(dialog, "Lỗi", f"Không thể tạo emotion: {str(e)}")
         
         create_btn.clicked.connect(create_emotion)
         cancel_btn.clicked.connect(dialog.reject)
@@ -1035,7 +843,7 @@ class EmotionConfigTab(QWidget):
         
         if reply == QMessageBox.Yes:
             try:
-                if self.unified_emotion_system.delete_custom_emotion(emotion_name):
+                if self.emotion_manager.delete_custom_emotion(emotion_name):
                     self.load_emotions_to_table()  # Reload table
                     self.update_status(f"✅ Đã xóa emotion '{emotion_name}'")
                 else:
@@ -1052,14 +860,14 @@ class EmotionConfigTab(QWidget):
             name_item = self.emotions_table.item(row, 0)
             if name_item:
                 emotion_name = name_item.text()
-                emotion = self.unified_emotion_system.get_all_emotions().get(emotion_name)
+                emotion = self.emotion_manager.get_all_emotions().get(emotion_name)
                 
                 if emotion:
                     # Category filter
                     category_match = (category_filter == "Tất cả" or emotion.category == category_filter)
                     
                     # Custom filter
-                    is_custom = False  # No custom emotions in unified system
+                    is_custom = emotion_name in self.emotion_manager.custom_emotions
                     custom_match = (not show_custom_only or is_custom)
                     
                     # Show/hide row
@@ -1067,7 +875,7 @@ class EmotionConfigTab(QWidget):
                     self.emotions_table.setRowHidden(row, not show_row)
     
     def export_config(self):
-        """Export emotion configuration với current UI values"""
+        """Export emotion configuration"""
         try:
             file_path, _ = QFileDialog.getSaveFileName(
                 self, "Export Emotion Config",
@@ -1076,75 +884,14 @@ class EmotionConfigTab(QWidget):
             )
             
             if file_path:
-                # Collect current UI values cho export
-                export_data = {
-                    "export_info": {
-                        "timestamp": int(time.time()),
-                        "version": "unified_emotion_system_v1.0",
-                        "source": "Voice Studio Emotion Config Tab",
-                        "total_emotions": 0
-                    },
-                    "emotions": {}
-                }
-                
-                # Loop qua table để lấy current UI values
-                for row in range(self.emotions_table.rowCount()):
-                    name_item = self.emotions_table.item(row, 0)
-                    if name_item:
-                        emotion_name = name_item.text()
-                        
-                        # Get current values từ UI widgets
-                        exag_spinbox = self.emotions_table.cellWidget(row, 3)
-                        cfg_spinbox = self.emotions_table.cellWidget(row, 4)
-                        temp_spinbox = self.emotions_table.cellWidget(row, 5)
-                        speed_spinbox = self.emotions_table.cellWidget(row, 6)
-                        
-                        # Get description và category từ unified system
-                        emotion_details = self.unified_emotion_system.get_all_emotions().get(emotion_name)
-                        
-                        if emotion_details:
-                            export_data["emotions"][emotion_name] = {
-                                "description": emotion_details.description,
-                                "category": emotion_details.category,
-                                "parameters": {
-                                    "exaggeration": exag_spinbox.value() if exag_spinbox else emotion_details.exaggeration,
-                                    "cfg_weight": cfg_spinbox.value() if cfg_spinbox else emotion_details.cfg_weight,
-                                    "temperature": temp_spinbox.value() if temp_spinbox else emotion_details.temperature,
-                                    "speed": speed_spinbox.value() if speed_spinbox else emotion_details.speed
-                                },
-                                "source": "unified_system"
-                            }
-                
-                export_data["export_info"]["total_emotions"] = len(export_data["emotions"])
-                
-                # Write to file
-                import json
-                with open(file_path, 'w', encoding='utf-8') as f:
-                    json.dump(export_data, f, indent=2, ensure_ascii=False)
-                
-                print(f"\n📤 EXPORT COMPLETED:")
-                print(f"   📁 File: {file_path}")
-                print(f"   📊 Emotions: {export_data['export_info']['total_emotions']}")
-                
-                self.update_status(f"✅ Đã export {export_data['export_info']['total_emotions']} emotions: {os.path.basename(file_path)}")
-                
-                # Show success dialog
-                QMessageBox.information(
-                    self,
-                    "Export Thành Công",
-                    f"✅ Đã export thành công!\n\n"
-                    f"📁 File: {os.path.basename(file_path)}\n"
-                    f"📊 Emotions: {export_data['export_info']['total_emotions']}\n"
-                    f"💾 Size: {os.path.getsize(file_path):,} bytes\n\n"
-                    f"💡 File chứa current UI values của tất cả emotions!"
-                )
+                self.emotion_manager.export_emotion_config(file_path)
+                self.update_status(f"✅ Đã export: {os.path.basename(file_path)}")
                 
         except Exception as e:
             self.update_status(f"❌ Lỗi export: {str(e)}")
-            QMessageBox.critical(self, "Lỗi Export", f"Không thể export emotion config:\n{str(e)}")
     
     def import_config(self):
-        """Import emotion configuration và apply vào UI"""
+        """Import emotion configuration"""
         try:
             file_path, _ = QFileDialog.getOpenFileName(
                 self, "Import Emotion Config", "",
@@ -1152,150 +899,23 @@ class EmotionConfigTab(QWidget):
             )
             
             if file_path:
-                # Read và validate file
-                import json
-                with open(file_path, 'r', encoding='utf-8') as f:
-                    import_data = json.load(f)
-                
-                # Validate format
-                if "emotions" not in import_data:
-                    QMessageBox.warning(self, "Invalid Format", "File không có 'emotions' section!")
-                    return
-                
-                imported_emotions = import_data["emotions"]
-                total_import = len(imported_emotions)
-                
-                # Confirm import
-                reply = QMessageBox.question(
-                    self,
-                    "Confirm Import",
-                    f"📥 Import Emotion Configuration\n\n"
-                    f"📁 File: {os.path.basename(file_path)}\n"
-                    f"📊 Emotions to import: {total_import}\n\n"
-                    f"⚠️ Hành động này sẽ overwrite current UI values!\n"
-                    f"💡 Chỉ emotions có sẵn trong unified system sẽ được import.\n\n"
-                    f"Bạn có muốn tiếp tục?",
-                    QMessageBox.Yes | QMessageBox.No,
-                    QMessageBox.No
-                )
-                
-                if reply != QMessageBox.Yes:
-                    return
-                
-                # Process import với progress
-                success_count = 0
-                skip_count = 0
-                failed_count = 0
-                
-                print(f"\n📥 STARTING IMPORT từ {os.path.basename(file_path)}")
-                print("="*60)
-                
-                for emotion_name, emotion_config in imported_emotions.items():
-                    try:
-                        # Check nếu emotion tồn tại trong unified system
-                        if emotion_name not in self.unified_emotion_system.get_all_emotions():
-                            print(f"⏭️ SKIP: {emotion_name} (không có trong unified system)")
-                            skip_count += 1
-                            continue
-                        
-                        # Get parameters từ import file
-                        if "parameters" not in emotion_config:
-                            print(f"❌ FAILED: {emotion_name} (thiếu parameters)")
-                            failed_count += 1
-                            continue
-                            
-                        params = emotion_config["parameters"]
-                        
-                        # Find row trong table và update UI widgets
-                        for row in range(self.emotions_table.rowCount()):
-                            name_item = self.emotions_table.item(row, 0)
-                            if name_item and name_item.text() == emotion_name:
-                                # Update spinboxes với imported values
-                                exag_spinbox = self.emotions_table.cellWidget(row, 3)
-                                cfg_spinbox = self.emotions_table.cellWidget(row, 4)
-                                temp_spinbox = self.emotions_table.cellWidget(row, 5)
-                                speed_spinbox = self.emotions_table.cellWidget(row, 6)
-                                
-                                if exag_spinbox and "exaggeration" in params:
-                                    exag_spinbox.blockSignals(True)
-                                    exag_spinbox.setValue(params["exaggeration"])
-                                    exag_spinbox.blockSignals(False)
-                                
-                                if cfg_spinbox and "cfg_weight" in params:
-                                    cfg_spinbox.blockSignals(True)
-                                    cfg_spinbox.setValue(params["cfg_weight"])
-                                    cfg_spinbox.blockSignals(False)
-                                
-                                if temp_spinbox and "temperature" in params:
-                                    temp_spinbox.blockSignals(True)
-                                    temp_spinbox.setValue(params["temperature"])
-                                    temp_spinbox.blockSignals(False)
-                                
-                                if speed_spinbox and "speed" in params:
-                                    speed_spinbox.blockSignals(True)
-                                    speed_spinbox.setValue(params["speed"])
-                                    speed_spinbox.blockSignals(False)
-                                
-                                print(f"✅ IMPORTED: {emotion_name} - "
-                                      f"Exag={params.get('exaggeration', 'N/A'):.2f}, "
-                                      f"CFG={params.get('cfg_weight', 'N/A'):.2f}, "
-                                      f"Temp={params.get('temperature', 'N/A'):.2f}, "
-                                      f"Speed={params.get('speed', 'N/A'):.1f}")
-                                success_count += 1
-                                break
-                        
-                    except Exception as e:
-                        print(f"❌ FAILED: {emotion_name} - {str(e)}")
-                        failed_count += 1
-                
-                # Force UI refresh
-                self.emotions_table.viewport().update()
-                self.emotions_table.repaint()
-                self.update_statistics()
-                
-                print("="*60)
-                print(f"📥 IMPORT COMPLETED!")
-                print(f"✅ Successfully imported: {success_count}")
-                print(f"⏭️ Skipped (not found): {skip_count}")
-                print(f"❌ Failed: {failed_count}")
-                print(f"📊 Total processed: {success_count + skip_count + failed_count}/{total_import}")
-                
-                # Update status và show results
-                self.update_status(f"✅ Import completed: {success_count} success, {skip_count} skipped, {failed_count} failed")
-                
-                # Show completion dialog
-                QMessageBox.information(
-                    self,
-                    "Import Hoàn Thành",
-                    f"📥 Import emotion configuration completed!\n\n"
-                    f"✅ Successfully imported: {success_count} emotions\n"
-                    f"⏭️ Skipped (not found): {skip_count} emotions\n"
-                    f"❌ Failed: {failed_count} emotions\n\n"
-                    f"📊 Total: {success_count + skip_count + failed_count}/{total_import}\n\n"
-                    f"💡 UI đã được cập nhật với imported values!"
-                )
+                if self.emotion_manager.import_emotion_config(file_path):
+                    self.load_emotions_to_table()  # Reload table
+                    self.update_status(f"✅ Đã import: {os.path.basename(file_path)}")
+                else:
+                    self.update_status("❌ Import thất bại")
                     
         except Exception as e:
             self.update_status(f"❌ Lỗi import: {str(e)}")
-            QMessageBox.critical(self, "Lỗi Import", f"Không thể import emotion config:\n{str(e)}")
     
     def update_statistics(self):
         """Cập nhật thống kê emotions"""
         try:
-            # Get statistics cho unified system
-            all_emotions = self.unified_emotion_system.get_all_emotions()
-            custom_emotions = self.unified_emotion_system.get_custom_emotions()
-            
-            stats = {
-                'total_emotions': len(all_emotions),
-                'default_emotions': len(all_emotions) - len(custom_emotions),
-                'custom_emotions': len(custom_emotions),
-                'total_presets': 0  # No presets in unified system
-            }
+            stats = self.emotion_manager.get_emotion_statistics()
             
             stats_text = (
                 f"📊 Total: {stats['total_emotions']} | "
-                f"🎭 Built-in: {stats['default_emotions']} | "
+                f"🎭 Default: {stats['default_emotions']} | "
                 f"✨ Custom: {stats['custom_emotions']} | "
                 f"📦 Presets: {stats['total_presets']}"
             )
@@ -1318,17 +938,63 @@ class EmotionConfigTab(QWidget):
     def reset_emotion_to_default(self, emotion_name: str):
         """Reset emotion về giá trị gốc của cảm xúc đó cụ thể"""
         try:
-            # In unified system, all emotions can be reset to their original values
-            if emotion_name not in self.unified_emotion_system.get_all_emotions():
+            # Kiểm tra xem emotion có phải là custom emotion không
+            if emotion_name in self.emotion_manager.custom_emotions:
+                # Nếu là custom emotion, xóa nó để về lại default (nếu có)
+                if emotion_name in self.emotion_manager.default_emotions:
+                    # Có default version, reset về default
+                    original_emotion = self.emotion_manager.default_emotions[emotion_name]
+                    
+                    # Confirm dialog
+                    reply = QMessageBox.question(
+                        self,
+                        "Reset Custom Emotion",
+                        f"'{emotion_name}' là custom emotion.\n"
+                        f"Bạn có muốn reset về giá trị default không?\n\n"
+                        f"Hành động này sẽ xóa custom settings.",
+                        QMessageBox.Yes | QMessageBox.No,
+                        QMessageBox.No
+                    )
+                    
+                    if reply == QMessageBox.Yes:
+                        # Delete custom emotion để quay về default
+                        if self.emotion_manager.delete_custom_emotion(emotion_name):
+                            self.load_emotions_to_table()  # Reload table
+                            self.update_status(f"✅ Reset {emotion_name} về default")
+                        else:
+                            self.update_status(f"❌ Không thể reset {emotion_name}")
+                    return
+                else:
+                    # Pure custom emotion, không có default version
+                    reply = QMessageBox.question(
+                        self,
+                        "Delete Custom Emotion", 
+                        f"'{emotion_name}' là custom emotion thuần túy (không có default version).\n"
+                        f"Bạn có muốn xóa emotion này không?",
+                        QMessageBox.Yes | QMessageBox.No,
+                        QMessageBox.No
+                    )
+                    
+                    if reply == QMessageBox.Yes:
+                        if self.emotion_manager.delete_custom_emotion(emotion_name):
+                            self.load_emotions_to_table()  # Reload table
+                            self.update_status(f"✅ Đã xóa custom emotion '{emotion_name}'")
+                        else:
+                            self.update_status(f"❌ Không thể xóa {emotion_name}")
+                    return
+            
+            # Lấy giá trị gốc của emotion cụ thể từ default_emotions
+            if emotion_name not in self.emotion_manager.default_emotions:
                 QMessageBox.warning(
                     self, 
                     "Không thể Reset", 
-                    f"Không tìm thấy emotion '{emotion_name}' trong hệ thống."
+                    f"Không tìm thấy giá trị gốc cho '{emotion_name}'.\n"
+                    f"Emotion này không có trong default emotions."
                 )
                 return
             
-            # Get original emotion from unified system
-            original_emotion = self.unified_emotion_system.get_all_emotions()[emotion_name]
+            # Lấy emotion gốc
+            original_emotion = self.emotion_manager.default_emotions[emotion_name]
             default_values = {
                 'exaggeration': original_emotion.exaggeration,
                 'cfg_weight': original_emotion.cfg_weight,
@@ -1346,8 +1012,8 @@ class EmotionConfigTab(QWidget):
             print(f"      🌡️ Temperature: {default_values['temperature']:.2f}")
             print(f"      ⚡ Speed: {default_values['speed']:.1f}")
             
-            # Lấy giá trị hiện tại để so sánh  
-            current_emotion = original_emotion  # In unified system, current = original
+            # Lấy giá trị hiện tại để so sánh
+            current_emotion = self.emotion_manager.get_all_emotions()[emotion_name]
             print(f"   📈 Current Values:")
             print(f"      🎯 Exaggeration: {current_emotion.exaggeration:.2f}")
             print(f"      ⚖️ CFG Weight: {current_emotion.cfg_weight:.2f}")
@@ -1380,8 +1046,12 @@ class EmotionConfigTab(QWidget):
             )
             
             if reply == QMessageBox.Yes:
-                # For unified system, reload table to reset values
-                # (The values are already in their default state)
+                # Update emotion parameters về giá trị gốc
+                self.emotion_manager.modify_emotion(emotion_name, **default_values)
+                
+                # Save nếu là custom emotion (đã modify từ default)
+                if emotion_name in self.emotion_manager.custom_emotions:
+                    self.emotion_manager.save_custom_emotions()
                 
                 # 🎯 UPDATE UI trong table với blocking signals để tránh recursive calls
                 for row in range(self.emotions_table.rowCount()):
@@ -1418,8 +1088,8 @@ class EmotionConfigTab(QWidget):
                             speed_spinbox.blockSignals(False)
                             print(f"   ✅ Updated speed: {default_values['speed']:.1f}")
                         
-                        # Force table refresh và update statistics
-                        self.emotions_table.viewport().update()
+                        # Force table update và refresh statistics
+                        self.emotions_table.update()
                         self.emotions_table.repaint()
                         self.update_statistics()  # Update emotion count statistics
                         
@@ -1435,156 +1105,3 @@ class EmotionConfigTab(QWidget):
         except Exception as e:
             self.update_status(f"❌ Lỗi reset {emotion_name}: {str(e)}")
             QMessageBox.warning(self, "Lỗi Reset", f"Không thể reset {emotion_name} về giá trị gốc:\n{str(e)}") 
-
-    def reset_all_emotions_to_default(self):
-        """Reset tất cả emotions về giá trị gốc"""
-        try:
-            all_emotions = self.unified_emotion_system.get_all_emotions()
-            total_emotions = len(all_emotions)
-            
-            # Confirm dialog với thông tin chi tiết
-            dialog_text = (
-                f"⚠️ RESET TẤT CẢ EMOTIONS\n\n"
-                f"Bạn có chắc chắn muốn reset TẤT CẢ {total_emotions} emotions "
-                f"về giá trị gốc không?\n\n"
-                f"🔄 Hành động này sẽ:\n"
-                f"• Reset tất cả parameters về expert-recommended values\n"
-                f"• Phục hồi 100% compliance với expert recommendations\n"
-                f"• Khôi phục toàn bộ hệ thống emotion về trạng thái tối ưu\n\n"
-                f"💡 Tất cả thay đổi hiện tại sẽ bị mất!\n"
-                f"📊 Unified System sẽ được phục hồi hoàn toàn"
-            )
-            
-            reply = QMessageBox.question(
-                self,
-                "Reset All Emotions",
-                dialog_text,
-                QMessageBox.Yes | QMessageBox.No,
-                QMessageBox.No
-            )
-            
-            if reply == QMessageBox.Yes:
-                # Show progress dialog
-                progress = QProgressDialog(
-                    "Đang reset tất cả emotions...", 
-                    "Hủy", 0, total_emotions, self
-                )
-                progress.setWindowTitle("Reset All Progress")
-                progress.setWindowModality(Qt.WindowModal)
-                progress.show()
-                
-                reset_count = 0
-                failed_count = 0
-                
-                print(f"\n🔄 STARTING RESET ALL {total_emotions} EMOTIONS")
-                print("="*60)
-                
-                # Process tất cả emotions
-                for idx, (emotion_name, emotion) in enumerate(all_emotions.items()):
-                    progress.setValue(idx)
-                    progress.setLabelText(f"Reset: {emotion_name}")
-                    
-                    if progress.wasCanceled():
-                        break
-                    
-                    try:
-                        # Get original values
-                        default_values = {
-                            'exaggeration': emotion.exaggeration,
-                            'cfg_weight': emotion.cfg_weight,
-                            'temperature': emotion.temperature,
-                            'speed': emotion.speed
-                        }
-                        
-                        print(f"🎭 {emotion_name}: Exag={default_values['exaggeration']:.2f}, "
-                              f"CFG={default_values['cfg_weight']:.2f}, "
-                              f"Temp={default_values['temperature']:.2f}, "
-                              f"Speed={default_values['speed']:.1f}")
-                        
-                        # Update UI for this emotion
-                        for row in range(self.emotions_table.rowCount()):
-                            name_item = self.emotions_table.item(row, 0)
-                            if name_item and name_item.text() == emotion_name:
-                                # Update all spinboxes với blocking signals
-                                exag_spinbox = self.emotions_table.cellWidget(row, 3)
-                                if exag_spinbox:
-                                    exag_spinbox.blockSignals(True)
-                                    exag_spinbox.setValue(default_values['exaggeration'])
-                                    exag_spinbox.blockSignals(False)
-                                
-                                cfg_spinbox = self.emotions_table.cellWidget(row, 4)
-                                if cfg_spinbox:
-                                    cfg_spinbox.blockSignals(True)
-                                    cfg_spinbox.setValue(default_values['cfg_weight'])
-                                    cfg_spinbox.blockSignals(False)
-                                
-                                temp_spinbox = self.emotions_table.cellWidget(row, 5)
-                                if temp_spinbox:
-                                    temp_spinbox.blockSignals(True)
-                                    temp_spinbox.setValue(default_values['temperature'])
-                                    temp_spinbox.blockSignals(False)
-                                
-                                speed_spinbox = self.emotions_table.cellWidget(row, 6)
-                                if speed_spinbox:
-                                    speed_spinbox.blockSignals(True)
-                                    speed_spinbox.setValue(default_values['speed'])
-                                    speed_spinbox.blockSignals(False)
-                                
-                                break
-                        
-                        reset_count += 1
-                        
-                    except Exception as e:
-                        print(f"❌ Failed to reset {emotion_name}: {str(e)}")
-                        failed_count += 1
-                    
-                    # Small delay để UI responsive
-                    QApplication.processEvents()
-                
-                progress.setValue(total_emotions)
-                progress.close()
-                
-                # Force table refresh
-                self.emotions_table.viewport().update()
-                self.emotions_table.repaint()
-                self.update_statistics()
-                
-                print("="*60)
-                print(f"🎉 RESET ALL COMPLETED!")
-                print(f"✅ Successfully reset: {reset_count} emotions")
-                print(f"❌ Failed: {failed_count} emotions")
-                print(f"📊 Total processed: {reset_count + failed_count}/{total_emotions}")
-                
-                # Success message
-                if failed_count == 0:
-                    self.update_status(f"🎉 Reset ALL {reset_count} emotions thành công! 100% Expert Compliance!")
-                    QMessageBox.information(
-                        self, 
-                        "Reset All Hoàn Thành", 
-                        f"✅ Đã reset thành công {reset_count} emotions!\n\n"
-                        f"🎯 Tất cả emotions giờ đã 100% expert compliance:\n"
-                        f"• Temperature: 0.7-1.0 ✅\n"
-                        f"• Exaggeration: 0.8-1.2 ✅\n"
-                        f"• CFG Weight: 0.5-0.7 ✅\n"
-                        f"• Speed: 0.8-1.3 ✅\n\n"
-                        f"🔄 Unified Emotion System restored!"
-                    )
-                else:
-                    self.update_status(f"⚠️ Reset ALL: {reset_count} thành công, {failed_count} thất bại")
-                    QMessageBox.warning(
-                        self, 
-                        "Reset All Hoàn Thành Một Phần", 
-                        f"✅ Thành công: {reset_count} emotions\n"
-                        f"❌ Thất bại: {failed_count} emotions\n\n"
-                        f"Vui lòng kiểm tra console để biết chi tiết."
-                    )
-            
-        except Exception as e:
-            print(f"❌ CRITICAL ERROR in reset_all_emotions_to_default: {str(e)}")
-            self.update_status(f"❌ Lỗi reset all: {str(e)}")
-            QMessageBox.critical(
-                self, 
-                "Lỗi Reset All", 
-                f"Không thể reset tất cả emotions:\n{str(e)}\n\n"
-                f"Vui lòng thử lại hoặc reset từng emotion riêng lẻ."
-            ) 

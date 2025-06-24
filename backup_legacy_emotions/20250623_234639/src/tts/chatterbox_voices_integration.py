@@ -17,9 +17,6 @@ from typing import Dict, List, Optional, Any
 from dataclasses import dataclass, asdict
 from pathlib import Path
 import logging
-# 🎭 Unified Emotion System Import
-from src.core.unified_emotion_system import unified_emotion_system, get_emotion_parameters
-
 
 logger = logging.getLogger(__name__)
 
@@ -379,8 +376,16 @@ class ChatterboxTTSProvider:
         """Generate speech with Voice Studio compatible interface"""
         
         # Map emotions to Chatterbox parameters
-# 🎯 Use Unified Emotion System for all emotion parameters
-        emotion_params = get_emotion_parameters(emotion)
+        emotion_mapping = {
+            "neutral": {"temperature": 0.7, "exaggeration": 1.0},
+            "happy": {"temperature": 0.8, "exaggeration": 1.3},
+            "sad": {"temperature": 0.6, "exaggeration": 0.8},
+            "angry": {"temperature": 0.9, "exaggeration": 1.5},
+            "excited": {"temperature": 0.9, "exaggeration": 1.4},
+            "calm": {"temperature": 0.5, "exaggeration": 0.7},
+            "whisper": {"temperature": 0.4, "exaggeration": 0.5},
+            "dramatic": {"temperature": 1.0, "exaggeration": 1.8}
+        }
         
         # Get emotion parameters
         emotion_params = emotion_mapping.get(emotion, emotion_mapping["neutral"])

@@ -1,0 +1,6 @@
+REAL Chatterbox TTS Demo
+Text: Đây là preview của emotion whisper.
+CFG Weight: 0.5 (REAL!)
+Emotion: 0.8 (REAL!)
+Speed: 0.8
+Voice Clone: None

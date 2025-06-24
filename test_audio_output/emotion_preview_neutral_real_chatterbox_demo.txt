@@ -1,0 +1,6 @@
+REAL Chatterbox TTS Demo
+Text: The report was submitted on time and everything is proceeding according to plan. Let me know if you need anything else.
+CFG Weight: 0.6 (REAL!)
+Emotion: 0.5000000000000001 (REAL!)
+Speed: 1.0
+Voice Clone: None
