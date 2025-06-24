@@ -19,6 +19,7 @@ import shutil
 import glob
 from .manual_voice_setup_dialog import ManualVoiceSetupDialog
 from .emotion_config_tab import EmotionConfigTab
+from .macos_styles import get_macos_window_size, get_macos_stylesheet
 
 # Import pipeline
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
@@ -3087,23 +3088,13 @@ Created: {data['created_at']}
     # Now using force_merge_all_segments() as the main audio merging solution
     
     def generate_ai_request_form(self):
-        """Tạo request form cho AI với template mode selection"""
-        template_mode = self.template_mode_combo.currentData() if hasattr(self, 'template_mode_combo') else 'standard'
-        
-        # Generate form based on selected template mode
-        if template_mode == 'rapid':
-            return self.generate_rapid_template_form()
-        elif template_mode == 'standard':
-            return self.generate_standard_template_form()
-        elif template_mode == 'detailed':
-            return self.generate_detailed_template_form()
-        else:
-            return self.generate_standard_template_form()  # Default fallback
+        """Show customizable AI request generator with dropdown options"""
+        self.show_ai_request_customizer_dialog()
 
     def generate_rapid_template_form(self):
-        """Generate RAPID mode template (~150 tokens)"""
+        """Generate RAPID mode template"""
         template_content = """
-# 🚀 RAPID MODE - Tạo Script Video JSON (Ultra Compact ~150 tokens)
+# 🚀 RAPID MODE - Tạo Script Video JSON Ngắn Gọn
 
 ## Request:
 Tạo script video về "[TOPIC]" theo format JSON sau:
@@ -3112,50 +3103,57 @@ Tạo script video về "[TOPIC]" theo format JSON sau:
 {
   "segments": [
     {"id": 1, "dialogues": [
-      {"speaker": "narrator", "text": "Lời thoại narrator...", "emotion": "friendly"},
-      {"speaker": "character1", "text": "Lời thoại character...", "emotion": "excited"}
+      {"speaker": "narrator", "text": "Chào mừng các bạn đến với câu chuyện hôm nay!", "emotion": "friendly"},
+      {"speaker": "character1", "text": "Tôi rất hào hứng được chia sẻ điều này!", "emotion": "excited"}
     ]}
   ],
   "characters": [
-    {"id": "narrator", "name": "Narrator", "gender": "neutral"},
-    {"id": "character1", "name": "Character", "gender": "female"}
+    {"id": "narrator", "name": "Người Kể Chuyện", "gender": "neutral"},
+    {"id": "character1", "name": "Nhân Vật", "gender": "female"}
   ]
 }
 ```
 
-**RULES**: 
-- segments[].dialogues[]: speaker, text, emotion (required)
-- characters[]: id, name, gender (required)
-- Emotions: neutral, happy, sad, excited, calm, dramatic
-- Vietnamese text with proper punctuation
-- 3-5 segments, 2-3 characters max
+**YÊU CẦU**: 
+- segments[].dialogues[]: speaker, text, emotion (bắt buộc)
+- characters[]: id, name, gender (bắt buộc)
+- Nội dung bằng tiếng Việt với dấu câu chuẩn
+- 3-5 segments, tối đa 2-3 nhân vật
 
-**Focus on CONTENT QUALITY** - you have +1350 extra tokens for story development!
+**128 Cảm Xúc Có Sẵn (37 chính + 91 aliases):**
+- **Trung tính**: neutral, calm, contemplative, soft, whisper
+- **Tích cực**: happy, excited, cheerful, friendly, confident, encouraging, admiring, playful, romantic, innocent
+- **Tiêu cực**: sad, angry, sarcastic, cold, anxious, worried, confused, embarrassed, disappointed, frustrated
+- **Kịch tính**: dramatic, mysterious, suspenseful, urgent, commanding, fierce, pleading, desperate, determined
+- **Đặc biệt**: sleepy, surprised, shy, energetic, serious, gentle, bewildered
+- **Aliases**: Mỗi emotion có 2-4 aliases (VD: happy=joyful/pleased, excited=energetic/thrilled)
+
+**Tập trung vào CHẤT LƯỢNG NỘI DUNG và tạo câu chuyện hấp dẫn!
 """
         self.show_ai_request_dialog("RAPID Mode Template", template_content, 150)
 
     def generate_standard_template_form(self):
-        """Generate STANDARD mode template (~400 tokens)"""
+        """Generate STANDARD mode template"""
         template_content = """
-# 📝 STANDARD MODE - Tạo Script Video JSON (Balanced ~400 tokens)
+# 📝 STANDARD MODE - Tạo Script Video JSON Cân Bằng
 
 ## Request:
 Tạo script video về "[TOPIC]" theo format JSON sau:
 
 ```json
 {
-  "project": {"title": "Story Title", "duration": 60},
+  "project": {"title": "Tiêu Đề Câu Chuyện", "duration": 60},
   "segments": [
     {
       "id": 1,
-      "title": "Scene name",
+      "title": "Tên cảnh",
       "dialogues": [
         {
           "speaker": "narrator",
-          "text": "Nội dung với dấu câu chuẩn Tiếng Việt",
+          "text": "Hôm nay chúng ta sẽ khám phá một điều thú vị và bất ngờ.",
           "emotion": "friendly",
           "pause_after": 1.0,
-          "emphasis": ["từ khóa"]
+          "emphasis": ["thú vị", "bất ngờ"]
         }
       ]
     }
@@ -3163,7 +3161,7 @@ Tạo script video về "[TOPIC]" theo format JSON sau:
   "characters": [
     {
       "id": "narrator", 
-      "name": "Character Name",
+      "name": "Người Dẫn Chuyện",
       "gender": "neutral|female|male",
       "default_emotion": "friendly"
     }
@@ -3171,22 +3169,28 @@ Tạo script video về "[TOPIC]" theo format JSON sau:
 }
 ```
 
-**Enhanced emotions**: neutral, gentle, contemplative, cheerful, excited, surprised, sorrowful, angry, friendly, happy, sad, mysterious, dramatic, confident, worried, calm, energetic, serious.
+**128 Cảm Xúc Nâng Cao (37 chính + 91 aliases):**
+- **Trung tính (5)**: neutral, calm, contemplative, soft, whisper
+- **Tích cực (10)**: happy, excited, cheerful, friendly, confident, encouraging, admiring, playful, romantic, innocent  
+- **Tiêu cực (10)**: sad, angry, sarcastic, cold, anxious, worried, confused, embarrassed, disappointed, frustrated
+- **Kịch tính (9)**: dramatic, mysterious, suspenseful, urgent, commanding, fierce, pleading, desperate, determined
+- **Đặc biệt (3)**: sleepy, surprised, shy
+- **Aliases**: Mỗi emotion có nhiều tên gọi khác (VD: confident=assured/determined)
 
-**Parameters**:
-- emotion: Emotion keyword (e.g., friendly, excited, contemplative)
-- pause_after: 0.0-5.0 seconds (optional)
-- emphasis: Array of keywords to highlight (optional)
+**Tham số:**
+- emotion: Từ khóa cảm xúc (ví dụ: friendly, excited, contemplative)
+- pause_after: 0.0-5.0 giây (tùy chọn)
+- emphasis: Mảng từ khóa để nhấn mạnh (tùy chọn)
 - gender: neutral/female/male
 
-**Focus on CHARACTER DEVELOPMENT** - you have +1100 extra tokens for richer dialogues!
+**Tập trung vào PHÁT TRIỂN NHÂN VẬT và tạo đối thoại phong phú!
 """
         self.show_ai_request_dialog("STANDARD Mode Template", template_content, 400)
 
     def generate_detailed_template_form(self):
-        """Generate DETAILED mode template (~800 tokens)"""
+        """Generate DETAILED mode template"""
         template_content = """
-# 📚 DETAILED MODE - Tạo Script Video JSON (Full Features ~800 tokens)
+# 📚 DETAILED MODE - Tạo Script Video JSON Đầy Đủ Tính Năng
 
 ## Request:
 Tạo script video về "[TOPIC]" theo Enhanced Format 2.0:
@@ -3194,8 +3198,8 @@ Tạo script video về "[TOPIC]" theo Enhanced Format 2.0:
 ```json
 {
   "project": {
-    "title": "Story Title",
-    "description": "Story description",
+    "title": "Tiêu Đề Câu Chuyện",
+    "description": "Mô tả câu chuyện",
     "total_duration": 60,
     "target_audience": "adult",
     "style": "educational",
@@ -3204,18 +3208,18 @@ Tạo script video về "[TOPIC]" theo Enhanced Format 2.0:
   "segments": [
     {
       "id": 1,
-      "title": "Scene name",
-      "script": "Scene description",
-      "image_prompt": "Visual description for AI image generation",
+      "title": "Mở đầu hấp dẫn",
+      "script": "Mô tả cảnh quay",
+      "image_prompt": "Mô tả hình ảnh để AI tạo ảnh",
       "mood": "upbeat",
       "background_music": "energetic",
       "dialogues": [
         {
           "speaker": "narrator",
-          "text": "Dialogue with proper Vietnamese punctuation and emphasis",
+          "text": "Xin chào và chào mừng bạn đến với hành trình khám phá đầy thú vị này!",
           "emotion": "friendly",
           "pause_after": 0.5,
-          "emphasis": ["key", "words"]
+          "emphasis": ["hành trình", "thú vị"]
         }
       ],
       "duration": 12,
@@ -3226,12 +3230,12 @@ Tạo script video về "[TOPIC]" theo Enhanced Format 2.0:
   "characters": [
     {
       "id": "narrator",
-      "name": "Character Name",
-      "description": "Character description and role",
+      "name": "Người Dẫn Chương Trình",
+      "description": "Người dẫn chuyện chuyên nghiệp và thân thiện",
       "gender": "neutral",
       "age_range": "adult",
-      "personality": "professional, warm, engaging",
-      "voice_characteristics": "clear, moderate_pace",
+      "personality": "chuyên nghiệp, ấm áp, cuốn hút",
+      "voice_characteristics": "rõ ràng, nhịp độ vừa phải",
       "suggested_voice": "vi-VN-Wavenet-C",
       "default_emotion": "friendly"
     }
@@ -3250,16 +3254,28 @@ Tạo script video về "[TOPIC]" theo Enhanced Format 2.0:
 }
 ```
 
-**Full emotion list**: neutral, gentle, contemplative, cheerful, excited, surprised, sorrowful, angry, fierce, pleading, friendly, happy, sad, mysterious, dramatic, confident, worried, calm, energetic, romantic, serious, playful.
+**Cơ Sở Dữ Liệu 128 Cảm Xúc Hoàn Chỉnh (37 chính + 91 aliases):**
+- **Trung tính (5)**: neutral, calm, contemplative, soft, whisper
+- **Tích cực (10)**: happy, excited, cheerful, friendly, confident, encouraging, admiring, playful, romantic, innocent
+- **Tiêu cực (10)**: sad, angry, sarcastic, cold, anxious, worried, confused, embarrassed, disappointed, frustrated  
+- **Kịch tính (9)**: dramatic, mysterious, suspenseful, urgent, commanding, fierce, pleading, desperate, determined
+- **Đặc biệt (3)**: sleepy, surprised, shy
+- **Hệ thống Aliases**: Mỗi emotion có 2-4 tên gọi khác nhau để đa dạng hóa
 
-**Advanced features**:
-- emotion: Rich emotion keywords (friendly, excited, contemplative, etc.)
-- pause_after: 0.0-5.0 seconds for natural timing
-- emphasis: Array of keywords to highlight for better delivery
+**Cảm Xúc Được Khuyến Nghị Cho Storytelling:**
+- **Kể chuyện**: neutral, contemplative, mysterious, dramatic, serious
+- **Đối thoại nhân vật**: friendly, excited, happy, confident, worried, angry, sad
+- **Cảnh hành động**: urgent, commanding, fierce, determined, energetic
+- **Cảnh cảm xúc**: romantic, gentle, pleading, desperate, disappointed
+
+**Tính năng nâng cao:**
+- emotion: Từ khóa cảm xúc phong phú (friendly, excited, contemplative, v.v.)
+- pause_after: 0.0-5.0 giây cho timing tự nhiên
+- emphasis: Mảng từ khóa để nhấn mạnh và truyền tải tốt hơn
 - camera_movement, transitions, background_music
-- Complete character personalities and voice characteristics
+- Tính cách nhân vật và đặc điểm giọng nói hoàn chỉnh
 
-**Focus on CINEMATIC STORYTELLING** - you have +700 extra tokens for complex plot development!
+**Tập trung vào CINEMATIC STORYTELLING và phát triển cốt truyện phức tạp!
 """
         self.show_ai_request_dialog("DETAILED Mode Template", template_content, 800)
 
@@ -3273,21 +3289,17 @@ Tạo script video về "[TOPIC]" theo Enhanced Format 2.0:
         
         layout = QVBoxLayout()
         
-        # Header with token info
+        # Header 
         header_layout = QHBoxLayout()
         header_label = QLabel(f"📋 {title}")
         header_label.setStyleSheet("font-size: 16px; font-weight: bold; color: #007AFF;")
         
-        token_label = QLabel(f"💡 Template size: ~{token_count} tokens")
-        token_label.setStyleSheet("color: #28CD41; font-weight: bold;")
-        
-        savings_label = QLabel(f"🚀 Story space: +{1500-token_count} tokens")
-        savings_label.setStyleSheet("color: #FF6B35; font-weight: bold;")
+        info_label = QLabel("💡 Template cho AI tạo script chất lượng cao")
+        info_label.setStyleSheet("color: #28CD41; font-weight: bold;")
         
         header_layout.addWidget(header_label)
         header_layout.addStretch()
-        header_layout.addWidget(token_label)
-        header_layout.addWidget(savings_label)
+        header_layout.addWidget(info_label)
         layout.addLayout(header_layout)
         
         # Content area
@@ -4844,180 +4856,384 @@ Tạo script video về "[TOPIC]" theo Enhanced Format 2.0:
             return None
     
     def import_multiple_script_files(self):
-        """Import và merge nhiều file JSON scripts với smart merge logic"""
-        from PySide6.QtWidgets import QFileDialog, QMessageBox, QProgressDialog
-        
+        """Import nhiều script files cùng lúc cho batch processing"""
         file_paths, _ = QFileDialog.getOpenFileNames(
             self,
-            "Chọn nhiều file JSON scripts",
+            "Import Multiple Script Files",
             "",
-            "JSON files (*.json);;All files (*.*)"
+            "JSON Files (*.json);;All Files (*.*)"
         )
         
-        if not file_paths:
-            return
-        
-        # Progress dialog
-        progress = QProgressDialog("Đang import và merge files...", "Hủy", 0, len(file_paths), self)
-        progress.setWindowModality(Qt.WindowModal)
-        progress.show()
-        
-        merged_data = {
-            "project": {
-                "title": "Merged Multi-File Story",
-                "description": "Story được merge từ nhiều files",
-                "total_duration": 0,
-                "target_audience": "general",
-                "style": "multi_story",
-                "created_date": "2024-01-20"
-            },
-            "segments": [],
-            "characters": [],
-            "audio_settings": {
-                "merge_order": ["intro", "content", "conclusion"],
-                "crossfade_duration": 0.5,
-                "normalize_volume": True,
-                "background_music_volume": 0.2,
-                "voice_volume": 1.0,
-                "output_format": "mp3",
-                "sample_rate": 44100
-            },
-            "metadata": {
-                "version": "2.0",
-                "ai_model": "Multi-File Merger",
-                "generation_date": "2024-01-20",
-                "language": "vi-VN",
-                "content_rating": "G",
-                "source_files": [],
-                "merge_type": "smart_merge"
-            }
-        }
-        
-        character_id_map = {}  # Map old char IDs to new merged IDs
-        next_character_id = 1
-        next_segment_id = 1
-        
-        loaded_files = []
-        errors = []
-        
-        try:
-            for i, file_path in enumerate(file_paths):
-                if progress.wasCanceled():
-                    return
-                
-                progress.setValue(i)
-                progress.setLabelText(f"Processing: {os.path.basename(file_path)}")
-                
+        if file_paths:
+            success_count = 0
+            for file_path in file_paths:
                 try:
                     with open(file_path, 'r', encoding='utf-8') as f:
                         script_data = json.load(f)
                     
-                    if not self.validate_script_data(script_data):
-                        errors.append(f"{os.path.basename(file_path)}: Invalid format")
-                        continue
-                    
-                    # Store source file info
-                    file_info = {
-                        "filename": os.path.basename(file_path),
-                        "segments": len(script_data.get('segments', [])),
-                        "characters": len(script_data.get('characters', []))
-                    }
-                    merged_data["metadata"]["source_files"].append(file_info)
-                    
-                    # === SMART CHARACTER MERGE ===
-                    file_char_map = {}  # Map for this specific file
-                    
-                    for char in script_data.get('characters', []):
-                        old_char_id = char['id']
-                        char_name = char.get('name', '')
+                    # Validate và process script
+                    if self.validate_script_data(script_data):
+                        # Add to processing queue or handle individually
+                        success_count += 1
                         
-                        # Check if character already exists (by name similarity)
-                        existing_char_id = None
-                        for existing_char in merged_data['characters']:
-                            if existing_char['name'].lower() == char_name.lower():
-                                existing_char_id = existing_char['id']
-                                break
-                        
-                        if existing_char_id:
-                            # Use existing character
-                            file_char_map[old_char_id] = existing_char_id
-                            print(f"🔄 Merged character: {char_name} -> {existing_char_id}")
-                        else:
-                            # Create new character with unique ID
-                            new_char_id = f"character{next_character_id}"
-                            while any(c['id'] == new_char_id for c in merged_data['characters']):
-                                next_character_id += 1
-                                new_char_id = f"character{next_character_id}"
-                            
-                            new_char = char.copy()
-                            new_char['id'] = new_char_id
-                            merged_data['characters'].append(new_char)
-                            file_char_map[old_char_id] = new_char_id
-                            character_id_map[old_char_id] = new_char_id
-                            next_character_id += 1
-                            print(f"✅ Added character: {char_name} -> {new_char_id}")
-                    
-                    # === MERGE SEGMENTS ===
-                    for segment in script_data.get('segments', []):
-                        new_segment = segment.copy()
-                        new_segment['id'] = next_segment_id
-                        
-                        # Update character IDs in dialogues
-                        for dialogue in new_segment.get('dialogues', []):
-                            old_speaker = dialogue['speaker']
-                            if old_speaker in file_char_map:
-                                dialogue['speaker'] = file_char_map[old_speaker]
-                            else:
-                                print(f"⚠️ Character not found: {old_speaker}")
-                        
-                        # Add file source info
-                        new_segment['source_file'] = os.path.basename(file_path)
-                        merged_data['segments'].append(new_segment)
-                        next_segment_id += 1
-                    
-                    # Update project duration
-                    if 'project' in script_data and 'total_duration' in script_data['project']:
-                        merged_data['project']['total_duration'] += script_data['project']['total_duration']
-                    
-                    loaded_files.append(os.path.basename(file_path))
-                    
                 except Exception as e:
-                    errors.append(f"{os.path.basename(file_path)}: {str(e)}")
+                    print(f"Error importing {file_path}: {str(e)}")
                     continue
             
-            progress.setValue(len(file_paths))
+            QMessageBox.information(
+                self, 
+                "Import Complete", 
+                f"Successfully imported {success_count}/{len(file_paths)} script files."
+            )
+    
+    def show_ai_request_customizer_dialog(self):
+        """Show customizable AI request generator dialog"""
+        dialog = QDialog(self)
+        dialog.setWindowTitle("🤖 AI Request Generator")
+        dialog.setFixedSize(800, 600)
+        
+        layout = QVBoxLayout()
+        
+        # Language selection
+        lang_layout = QHBoxLayout()
+        lang_layout.addWidget(QLabel("Dialogue Language:"))
+        lang_combo = QComboBox()
+        lang_combo.addItems(["English", "Tiếng Việt", "中文", "日本語", "한국어"])
+        lang_combo.setCurrentText("English")
+        lang_layout.addWidget(lang_combo)
+        layout.addLayout(lang_layout)
+        
+        # Structure options
+        struct_layout = QHBoxLayout()
+        struct_layout.addWidget(QLabel("Segments:"))
+        segments_spin = QSpinBox()
+        segments_spin.setRange(1, 10)
+        segments_spin.setValue(3)
+        struct_layout.addWidget(segments_spin)
+        
+        struct_layout.addWidget(QLabel("Characters:"))
+        chars_spin = QSpinBox()
+        chars_spin.setRange(1, 10)
+        chars_spin.setValue(2)
+        struct_layout.addWidget(chars_spin)
+        layout.addLayout(struct_layout)
+        
+        # Generate button
+        generate_btn = QPushButton("🚀 Generate Template")
+        generate_btn.clicked.connect(lambda: self.create_custom_template(
+            lang_combo.currentText(), 
+            segments_spin.value(), 
+            chars_spin.value(),
+            dialog
+        ))
+        layout.addWidget(generate_btn)
+        
+        dialog.setLayout(layout)
+        dialog.exec()
+    
+    def create_custom_template(self, language, segments, characters, dialog):
+        """Create custom AI template"""
+        
+        # Sample texts for different languages
+        samples = {
+            "English": {
+                "narrator": "Welcome to today's fascinating story!",
+                "character1": "I'm excited to share this with you!"
+            },
+            "Tiếng Việt": {
+                "narrator": "Chào mừng đến với câu chuyện hôm nay!",
+                "character1": "Tôi rất hào hứng chia sẻ điều này!"
+            }
+        }
+        
+        sample_text = samples.get(language, samples["English"])
+        
+        # Build JSON template
+        template = f'''# 🤖 Custom AI Request Template
+
+## Request:
+Create a video script about "[TOPIC]" in **{language}** with {segments} segments and {characters} characters.
+
+```json
+{{
+  "segments": [
+    {{
+      "id": 1,
+      "dialogues": [
+        {{
+          "speaker": "narrator",
+          "text": "{sample_text['narrator']}",
+          "emotion": "friendly"
+        }}
+      ]
+    }}
+  ],
+  "characters": [
+    {{
+      "id": "narrator",
+      "name": "Narrator", 
+      "gender": "neutral"
+    }}
+  ]
+}}
+```
+
+## Requirements:
+- **Language**: All dialogue in {language}
+- **Segments**: {segments} segments total
+- **Characters**: {characters} characters maximum
+- **Emotions**: Use from 128 available emotions
+- **Format**: Proper JSON structure
+
+## 128 Emotions Available:
+neutral, happy, sad, excited, calm, angry, romantic, fearful, thoughtful, sleepy, confident, cheerful, melancholic, dramatic, mysterious, surprised, frustrated, soft, whisper, encouraging, admiring, playful, innocent, sarcastic, cold, anxious, worried, confused, embarrassed, disappointed, suspenseful, urgent, commanding, fierce, pleading, desperate, determined, shy, energetic, serious, gentle, bewildered
+
+**Focus on creating engaging, high-quality content!**
+'''
+        
+        self.show_ai_request_dialog("Custom Template", template, 0)
+        dialog.close()
+
+    def update_template_preview(self, dialog):
+        """Update template preview based on current settings"""
+        try:
+            # Get current settings from dialog attributes
+            content_lang = dialog.content_lang_combo.currentText()
+            dialogue_lang = dialog.dialogue_lang_combo.currentText()
+            num_segments = dialog.segments_spin.value()
+            num_characters = dialog.characters_spin.value()
+            content_type = dialog.content_type_combo.currentText()
+            duration = dialog.duration_spin.value()
             
-            if not merged_data['segments']:
-                QMessageBox.warning(self, "Lỗi", "Không có segment nào được load từ các files!")
-                return
+            # Generate preview
+            preview_text = f"""# 🤖 Custom AI Request Template
             
-            # Update project title with file count
-            merged_data['project']['title'] = f"Multi-Story ({len(loaded_files)} files)"
-            merged_data['project']['description'] = f"Merged from: {', '.join(loaded_files)}"
+Content Language: {content_lang}
+Dialogue Language: {dialogue_lang}
+Segments: {num_segments}
+Characters: {num_characters}
+Type: {content_type}
+Duration: {duration}s
+
+Generate a {content_type.lower()} video script with {num_segments} segments and {num_characters} characters.
+Dialogue should be in {dialogue_lang}.
+Target duration: {duration} seconds.
+
+[Full template will be generated when you click 'Generate Template']
+"""
             
-            # Set merged data
-            self.voice_studio_script_data = merged_data
-            self.imported_file_label.setText(f"✅ {len(loaded_files)} files merged")
-            self.imported_file_label.setStyleSheet("color: #007AFF; font-weight: bold;")
-            self.update_voice_studio_overview()
-            
-            # Show success message
-            success_msg = f"✅ Multi-file merge thành công!\n\n"
-            success_msg += f"📁 Files loaded: {len(loaded_files)}\n"
-            success_msg += f"🎭 Characters: {len(merged_data['characters'])}\n"  
-            success_msg += f"📝 Segments: {len(merged_data['segments'])}\n"
-            success_msg += f"⏱️ Total duration: {merged_data['project']['total_duration']}s\n"
-            
-            if errors:
-                success_msg += f"\n⚠️ Errors ({len(errors)}):\n"
-                for error in errors[:3]:  # Show first 3 errors
-                    success_msg += f"  • {error}\n"
-                if len(errors) > 3:
-                    success_msg += f"  ... và {len(errors) - 3} errors khác"
-            
-            QMessageBox.information(self, "Multi-File Import", success_msg)
+            dialog.template_preview.setPlainText(preview_text)
             
         except Exception as e:
-            QMessageBox.critical(self, "Lỗi", f"Lỗi trong quá trình merge:\n{str(e)}")
-        finally:
-            progress.close()
+            if hasattr(dialog, 'template_preview'):
+                dialog.template_preview.setPlainText(f"Preview error: {str(e)}")
+
+    def generate_custom_template(self, dialog):
+        """Generate custom AI request template based on settings"""
+        try:
+            # Get all settings from dialog attributes
+            content_lang = dialog.content_lang_combo.currentText()
+            dialogue_lang = dialog.dialogue_lang_combo.currentText()
+            num_segments = dialog.segments_spin.value()
+            num_characters = dialog.characters_spin.value()
+            content_type = dialog.content_type_combo.currentText()
+            duration = dialog.duration_spin.value()
+            
+            # Generate language codes
+            lang_codes = {
+                "English": "en-US",
+                "Tiếng Việt": "vi-VN", 
+                "中文": "zh-CN",
+                "日本語": "ja-JP",
+                "한국어": "ko-KR",
+                "Français": "fr-FR",
+                "Español": "es-ES",
+                "Deutsch": "de-DE",
+                "Русский": "ru-RU"
+            }
+            
+            dialogue_code = lang_codes.get(dialogue_lang, "en-US")
+            
+            # Build template
+            template = self.build_custom_ai_template(
+                dialog, content_lang, dialogue_lang, dialogue_code,
+                num_segments, num_characters, content_type, duration
+            )
+            
+            # Show in dialog
+            self.show_ai_request_dialog("Custom AI Request Template", template, 0)
+            dialog.close()
+            
+        except Exception as e:
+            QMessageBox.critical(dialog, "Error", f"Failed to generate template:\n{str(e)}")
+
+    def build_custom_ai_template(self, dialog, content_lang, dialogue_lang, dialogue_code,
+                                num_segments, num_characters, content_type, duration):
+        """Build the actual AI request template"""
+        
+        # Sample dialogues based on language
+        sample_dialogues = {
+            "English": {
+                "narrator": "Welcome to today's fascinating journey of discovery!",
+                "character1": "I'm absolutely thrilled to share this amazing story with you!",
+                "character2": "Let's dive deeper into this incredible topic together."
+            },
+            "Tiếng Việt": {
+                "narrator": "Chào mừng các bạn đến với hành trình khám phá hôm nay!",
+                "character1": "Tôi rất hào hứng được chia sẻ câu chuyện tuyệt vời này!",
+                "character2": "Hãy cùng nhau tìm hiểu sâu hơn về chủ đề thú vị này."
+            }
+        }
+        
+        # Get sample text
+        samples = sample_dialogues.get(dialogue_lang, sample_dialogues["English"])
+        
+        # Build character list
+        characters_json = []
+        character_names = ["narrator", "character1", "character2", "character3", "character4", 
+                          "character5", "character6", "character7", "character8", "character9"]
+        
+        for i in range(num_characters):
+            char_id = character_names[i] if i < len(character_names) else f"character{i+1}"
+            char_name = f"Character {i+1}" if char_id != "narrator" else "Narrator"
+            
+            char_entry = f'''    {{
+      "id": "{char_id}",
+      "name": "{char_name}",
+      "gender": "neutral"'''
+            
+            if dialog.include_character_details.isChecked():
+                char_entry += f''',
+      "description": "Description of {char_name}",
+      "personality": "Personality traits",
+      "default_emotion": "friendly"'''
+            
+            char_entry += "\n    }"
+            characters_json.append(char_entry)
+        
+        # Build segments list  
+        segments_json = []
+        for i in range(num_segments):
+            segment_id = i + 1
+            sample_text = list(samples.values())[i % len(samples)]
+            speaker = list(samples.keys())[i % len(samples)]
+            
+            dialogue_entry = f'''        {{
+          "speaker": "{speaker}",
+          "text": "{sample_text}",
+          "emotion": "friendly"'''
+            
+            if dialog.include_advanced_dialogue.isChecked():
+                dialogue_entry += f''',
+          "pause_after": 0.5,
+          "emphasis": ["key", "words"]'''
+            
+            dialogue_entry += "\n        }"
+            
+            segment_entry = f'''    {{
+      "id": {segment_id},
+      "title": "Scene {segment_id}"'''
+            
+            if dialog.include_scene_descriptions.isChecked():
+                segment_entry += f''',
+      "script": "Description of scene {segment_id}",
+      "image_prompt": "Visual description for AI image generation"'''
+            
+            segment_entry += f''',
+      "dialogues": [
+{dialogue_entry}
+      ]
+    }}'''
+            
+            segments_json.append(segment_entry)
+        
+        # Build main JSON structure
+        json_structure = "{\n"
+        
+        if dialog.include_project_metadata.isChecked():
+            json_structure += f'''  "project": {{
+    "title": "Story Title",
+    "description": "Story description",
+    "total_duration": {duration},
+    "target_audience": "adult",
+    "style": "{content_type.lower()}",
+    "language": "{dialogue_code}"
+  }},
+'''
+        
+        json_structure += f'''  "segments": [
+{chr(10).join(segments_json)}
+  ],
+  "characters": [
+{chr(10).join(characters_json)}
+  ]'''
+        
+        if dialog.include_audio_settings.isChecked():
+            json_structure += f''',
+  "audio_settings": {{
+    "crossfade_duration": 0.3,
+    "normalize_volume": true,
+    "output_format": "mp3"
+  }}'''
+        
+        json_structure += "\n}"
+        
+        # Build complete template
+        template = f'''# 🤖 Custom AI Request Template
+
+## Request:
+Create a {content_type.lower()} video script about "[TOPIC]" using the following JSON format:
+
+```json
+{json_structure}
+```
+
+## Configuration:
+- **Content Language**: {content_lang}
+- **Dialogue Language**: {dialogue_lang}
+- **Segments**: {num_segments}
+- **Characters**: {num_characters}
+- **Content Type**: {content_type}
+- **Target Duration**: {duration} seconds
+
+## Requirements:
+- All dialogue text must be in **{dialogue_lang}**
+- Use proper punctuation and grammar for {dialogue_lang}
+- Each dialogue must include: speaker, text, emotion
+- Each character must include: id, name, gender'''
+
+        if self.include_advanced_dialogue.isChecked():
+            template += "\n- Advanced timing features: pause_after (0.0-5.0 seconds), emphasis arrays"
+
+        if self.show_emotion_categories.isChecked():
+            template += '''
+
+## 128 Emotions Available (37 primary + 91 aliases):
+- **Neutral**: neutral, calm, contemplative, soft, whisper
+- **Positive**: happy, excited, cheerful, friendly, confident, encouraging, admiring, playful, romantic, innocent
+- **Negative**: sad, angry, sarcastic, cold, anxious, worried, confused, embarrassed, disappointed, frustrated
+- **Dramatic**: dramatic, mysterious, suspenseful, urgent, commanding, fierce, pleading, desperate, determined
+- **Special**: sleepy, surprised, shy, energetic, serious, gentle, bewildered
+- **Aliases**: Each emotion has 2-4 alternative names for variety'''
+
+        if self.show_emotion_examples.isChecked():
+            template += '''
+
+## Emotion Usage Examples:
+- **Narration**: neutral, contemplative, mysterious, dramatic
+- **Character Dialogue**: friendly, excited, happy, confident, worried
+- **Action Scenes**: urgent, commanding, fierce, determined
+- **Emotional Scenes**: romantic, gentle, pleading, sad, disappointed'''
+
+        template += '''
+
+**Focus on creating engaging, high-quality content with natural dialogue flow!**
+'''
+        
+        return template
+
+    def save_custom_template(self):
+        """Save custom template to file"""
+        if hasattr(self, 'template_preview'):
+            content = self.template_preview.toPlainText()
+            self.save_ai_request_template(content)

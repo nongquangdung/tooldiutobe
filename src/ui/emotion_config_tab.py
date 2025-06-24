@@ -638,7 +638,7 @@ class EmotionConfigTab(QWidget):
                     'temperature': emotion.temperature,
                     'speed': emotion.speed
                 }
-                print(f"\n⚠️ FALLBACK: Sử dụng default parameters cho {emotion_name}")
+            print(f"\n⚠️ FALLBACK: Sử dụng default parameters cho {emotion_name}")
             
             # Find preview button từ wrapper widget
             preview_btn = None
@@ -695,23 +695,23 @@ class EmotionConfigTab(QWidget):
                         layout = preview_widget.layout()
                         if layout and layout.count() > 1:
                             preview_btn = layout.itemAt(1).widget()  # Button ở vị trí giữa
-                            if preview_btn:
-                                preview_btn.setText("🎵")
-                                preview_btn.setEnabled(True)
-                                preview_btn.setStyleSheet("""
-                                    QPushButton {
+                    if preview_btn:
+                        preview_btn.setText("🎵")
+                        preview_btn.setEnabled(True)
+                        preview_btn.setStyleSheet("""
+                            QPushButton {
                                         background-color: white;
                                         color: #6366F1;
                                         border: 1px solid #6366F1;
-                                        border-radius: 6px;
-                                        font-size: 14px;
-                                        font-weight: bold;
-                                    }
-                                    QPushButton:hover {
+                                border-radius: 6px;
+                                font-size: 14px;
+                                font-weight: bold;
+                            }
+                            QPushButton:hover {
                                         background-color: #F0F0FF;
                                         border-color: #4F46E5;
-                                    }
-                                """)
+                            }
+                        """)
                     break
             
             # Play audio nếu có
@@ -799,28 +799,29 @@ class EmotionConfigTab(QWidget):
                     layout = preview_widget.layout()
                     if layout and layout.count() > 1:
                         preview_btn = layout.itemAt(1).widget()  # Button ở vị trí giữa
-                        if preview_btn:
-                            preview_btn.setText("🎵")
-                            preview_btn.setEnabled(True)
-                            preview_btn.setStyleSheet("""
-                                QPushButton {
+                    break
+            
+            if preview_btn:
+                preview_btn.setText("🎵")
+                preview_btn.setEnabled(True)
+                preview_btn.setStyleSheet("""
+                    QPushButton {
                                     background-color: white;
                                     color: #6366F1;
                                     border: 1px solid #6366F1;
-                                    border-radius: 6px;
-                                    font-size: 14px;
-                                    font-weight: bold;
-                                }
-                                QPushButton:hover {
+                            border-radius: 6px;
+                            font-size: 14px;
+                            font-weight: bold;
+                        }
+                        QPushButton:hover {
                                     background-color: #F0F0FF;
                                     border-color: #4F46E5;
-                                }
-                            """)
-                break
-        
-        # Cleanup thread
-        if emotion_name in self.preview_threads:
-            del self.preview_threads[emotion_name]
+                        }
+                    """)
+            
+            # Cleanup thread
+            if emotion_name in self.preview_threads:
+                del self.preview_threads[emotion_name]
         
         # Show error with fallback simulation
         reply = QMessageBox.question(
@@ -1011,7 +1012,7 @@ class EmotionConfigTab(QWidget):
                     )
                     
                     self.update_status(f"✅ Đã thêm custom emotion: {name}")
-                    dialog.accept()
+                dialog.accept()
                 else:
                     QMessageBox.critical(dialog, "Lỗi", "Không thể thêm emotion. Vui lòng thử lại.")
                 
@@ -1346,7 +1347,7 @@ class EmotionConfigTab(QWidget):
             print(f"      🌡️ Temperature: {default_values['temperature']:.2f}")
             print(f"      ⚡ Speed: {default_values['speed']:.1f}")
             
-            # Lấy giá trị hiện tại để so sánh  
+            # Lấy giá trị hiện tại để so sánh
             current_emotion = original_emotion  # In unified system, current = original
             print(f"   📈 Current Values:")
             print(f"      🎯 Exaggeration: {current_emotion.exaggeration:.2f}")
