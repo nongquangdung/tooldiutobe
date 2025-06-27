@@ -1,0 +1,177 @@
+{
+  "title": "🎭 Voice Studio - Inner Voice Demo",
+  "description": "Demo tính năng Inner Voice (Thoại nội tâm) với 3 loại echo effects",
+  "version": "1.0",
+  "characters": [
+    {
+      "id": "alice",
+      "name": "Alice",
+      "description": "Nhân vật chính - cô gái trẻ đang suy tư về cuộc sống",
+      "voice_id": "vi-VN-Standard-C",
+      "gender": "female",
+      "age": "young"
+    },
+    {
+      "id": "narrator",
+      "name": "Narrator",
+      "description": "Người kể chuyện",
+      "voice_id": "vi-VN-Standard-A",
+      "gender": "female",
+      "age": "adult"
+    }
+  ],
+  "segments": [
+    {
+      "id": "segment_1",
+      "title": "🌅 Sáng thứ 2 - Suy tư về công việc",
+      "description": "Alice suy nghĩ về công việc mới trong một buổi sáng",
+      "dialogues": [
+        {
+          "speaker": "narrator",
+          "text": "Sáng thứ hai, Alice ngồi bên cửa sổ với tách cà phê nóng.",
+          "emotion": "neutral"
+        },
+        {
+          "speaker": "alice", 
+          "text": "Mình có nên nhận công việc này không nhỉ? Lương cao nhưng áp lực cũng lớn.",
+          "emotion": "contemplative",
+          "inner_voice": true,
+          "inner_voice_type": "light"
+        },
+        {
+          "speaker": "narrator",
+          "text": "Cô nhìn ra ngoài phố phường đông đúc, mọi người đều vội vã đi làm.",
+          "emotion": "neutral"
+        },
+        {
+          "speaker": "alice",
+          "text": "Có lẽ mình cần thời gian để suy nghĩ kỹ hơn về quyết định này.",
+          "emotion": "thoughtful",
+          "inner_voice": true
+        }
+      ]
+    },
+    {
+      "id": "segment_2", 
+      "title": "😰 Căng thẳng - Hồi tưởng về quá khứ",
+      "description": "Alice nhớ lại những trải nghiệm khó khăn trong công việc cũ",
+      "dialogues": [
+        {
+          "speaker": "narrator",
+          "text": "Đột nhiên, những ký ức về công ty cũ ùa về trong tâm trí Alice.",
+          "emotion": "dramatic"
+        },
+        {
+          "speaker": "alice",
+          "text": "Làm việc overtime từ tối đến sáng, sếp liên tục gọi điện vào cuối tuần. Mình đã kiệt sức như thế nào.",
+          "emotion": "anxious", 
+          "inner_voice": true,
+          "inner_voice_type": "deep"
+        },
+        {
+          "speaker": "alice",
+          "text": "Không... mình không thể để điều đó xảy ra lần nữa. Sức khỏe tinh thần quan trọng hơn tiền bạc.",
+          "emotion": "determined",
+          "inner_voice": true,
+          "inner_voice_type": "deep" 
+        }
+      ]
+    },
+    {
+      "id": "segment_3",
+      "title": "💭 Mơ mộng - Hình dung tương lai",
+      "description": "Alice tưởng tượng về một tương lai lý tưởng",
+      "dialogues": [
+        {
+          "speaker": "narrator", 
+          "text": "Alice khép mắt lại và để tâm trí bay bổng đến những giấc mơ xa vời.",
+          "emotion": "soft"
+        },
+        {
+          "speaker": "alice",
+          "text": "Nếu như mình có thể làm việc tự do, đi du lịch khắp nơi, viết những câu chuyện mà mình yêu thích...",
+          "emotion": "dreamy",
+          "inner_voice": true,
+          "inner_voice_type": "dreamy"
+        },
+        {
+          "speaker": "alice",
+          "text": "Có lẽ đó chỉ là giấc mơ... nhưng mơ thì không tốn tiền gì phải không?",
+          "emotion": "gentle",
+          "inner_voice": true,
+          "inner_voice_type": "dreamy"
+        },
+        {
+          "speaker": "narrator",
+          "text": "Cô mỉm cười nhẹ nhàng, lấy lại bình tĩnh để đưa ra quyết định cuối cùng.",
+          "emotion": "peaceful"
+        }
+      ]
+    },
+    {
+      "id": "segment_4",
+      "title": "✨ Quyết định - Kết thúc có hậu", 
+      "description": "Alice đưa ra quyết định sáng suốt",
+      "dialogues": [
+        {
+          "speaker": "alice",
+          "text": "Được rồi, mình sẽ thử công việc này, nhưng sẽ đặt ra ranh giới rõ ràng về work-life balance.",
+          "emotion": "confident"
+        },
+        {
+          "speaker": "alice",
+          "text": "Và mình sẽ tiết kiệm tiền để theo đuổi giấc mơ viết lách trong tương lai.",
+          "emotion": "hopeful",
+          "inner_voice": true,
+          "inner_voice_type": "light"
+        },
+        {
+          "speaker": "narrator",
+          "text": "Với quyết định này, Alice cảm thấy nhẹ nhõm và sẵn sàng cho một chương mới trong cuộc đời.",
+          "emotion": "uplifting"
+        }
+      ]
+    }
+  ],
+  "voice_mapping": {
+    "alice": "vi-VN-Standard-C",
+    "narrator": "vi-VN-Standard-A"
+  },
+  "inner_voice_info": {
+    "description": "🎭 Inner Voice Effects Demo",
+    "types": {
+      "light": {
+        "name": "Nội tâm nhẹ",
+        "description": "Tự sự, tâm sự - phù hợp nữ trẻ, nhân vật suy tư",
+        "filter": "aecho=0.6:0.5:500:0.3",
+        "usage": "Suy tư bình thường, tâm sự nhẹ nhàng"
+      },
+      "deep": {
+        "name": "Nội tâm sâu", 
+        "description": "Căng thẳng, hồi tưởng - phù hợp độc thoại nam, giọng nặng trĩu",
+        "filter": "aecho=0.7:0.6:700|900:0.4|0.3",
+        "usage": "Hồi tưởng đau thương, căng thẳng, quyết định quan trọng"
+      },
+      "dreamy": {
+        "name": "Nội tâm cách âm",
+        "description": "Xa thực tại, mơ hồ - phù hợp cảnh mộng, mất phương hướng",
+        "filter": "volume=0.8,aecho=0.5:0.6:800:0.4,lowpass=f=3000", 
+        "usage": "Mơ mộng, tưởng tượng, trạng thái mơ màng"
+      }
+    },
+    "auto_detection": {
+      "light_emotions": ["contemplative", "thoughtful", "hopeful", "curious"],
+      "deep_emotions": ["anxious", "worried", "determined", "angry", "sad", "commanding"],
+      "dreamy_emotions": ["dreamy", "gentle", "romantic", "whisper", "soft", "innocent"]
+    }
+  },
+  "metadata": {
+    "created": "2024-01-25",
+    "author": "Voice Studio Team", 
+    "tags": ["inner-voice", "demo", "vietnamese", "emotions", "tts"],
+    "total_segments": 4,
+    "total_dialogues": 13,
+    "inner_voice_dialogues": 6,
+    "estimated_duration": "3-4 minutes"
+  }
+} 

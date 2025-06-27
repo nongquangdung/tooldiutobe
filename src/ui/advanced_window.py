@@ -29,6 +29,23 @@ from ai.prompt_templates import PromptTemplates
 from core.api_manager import APIManager
 from tts.voice_generator import VoiceGenerator
 
+# Audio processing
+try:
+    from pydub import AudioSegment
+    PYDUB_AVAILABLE = True
+except ImportError:
+    PYDUB_AVAILABLE = False
+
+from PySide6.QtWidgets import *
+from PySide6.QtCore import *
+from PySide6.QtGui import *
+
+# Import các modules từ ứng dụng
+from .emotion_config_tab import EmotionConfigTab
+from .license_tab import LicenseTab
+from core.audio_metadata_fixer import AudioMetadataFixer
+from core.license_manager import license_manager
+
 class VideoGenerationThread(QThread):
     progress_updated = Signal(int, str)
     finished = Signal(dict)
@@ -102,6 +119,7 @@ class AdvancedMainWindow(QMainWindow):
         self.create_video_tab()
         self.create_voice_studio_tab()
         self.create_emotion_config_tab()
+        self.create_license_tab()
         self.create_projects_tab()
         self.create_settings_tab()
         
@@ -865,6 +883,21 @@ class AdvancedMainWindow(QMainWindow):
             layout.addWidget(error_label)
             fallback_tab.setLayout(layout)
             self.tabs.addTab(fallback_tab, "🎭 Cấu hình Cảm xúc")
+
+    def create_license_tab(self):
+        """Tạo tab License Management"""
+        try:
+            self.license_tab = LicenseTab()
+            self.tabs.addTab(self.license_tab, "🔐 License")
+        except Exception as e:
+            # Fallback nếu có lỗi
+            fallback_tab = QWidget()
+            layout = QVBoxLayout()
+            error_label = QLabel(f"⚠️ Lỗi load License tab: {str(e)}")
+            error_label.setWordWrap(True)
+            layout.addWidget(error_label)
+            fallback_tab.setLayout(layout)
+            self.tabs.addTab(fallback_tab, "🔐 License")
     
     def create_projects_tab(self):
         """Tab quản lý projects với layout tối ưu cho MacOS"""
@@ -1141,6 +1174,15 @@ class AdvancedMainWindow(QMainWindow):
         prompt = self.prompt_input.toPlainText().strip()
         if not prompt:
             QMessageBox.warning(self, "Lỗi", "Vui lòng nhập prompt!")
+            return
+        
+        # Check license for video generation
+        if not license_manager.is_feature_enabled("basic_tts"):
+            QMessageBox.warning(
+                self, 
+                "License Required", 
+                "Video generation requires a valid license.\nPlease check the License tab to activate your license."
+            )
             return
         
         project_name = self.project_name_input.text().strip() or "video_project"
@@ -1691,6 +1733,25 @@ Created: {data['created_at']}
     
     def generate_audio_only(self):
         """Tạo audio từ script data có sẵn với Enhanced Voice Setup"""
+        # Check license for unlimited exports
+        if not license_manager.is_feature_enabled("export_unlimited"):
+            # Check if trial limit reached (simplified check for demo)
+            trial_count = getattr(self, '_trial_exports', 0)
+            if trial_count >= 5:
+                QMessageBox.warning(
+                    self, 
+                    "Trial Limit Reached", 
+                    "You have reached the 5 export limit for trial mode.\nPlease upgrade to a paid license for unlimited exports."
+                )
+                return
+            else:
+                self._trial_exports = trial_count + 1
+                QMessageBox.information(
+                    self, 
+                    "Trial Mode", 
+                    f"Export {trial_count + 1}/5 (Trial Mode)\nUpgrade to license for unlimited exports."
+                )
+        
         if not self.current_script_data:
             QMessageBox.warning(self, "Cảnh báo", 
                 "Chưa có script data! Hãy tạo story trước.")
@@ -3012,12 +3073,28 @@ Created: {data['created_at']}
                     if files_concatenated > 0:
                         print(f"✅ FORCE BYPASS SUCCESS: {files_concatenated} files concatenated to {output_path}")
                         
+                        # Fix metadata duration
+                        metadata_fixer = AudioMetadataFixer()
+                        if metadata_fixer.ffmpeg_available:
+                            print(f"🔧 Fixing metadata duration...")
+                            fix_result = metadata_fixer.fix_metadata(output_path)
+                            
+                            if fix_result["success"]:
+                                print(f"✅ Metadata fixed! Duration now shows correctly.")
+                                # Replace original với fixed version
+                                if os.path.exists(fix_result["output_path"]):
+                                    os.replace(fix_result["output_path"], output_path)
+                            else:
+                                print(f"⚠️ Could not fix metadata: {fix_result.get('error', 'Unknown error')}")
+                        else:
+                            print(f"⚠️ FFmpeg not available - metadata duration may be incorrect")
+                        
                         # Show success dialog
                         msg = QMessageBox()
                         msg.setIcon(QMessageBox.Information)
                         msg.setWindowTitle("🎉 Force Merge Success!")
                         msg.setText(f"✅ Successfully merged {files_concatenated} audio files using FORCE BYPASS method!")
-                        msg.setInformativeText(f"📁 Saved to: {output_path}\n\n⚠️ Note: Used binary concatenation due to PyDub codec issues.")
+                        msg.setInformativeText(f"📁 Saved to: {output_path}\n\n📊 Duration metadata has been fixed!\n\n⚠️ Note: Used binary concatenation due to PyDub codec issues.")
                         msg.setStandardButtons(QMessageBox.Ok)
                         msg.exec_()
                         
@@ -3088,196 +3165,528 @@ Created: {data['created_at']}
     # Now using force_merge_all_segments() as the main audio merging solution
     
     def generate_ai_request_form(self):
-        """Show customizable AI request generator with dropdown options"""
-        self.show_ai_request_customizer_dialog()
+        """Tạo form yêu cầu AI với đầy đủ hướng dẫn format và tùy chọn"""
+        dialog = QDialog(self)
+        dialog.setWindowTitle("🤖 Create AI Request")
+        dialog.setModal(True)
+        dialog.resize(900, 1100)
+        
+        layout = QVBoxLayout(dialog)
+        
+        # === INTRO ===
+        intro_label = QLabel("🎯 Create professional AI request forms for high-quality video/audio content generation!")
+        intro_label.setStyleSheet("font-weight: bold; color: #007AFF; font-size: 14px;")
+        layout.addWidget(intro_label)
+        
+        # === JSON FORMAT GUIDE ===
+        format_group = QGroupBox("📋 JSON Format Guide")
+        format_layout = QVBoxLayout()
+        
+        # Basic JSON format
+        basic_format = QLabel("""
+<b>🔹 Basic format for one segment:</b><br>
+<code>{<br>
+  "segment_1": {<br>
+    "dialogue_1": {<br>
+      "character": "narrator",<br>
+      "text": "Content to speak...",<br>
+      "emotion": "neutral"<br>
+    }<br>
+  }<br>
+}</code>
+        """)
+        basic_format.setWordWrap(True)
+        basic_format.setStyleSheet("background: #f8f9fa; padding: 10px; border-radius: 6px; font-size: 12px;")
+        format_layout.addWidget(basic_format)
+        
+        # Inner Voice format - check if enabled
+        inner_voice_enabled = self.check_inner_voice_enabled()
+        if inner_voice_enabled:
+            inner_voice_format = QLabel("""
+<b>🎭 Inner Voice Format (Internal Monologue):</b><br>
+<code>{<br>
+  "segment_1": {<br>
+    "dialogue_1": {<br>
+      "character": "character1",<br>
+      "text": "What am I thinking about...",<br>
+      "emotion": "contemplative",<br>
+      <span style="color: #FF6B35; font-weight: bold;">"inner_voice": true</span><br>
+    },<br>
+    "dialogue_2": {<br>
+      "character": "character1",<br>
+      "text": "Speaking normally",<br>
+      "emotion": "neutral"<br>
+    }<br>
+  }<br>
+}</code><br><br>
+<b>📝 Inner Voice Notes:</b><br>
+• Only add <code>"inner_voice": true</code> for internal thoughts<br>
+• Don't add this flag for normal dialogue<br>
+• Supports 3 types: light (subtle), deep (profound), dreamy (ethereal)<br>
+• System auto-selects appropriate type or follows settings
+            """)
+            inner_voice_format.setWordWrap(True)
+            inner_voice_format.setStyleSheet("background: #fff3e0; padding: 10px; border-radius: 6px; font-size: 12px; border-left: 4px solid #FF6B35;")
+            format_layout.addWidget(inner_voice_format)
+        
+        format_group.setLayout(format_layout)
+        layout.addWidget(format_group)
+        
+        # === TEMPLATE OPTIONS ===
+        template_group = QGroupBox("📄 Template Selection")
+        template_layout = QGridLayout()
+        
+        # Template buttons
+        rapid_btn = QPushButton("⚡ Rapid Template")
+        rapid_btn.clicked.connect(lambda: self.generate_rapid_template_form())
+        rapid_btn.setStyleSheet("padding: 10px; font-weight: bold;")
+        
+        standard_btn = QPushButton("📝 Standard Template")
+        standard_btn.clicked.connect(lambda: self.generate_standard_template_form())
+        standard_btn.setStyleSheet("padding: 10px; font-weight: bold;")
+        
+        detailed_btn = QPushButton("🎯 Detailed Template")
+        detailed_btn.clicked.connect(lambda: self.generate_detailed_template_form())
+        detailed_btn.setStyleSheet("padding: 10px; font-weight: bold;")
+        
+        custom_btn = QPushButton("🛠️ Custom Template")
+        custom_btn.clicked.connect(lambda: self.generate_custom_template_form())
+        custom_btn.setStyleSheet("padding: 10px; font-weight: bold;")
+        
+        template_layout.addWidget(rapid_btn, 0, 0)
+        template_layout.addWidget(standard_btn, 0, 1)
+        template_layout.addWidget(detailed_btn, 1, 0)
+        template_layout.addWidget(custom_btn, 1, 1)
+        
+        template_group.setLayout(template_layout)
+        layout.addWidget(template_group)
+        
+        # === CLOSE BUTTON ===
+        close_btn = QPushButton("✅ Close")
+        close_btn.clicked.connect(dialog.accept)
+        close_btn.setStyleSheet("padding: 8px; font-weight: bold;")
+        layout.addWidget(close_btn)
+        
+        dialog.exec_()
+
+    def check_inner_voice_enabled(self):
+        """Kiểm tra xem inner voice có được bật trong config không"""
+        try:
+            # Đọc từ config file
+            config_path = "configs/emotions/unified_emotions.json"
+            if os.path.exists(config_path):
+                with open(config_path, 'r', encoding='utf-8') as f:
+                    config = json.load(f)
+                    return config.get("inner_voice_config", {}).get("enabled", False)
+        except Exception as e:
+            print(f"Warning: Không thể đọc config inner voice: {e}")
+        
+        # Fallback: check từ emotion config tab nếu có
+        try:
+            if hasattr(self, 'emotion_config_tab') and hasattr(self.emotion_config_tab, 'inner_voice_group'):
+                return self.emotion_config_tab.inner_voice_group.isChecked()
+        except:
+            pass
+            
+        return False
 
     def generate_rapid_template_form(self):
         """Generate RAPID mode template"""
-        template_content = """
-# 🚀 RAPID MODE - Tạo Script Video JSON Ngắn Gọn
+        
+        # Kiểm tra inner voice enabled
+        inner_voice_enabled = self.check_inner_voice_enabled()
+        
+        # Base template
+        inner_voice_section = ""
+        if inner_voice_enabled:
+            inner_voice_section = """
 
-## Request:
-Tạo script video về "[TOPIC]" theo format JSON sau:
+**🎭 INNER VOICE (Internal Monologue) - OPTIONAL:**
+To create inner voice effects, add 2 fields:
+- `"inner_voice": true` - Enable inner voice feature
+- `"inner_voice_type": "light|deep|dreamy"` - Echo effect type
 
+**Inner Voice Example:**
 ```json
-{
-  "segments": [
-    {"id": 1, "dialogues": [
-      {"speaker": "narrator", "text": "Chào mừng các bạn đến với câu chuyện hôm nay!", "emotion": "friendly"},
-      {"speaker": "character1", "text": "Tôi rất hào hứng được chia sẻ điều này!", "emotion": "excited"}
-    ]}
-  ],
-  "characters": [
-    {"id": "narrator", "name": "Người Kể Chuyện", "gender": "neutral"},
-    {"id": "character1", "name": "Nhân Vật", "gender": "female"}
-  ]
-}
+{"speaker": "character1", "text": "What am I thinking about?", "emotion": "contemplative", "inner_voice": true, "inner_voice_type": "light"}
 ```
 
-**YÊU CẦU**: 
-- segments[].dialogues[]: speaker, text, emotion (bắt buộc)
-- characters[]: id, name, gender (bắt buộc)
-- Nội dung bằng tiếng Việt với dấu câu chuẩn
-- 3-5 segments, tối đa 2-3 nhân vật
+**When to use Inner Voice:**
+- light: Silent thoughts, inner listening (delay: 50ms)
+- deep: Memories, flashbacks, recollections (delay: 150ms)  
+- dreamy: Dreams, imagination, hallucinations (delay: 300ms)"""
 
-**128 Cảm Xúc Có Sẵn (37 chính + 91 aliases):**
-- **Trung tính**: neutral, calm, contemplative, soft, whisper
-- **Tích cực**: happy, excited, cheerful, friendly, confident, encouraging, admiring, playful, romantic, innocent
-- **Tiêu cực**: sad, angry, sarcastic, cold, anxious, worried, confused, embarrassed, disappointed, frustrated
-- **Kịch tính**: dramatic, mysterious, suspenseful, urgent, commanding, fierce, pleading, desperate, determined
-- **Đặc biệt**: sleepy, surprised, shy, energetic, serious, gentle, bewildered
-- **Aliases**: Mỗi emotion có 2-4 aliases (VD: happy=joyful/pleased, excited=energetic/thrilled)
+        template_content = f"""
+# 🚀 RAPID MODE - Create Short Video Script JSON
 
-**Tập trung vào CHẤT LƯỢNG NỘI DUNG và tạo câu chuyện hấp dẫn!
+## Request:
+Create a video script about "[TOPIC]" using the following JSON format:
+
+```json
+{{
+  "segments": [
+    {{"id": 1, "dialogues": [
+      {{"speaker": "narrator", "text": "Welcome to today's story!", "emotion": "friendly"}},
+      {{"speaker": "character1", "text": "I'm excited to share this!", "emotion": "excited"}}
+    ]}}
+  ],
+  "characters": [
+    {{"id": "narrator", "name": "Story Narrator", "gender": "neutral"}},
+    {{"id": "character1", "name": "Main Character", "gender": "female"}}
+  ]
+}}
+```
+
+**REQUIREMENTS**: 
+- segments[].dialogues[]: speaker, text, emotion (required)
+- characters[]: id, name, gender (required)
+- Content in Vietnamese with proper punctuation
+- 3-5 segments, maximum 2-3 characters{inner_voice_section}
+
+**128 Available Emotions (37 main + 91 aliases):**
+- **Neutral**: neutral, calm, contemplative, soft, whisper
+- **Positive**: happy, excited, cheerful, friendly, confident, encouraging, admiring, playful, romantic, innocent
+- **Negative**: sad, angry, sarcastic, cold, anxious, worried, confused, embarrassed, disappointed, frustrated
+- **Dramatic**: dramatic, mysterious, suspenseful, urgent, commanding, fierce, pleading, desperate, determined
+- **Special**: sleepy, surprised, shy, energetic, serious, gentle, bewildered
+- **Aliases**: Each emotion has 2-4 aliases (e.g., happy=joyful/pleased, excited=energetic/thrilled)
+
+**Focus on CONTENT QUALITY and create engaging stories!
 """
-        self.show_ai_request_dialog("RAPID Mode Template", template_content, 150)
+        
+        token_count = 200 if inner_voice_enabled else 150
+        self.show_ai_request_dialog("RAPID Mode Template", template_content, token_count)
 
     def generate_standard_template_form(self):
         """Generate STANDARD mode template"""
-        template_content = """
-# 📝 STANDARD MODE - Tạo Script Video JSON Cân Bằng
+        
+        # Kiểm tra inner voice enabled
+        inner_voice_enabled = self.check_inner_voice_enabled()
+        
+        # Inner voice section
+        inner_voice_section = ""
+        if inner_voice_enabled:
+            inner_voice_section = """
 
-## Request:
-Tạo script video về "[TOPIC]" theo format JSON sau:
+**🎭 INNER VOICE (Internal Monologue) - OPTIONAL:**
+To create inner voice effects, add 2 fields:
+- `"inner_voice": true` - Enable inner voice feature
+- `"inner_voice_type": "light|deep|dreamy"` - Echo effect type
 
+**Inner Voice Example:**
 ```json
-{
-  "project": {"title": "Tiêu Đề Câu Chuyện", "duration": 60},
-  "segments": [
-    {
-      "id": 1,
-      "title": "Tên cảnh",
-      "dialogues": [
-        {
-          "speaker": "narrator",
-          "text": "Hôm nay chúng ta sẽ khám phá một điều thú vị và bất ngờ.",
-          "emotion": "friendly",
-          "pause_after": 1.0,
-          "emphasis": ["thú vị", "bất ngờ"]
-        }
-      ]
-    }
-  ],
-  "characters": [
-    {
-      "id": "narrator", 
-      "name": "Người Dẫn Chuyện",
-      "gender": "neutral|female|male",
-      "default_emotion": "friendly"
-    }
-  ]
-}
+{{
+  "speaker": "character1",
+  "text": "Old memories suddenly flood back to me...", 
+  "emotion": "nostalgic",
+  "inner_voice": true,
+  "inner_voice_type": "deep",
+  "pause_after": 2.0
+}}
 ```
 
-**128 Cảm Xúc Nâng Cao (37 chính + 91 aliases):**
-- **Trung tính (5)**: neutral, calm, contemplative, soft, whisper
-- **Tích cực (10)**: happy, excited, cheerful, friendly, confident, encouraging, admiring, playful, romantic, innocent  
-- **Tiêu cực (10)**: sad, angry, sarcastic, cold, anxious, worried, confused, embarrassed, disappointed, frustrated
-- **Kịch tính (9)**: dramatic, mysterious, suspenseful, urgent, commanding, fierce, pleading, desperate, determined
-- **Đặc biệt (3)**: sleepy, surprised, shy
-- **Aliases**: Mỗi emotion có nhiều tên gọi khác (VD: confident=assured/determined)
+**When to use Inner Voice:**
+- light: Silent thoughts, inner listening (delay: 50ms)
+- deep: Memories, flashbacks, recollections (delay: 150ms)  
+- dreamy: Dreams, imagination, hallucinations (delay: 300ms)
 
-**Tham số:**
-- emotion: Từ khóa cảm xúc (ví dụ: friendly, excited, contemplative)
-- pause_after: 0.0-5.0 giây (tùy chọn)
-- emphasis: Mảng từ khóa để nhấn mạnh (tùy chọn)
+**Inner Voice + Emotion Combinations:**
+- contemplative + light: Gentle contemplation
+- nostalgic + deep: Deep recollection
+- dreamy + dreamy: Ethereal dreams"""
+
+        template_content = f"""
+# 📝 STANDARD MODE - Create Balanced Video Script JSON
+
+## Request:
+Create a video script about "[TOPIC]" using the following JSON format:
+
+```json
+{{
+  "project": {{"title": "Story Title", "duration": 60}},
+  "segments": [
+    {{
+      "id": 1,
+      "title": "Scene name",
+      "dialogues": [
+        {{
+          "speaker": "narrator",
+          "text": "Today we will explore something interesting and surprising.",
+          "emotion": "friendly",
+          "pause_after": 1.0,
+          "emphasis": ["interesting", "surprising"]
+        }}
+      ]
+    }}
+  ],
+  "characters": [
+    {{
+      "id": "narrator", 
+      "name": "Story Host",
+      "gender": "neutral|female|male",
+      "default_emotion": "friendly"
+    }}
+  ]
+}}
+```{inner_voice_section}
+
+**128 Advanced Emotions (37 main + 91 aliases):**
+- **Neutral (5)**: neutral, calm, contemplative, soft, whisper
+- **Positive (10)**: happy, excited, cheerful, friendly, confident, encouraging, admiring, playful, romantic, innocent  
+- **Negative (10)**: sad, angry, sarcastic, cold, anxious, worried, confused, embarrassed, disappointed, frustrated
+- **Dramatic (9)**: dramatic, mysterious, suspenseful, urgent, commanding, fierce, pleading, desperate, determined
+- **Special (3)**: sleepy, surprised, shy
+- **Aliases**: Each emotion has multiple names (e.g., confident=assured/determined)
+
+**Parameters:**
+- emotion: Emotion keyword (e.g., friendly, excited, contemplative)
+- pause_after: 0.0-5.0 seconds (optional)
+- emphasis: Array of keywords to emphasize (optional)
 - gender: neutral/female/male
 
-**Tập trung vào PHÁT TRIỂN NHÂN VẬT và tạo đối thoại phong phú!
+**Focus on CHARACTER DEVELOPMENT and create rich dialogue!
 """
-        self.show_ai_request_dialog("STANDARD Mode Template", template_content, 400)
+        
+        token_count = 500 if inner_voice_enabled else 400
+        self.show_ai_request_dialog("STANDARD Mode Template", template_content, token_count)
 
     def generate_detailed_template_form(self):
         """Generate DETAILED mode template"""
-        template_content = """
-# 📚 DETAILED MODE - Tạo Script Video JSON Đầy Đủ Tính Năng
+        
+        # Kiểm tra inner voice enabled
+        inner_voice_enabled = self.check_inner_voice_enabled()
+        
+        # Inner voice section cho DETAILED mode
+        inner_voice_section = ""
+        if inner_voice_enabled:
+            inner_voice_section = """
+
+**🎭 INNER VOICE (Internal Monologue) - ADVANCED OPTIONS:**
+To create inner voice effects in detailed mode, add 2 fields:
+- `"inner_voice": true` - Enable inner voice feature
+- `"inner_voice_type": "light|deep|dreamy"` - Echo effect type
+
+**Advanced Inner Voice Example:**
+```json
+{{
+  "speaker": "protagonist",
+  "text": "Those memories... they still haunt me every night.",
+  "emotion": "melancholic", 
+  "inner_voice": true,
+  "inner_voice_type": "deep",
+  "pause_after": 3.0,
+  "emphasis": ["memories", "haunt"],
+  "volume_adjustment": 0.8
+}}
+```
+
+**Inner Voice Types for Cinematic Storytelling:**
+- **light**: Silent thoughts, internal monologue (delay: 50ms)
+  - Usage: Contemplation, real-time thoughts, decision making
+  - Best with: contemplative, thoughtful, confused emotions
+  
+- **deep**: Memories, flashbacks, profound recollections (delay: 150ms)  
+  - Usage: Memories, past trauma, significant events
+  - Best with: nostalgic, melancholic, regretful emotions
+  
+- **dreamy**: Dreams, imagination, surreal scenes (delay: 300ms)
+  - Usage: Dreams, fantasies, surreal moments
+  - Best with: mysterious, dreamy, ethereal emotions
+
+**Pro Inner Voice Combinations:**
+- `contemplative + light + pause_after: 1.5`: Slow contemplation
+- `nostalgic + deep + pause_after: 2.5`: Deep recollection
+- `mysterious + dreamy + volume_adjustment: 0.7`: Mysterious ethereal
+- `melancholic + deep + emphasis[]`: Sorrowful memories"""
+
+        template_content = f"""
+# 📚 DETAILED MODE - Create Full-Featured Video Script JSON
 
 ## Request:
-Tạo script video về "[TOPIC]" theo Enhanced Format 2.0:
+Create a video script about "[TOPIC]" using Enhanced Format 2.0:
 
 ```json
-{
-  "project": {
-    "title": "Tiêu Đề Câu Chuyện",
-    "description": "Mô tả câu chuyện",
+{{
+  "project": {{
+    "title": "Story Title",
+    "description": "Story description",
     "total_duration": 60,
     "target_audience": "adult",
     "style": "educational",
     "created_date": "2024-01-20"
-  },
+  }},
   "segments": [
-    {
+    {{
       "id": 1,
-      "title": "Mở đầu hấp dẫn",
-      "script": "Mô tả cảnh quay",
-      "image_prompt": "Mô tả hình ảnh để AI tạo ảnh",
+      "title": "Engaging opening",
+      "script": "Scene description",
+      "image_prompt": "Visual description for AI image generation",
       "mood": "upbeat",
       "background_music": "energetic",
       "dialogues": [
-        {
+        {{
           "speaker": "narrator",
-          "text": "Xin chào và chào mừng bạn đến với hành trình khám phá đầy thú vị này!",
+          "text": "Hello and welcome to this fascinating journey of discovery!",
           "emotion": "friendly",
           "pause_after": 0.5,
-          "emphasis": ["hành trình", "thú vị"]
-        }
+          "emphasis": ["journey", "fascinating"]
+        }}
       ],
       "duration": 12,
       "transition": "fade",
       "camera_movement": "zoom_in"
-    }
+    }}
   ],
   "characters": [
-    {
+    {{
       "id": "narrator",
-      "name": "Người Dẫn Chương Trình",
-      "description": "Người dẫn chuyện chuyên nghiệp và thân thiện",
+      "name": "Program Host",
+      "description": "Professional and friendly narrator",
       "gender": "neutral",
       "age_range": "adult",
-      "personality": "chuyên nghiệp, ấm áp, cuốn hút",
-      "voice_characteristics": "rõ ràng, nhịp độ vừa phải",
+      "personality": "professional, warm, engaging",
+      "voice_characteristics": "clear, moderate pace",
       "suggested_voice": "vi-VN-Wavenet-C",
       "default_emotion": "friendly"
-    }
+    }}
   ],
-  "audio_settings": {
+  "audio_settings": {{
     "crossfade_duration": 0.3,
     "normalize_volume": true,
     "output_format": "mp3"
-  },
-  "metadata": {
+  }},
+  "metadata": {{
     "version": "2.0",
     "language": "vi-VN",
     "content_rating": "G",
     "tags": ["educational"]
-  }
-}
+  }}
+}}
+```{inner_voice_section}
+
+**Complete 128 Emotion Database (37 main + 91 aliases):**
+- **Neutral (5)**: neutral, calm, contemplative, soft, whisper
+- **Positive (10)**: happy, excited, cheerful, friendly, confident, encouraging, admiring, playful, romantic, innocent
+- **Negative (10)**: sad, angry, sarcastic, cold, anxious, worried, confused, embarrassed, disappointed, frustrated  
+- **Dramatic (9)**: dramatic, mysterious, suspenseful, urgent, commanding, fierce, pleading, desperate, determined
+- **Special (3)**: sleepy, surprised, shy
+- **Alias System**: Each emotion has 2-4 alternative names for diversity
+
+**Recommended Emotions for Storytelling:**
+- **Narration**: neutral, contemplative, mysterious, dramatic, serious
+- **Character dialogue**: friendly, excited, happy, confident, worried, angry, sad
+- **Action scenes**: urgent, commanding, fierce, determined, energetic
+- **Emotional scenes**: romantic, gentle, pleading, desperate, disappointed
+
+**Advanced features:**
+- emotion: Rich emotion keywords (friendly, excited, contemplative, etc.)
+- pause_after: 0.0-5.0 seconds for natural timing
+- emphasis: Keyword array for better emphasis and delivery
+- camera_movement, transitions, background_music
+- Complete character personality and voice characteristics
+
+**Focus on CINEMATIC STORYTELLING and complex plot development!
+"""
+        
+        token_count = 1000 if inner_voice_enabled else 800
+        self.show_ai_request_dialog("DETAILED Mode Template", template_content, token_count)
+
+    def generate_custom_template_form(self):
+        """Generate CUSTOM mode template"""
+        
+        # Kiểm tra inner voice enabled
+        inner_voice_enabled = self.check_inner_voice_enabled()
+        
+        # Inner voice section cho CUSTOM mode
+        inner_voice_section = ""
+        if inner_voice_enabled:
+            inner_voice_section = """
+
+**🎭 INNER VOICE (Internal Monologue) - CUSTOMIZABLE:**
+In Custom Mode, you can define your own way of using inner voice:
+
+**Basic Format:**
+```json
+{{"speaker": "character", "text": "...", "emotion": "...", "inner_voice": true, "inner_voice_type": "light|deep|dreamy"}}
 ```
 
-**Cơ Sở Dữ Liệu 128 Cảm Xúc Hoàn Chỉnh (37 chính + 91 aliases):**
-- **Trung tính (5)**: neutral, calm, contemplative, soft, whisper
-- **Tích cực (10)**: happy, excited, cheerful, friendly, confident, encouraging, admiring, playful, romantic, innocent
-- **Tiêu cực (10)**: sad, angry, sarcastic, cold, anxious, worried, confused, embarrassed, disappointed, frustrated  
-- **Kịch tính (9)**: dramatic, mysterious, suspenseful, urgent, commanding, fierce, pleading, desperate, determined
-- **Đặc biệt (3)**: sleepy, surprised, shy
-- **Hệ thống Aliases**: Mỗi emotion có 2-4 tên gọi khác nhau để đa dạng hóa
+**Advanced Custom Options:**
+- Combine with pause_after for dramatic timing
+- Mix with emphasis[] to highlight keywords in inner thoughts  
+- Use with volume_adjustment for layered storytelling
+- Pair with specific emotions for targeted mood
 
-**Cảm Xúc Được Khuyến Nghị Cho Storytelling:**
-- **Kể chuyện**: neutral, contemplative, mysterious, dramatic, serious
-- **Đối thoại nhân vật**: friendly, excited, happy, confident, worried, angry, sad
-- **Cảnh hành động**: urgent, commanding, fierce, determined, energetic
-- **Cảnh cảm xúc**: romantic, gentle, pleading, desperate, disappointed
+**Custom Inner Voice Types:**
+- **light**: Subtle thoughts, real-time contemplation (delay: 50ms)
+- **deep**: Memory, flashback, profound reflection (delay: 150ms)  
+- **dreamy**: Fantasy, imagination, surreal sequences (delay: 300ms)
 
-**Tính năng nâng cao:**
-- emotion: Từ khóa cảm xúc phong phú (friendly, excited, contemplative, v.v.)
-- pause_after: 0.0-5.0 giây cho timing tự nhiên
-- emphasis: Mảng từ khóa để nhấn mạnh và truyền tải tốt hơn
-- camera_movement, transitions, background_music
-- Tính cách nhân vật và đặc điểm giọng nói hoàn chỉnh
+**Your creative freedom**: Define when and how to use inner voice that fits your story concept!"""
 
-**Tập trung vào CINEMATIC STORYTELLING và phát triển cốt truyện phức tạp!
+        template_content = f"""
+# 🛠️ CUSTOM MODE - Create Custom Video Script JSON
+
+## Request:
+Create a video script about "[TOPIC]" with **complete creative freedom** according to requirements:
+
+**Your Choice - Select Suitable Format:**
+
+**A. MINIMAL FORMAT** (Quick & simple):
+```json
+{{
+  "segments": [{{"dialogues": [{{"speaker": "narrator", "text": "...", "emotion": "friendly"}}]}}],
+  "characters": [{{"id": "narrator", "name": "Narrator", "gender": "neutral"}}]
+}}
+```
+
+**B. BALANCED FORMAT** (Moderate):
+```json
+{{
+  "project": {{"title": "...", "duration": 60}},
+  "segments": [{{
+    "id": 1, "title": "...",
+    "dialogues": [{{"speaker": "...", "text": "...", "emotion": "...", "pause_after": 1.0}}]
+  }}],
+  "characters": [{{"id": "...", "name": "...", "gender": "...", "default_emotion": "..."}}]
+}}
+```
+
+**C. FULL FORMAT** (Feature-rich):
+- project metadata, segments with titles/descriptions  
+- detailed character profiles with personality
+- audio_settings, camera_movements, transitions
+- advanced dialogue options (emphasis, volume_adjustment)
+
+**📋 CUSTOMIZATION REQUIREMENTS:**
+1. **Segments**: Number of segments (minimum 1, recommended 3-7)
+2. **Characters**: Number of characters (minimum 1, max 5 recommended)  
+3. **Complexity**: Simple/Standard/Advanced as needed
+4. **Duration**: Target duration (30s-300s)
+5. **Style**: Educational/Entertainment/Documentary/Narrative{inner_voice_section}
+
+**🎯 EMOTION SYSTEM** - 128+ Options:
+- **Core emotions**: neutral, happy, sad, angry, excited, calm, dramatic, mysterious
+- **Advanced emotions**: contemplative, nostalgic, melancholic, whimsical, urgent, commanding  
+- **Specialized**: sleepy, surprised, shy, bewildered, determined, encouraging
+- **Aliases supported**: joyful=happy, thrilled=excited, pensive=contemplative
+
+**⚙️ ADVANCED FEATURES** (Optional):
+- `pause_after`: 0.0-5.0s timing control
+- `emphasis`: Array of keywords to emphasize  
+- `volume_adjustment`: 0.1-1.0 volume control
+- `camera_movement`, `transition`, `background_music` for cinematic feel
+
+**🎨 CREATIVE FREEDOM:**
+- Define your own tone, pace, and storytelling approach
+- Mix and match features according to your vision
+- Not limited by existing templates
+- Focus on content quality and audience engagement
+
+**Create unique scripts that match your creative goals!**
 """
-        self.show_ai_request_dialog("DETAILED Mode Template", template_content, 800)
+        
+        token_count = 600 if inner_voice_enabled else 500
+        self.show_ai_request_dialog("CUSTOM Mode Template", template_content, token_count)
 
     def show_ai_request_dialog(self, title, content, token_count):
         """Show AI request template in dialog with copy functionality"""
@@ -3294,7 +3703,7 @@ Tạo script video về "[TOPIC]" theo Enhanced Format 2.0:
         header_label = QLabel(f"📋 {title}")
         header_label.setStyleSheet("font-size: 16px; font-weight: bold; color: #007AFF;")
         
-        info_label = QLabel("💡 Template cho AI tạo script chất lượng cao")
+        info_label = QLabel("💡 High-quality AI script generation template")
         info_label.setStyleSheet("color: #28CD41; font-weight: bold;")
         
         header_layout.addWidget(header_label)
@@ -3359,11 +3768,11 @@ Tạo script video về "[TOPIC]" theo Enhanced Format 2.0:
                 
                 QMessageBox.information(
                     self, 
-                    "Đã lưu", 
-                    f"AI Request Template đã được lưu:\n{file_path}\n\nBạn có thể chia sẻ file này với AI để tạo script đúng format."
+                    "Saved", 
+                    f"AI Request Template has been saved:\n{file_path}\n\nYou can share this file with AI to generate scripts in the correct format."
                 )
         except Exception as e:
-            QMessageBox.critical(self, "Lỗi", f"Lỗi lưu file:\n{str(e)}")
+            QMessageBox.critical(self, "Error", f"File save error:\n{str(e)}")
     
     # ========== CHATTERBOX MANUAL CONTROLS ==========
     
@@ -5237,3 +5646,19 @@ Create a {content_type.lower()} video script about "[TOPIC]" using the following
         if hasattr(self, 'template_preview'):
             content = self.template_preview.toPlainText()
             self.save_ai_request_template(content)
+
+    def update_inner_voice_json_guide(self):
+        # Đọc trạng thái inner voice từ config (giả sử đã load vào self.voice_config)
+        enabled = True  # TODO: lấy từ config thực tế
+        if enabled:
+            self.inner_voice_json_guide.setText(
+                "<b>Hướng dẫn JSON cho thoại nội tâm:</b><br>"
+                "- Đoạn nào là nội tâm, thêm <code>\"inner_voice\": true</code> vào object dialogue.<br>"
+                "- Có thể thêm <code>\"inner_voice_type\": \"light|deep|dreamy\"</code> để chọn loại hiệu ứng.<br>"
+                "- Nếu không có cờ này, hệ thống sẽ bỏ qua.<br>"
+                "<br>Ví dụ:<br>"
+                "<pre>{\n  ...\n  \"dialogues\": [\n    {\n      \"speaker\": \"alice\",\n      \"text\": \"Tôi đang nghĩ gì vậy...?\",\n      <b>\"inner_voice\": true,\n      \"inner_voice_type\": \"dreamy\"</b>\n    }\n  ]\n}\n</pre>"
+            )
+        else:
+            self.inner_voice_json_guide.setText(
+                "<b>Thoại nội tâm đang tắt.</b> Không cần khai báo cờ <code>inner_voice</code> trong JSON.")

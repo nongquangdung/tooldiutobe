@@ -157,9 +157,25 @@ class EmotionConfigTab(QWidget):
         super().__init__()
         self.unified_emotion_system = UnifiedEmotionSystem()
         self.preview_threads = {}  # Track active preview threads
+        
+        # Store original/default Inner Voice values for reset
+        self.inner_voice_original_values = {}
+        
         self.setup_ui()
         self.load_emotions_to_table()
         self.connect_signals()
+        
+        # Load emotions to table
+        self.load_emotions_to_table()
+        
+        # Load inner voice config from file
+        self.load_inner_voice_config_from_file()
+        
+        # Connect signals for auto-saving
+        self.connect_inner_voice_signals()
+        
+        # Update statistics
+        self.update_statistics()
     
     def setup_ui(self):
         layout = QVBoxLayout(self)
@@ -356,6 +372,38 @@ class EmotionConfigTab(QWidget):
             }
         """)
         layout.addWidget(self.status_label)
+        
+        # === INNER VOICE CONFIG GROUP ===
+        self.inner_voice_group = QGroupBox("Inner Voice (Thoại nội tâm)")
+        self.inner_voice_group.setCheckable(True)
+        self.inner_voice_group.setChecked(False)
+        self.inner_voice_group.toggled.connect(self.on_inner_voice_toggle)
+        inner_voice_layout = QVBoxLayout()
+
+        # 3 type: light, deep, dreamy
+        self.inner_voice_type_widgets = {}
+        for type_name, label in [("light", "Nội tâm nhẹ (light)"), ("deep", "Nội tâm sâu (deep)"), ("dreamy", "Nội tâm cách âm (dreamy)")]:
+            group = QGroupBox(label)
+            group_layout = QHBoxLayout()
+            # 4 thông số: delay, decay, gain, filter
+            delay = QDoubleSpinBox(); delay.setRange(0, 2000); delay.setSuffix(" ms"); delay.setSingleStep(10)
+            decay = QDoubleSpinBox(); decay.setRange(0, 1); decay.setSingleStep(0.01)
+            gain = QDoubleSpinBox(); gain.setRange(0, 2); gain.setSingleStep(0.01)
+            filter_edit = QLineEdit(); filter_edit.setPlaceholderText("FFmpeg filter string")
+            group_layout.addWidget(QLabel("Delay:")); group_layout.addWidget(delay)
+            group_layout.addWidget(QLabel("Decay:")); group_layout.addWidget(decay)
+            group_layout.addWidget(QLabel("Gain:")); group_layout.addWidget(gain)
+            group_layout.addWidget(QLabel("Filter:")); group_layout.addWidget(filter_edit)
+            reset_btn = QPushButton("Reset mặc định"); reset_btn.clicked.connect(lambda _, t=type_name: self.reset_inner_voice_type(t))
+            group_layout.addWidget(reset_btn)
+            group.setLayout(group_layout)
+            inner_voice_layout.addWidget(group)
+            self.inner_voice_type_widgets[type_name] = {
+                "delay": delay, "decay": decay, "gain": gain, "filter": filter_edit, "reset": reset_btn, "group": group
+            }
+        
+        self.inner_voice_group.setLayout(inner_voice_layout)
+        layout.addWidget(self.inner_voice_group)
     
     def load_emotions_to_table(self):
         """Load tất cả emotions vào table với styling cải tiến"""
@@ -993,12 +1041,10 @@ class EmotionConfigTab(QWidget):
                     # Reload UI table to show new emotion
                     self.load_emotions_to_table()
                     self.update_statistics()
-                    
                     print(f"\n🎭 CUSTOM EMOTION ADDED:")
                     print(f"   📝 Name: {name}")
                     print(f"   📖 Description: {description or f'Custom emotion: {name}'}")
                     print(f"   📊 Parameters: T=0.8, E=1.0, C=0.6, S=1.0 (Expert Compliant)")
-                    
                     # Success dialog
                     QMessageBox.information(
                         dialog,
@@ -1010,7 +1056,6 @@ class EmotionConfigTab(QWidget):
                         f"📊 Parameters: Expert-compliant defaults\n\n"
                         f"💡 Emotion đã được thêm vào bảng và bạn có thể tuỉnh chỉnh parameters!"
                     )
-                    
                     self.update_status(f"✅ Đã thêm custom emotion: {name}")
                 dialog.accept()
                 else:
@@ -1117,6 +1162,24 @@ class EmotionConfigTab(QWidget):
                             }
                 
                 export_data["export_info"]["total_emotions"] = len(export_data["emotions"])
+                
+                # === THÊM INNER VOICE CONFIG VÀO EXPORT ===
+                if hasattr(self, 'inner_voice_group'):
+                    export_data["inner_voice_config"] = {
+                        "enabled": self.inner_voice_group.isChecked(),
+                        "presets": {}
+                    }
+                    
+                    # Export thông số cho từng type
+                    for type_name in ["light", "deep", "dreamy"]:
+                        if type_name in self.inner_voice_type_widgets:
+                            widgets = self.inner_voice_type_widgets[type_name]
+                            export_data["inner_voice_config"]["presets"][type_name] = {
+                                "delay": widgets["delay"].value(),
+                                "decay": widgets["decay"].value(),
+                                "gain": widgets["gain"].value(),
+                                "filter": widgets["filter"].text()
+                            }
                 
                 # Write to file
                 import json
@@ -1254,27 +1317,67 @@ class EmotionConfigTab(QWidget):
                 self.emotions_table.repaint()
                 self.update_statistics()
                 
+                # === IMPORT INNER VOICE CONFIG NẾU CÓ ===
+                inner_voice_imported = False
+                if "inner_voice_config" in import_data and hasattr(self, 'inner_voice_group'):
+                    try:
+                        inner_config = import_data["inner_voice_config"]
+                        
+                        # Apply enabled state
+                        if "enabled" in inner_config:
+                            self.inner_voice_group.setChecked(inner_config["enabled"])
+                            self.on_inner_voice_toggle()
+                        
+                        # Apply presets cho từng type
+                        if "presets" in inner_config:
+                            for type_name, preset in inner_config["presets"].items():
+                                if type_name in self.inner_voice_type_widgets:
+                                    widgets = self.inner_voice_type_widgets[type_name]
+                                    
+                                    if "delay" in preset and "delay" in widgets:
+                                        widgets["delay"].setValue(preset["delay"])
+                                    if "decay" in preset and "decay" in widgets:
+                                        widgets["decay"].setValue(preset["decay"])
+                                    if "gain" in preset and "gain" in widgets:
+                                        widgets["gain"].setValue(preset["gain"])
+                                    if "filter" in preset and "filter" in widgets:
+                                        widgets["filter"].setText(preset["filter"])
+                        
+                        inner_voice_imported = True
+                        print(f"✅ IMPORTED: Inner Voice Config - enabled={inner_config.get('enabled', False)}")
+                        
+                    except Exception as e:
+                        print(f"⚠️ WARNING: Không thể import inner voice config: {e}")
+                
+                print("="*60)
+                
                 print("="*60)
                 print(f"📥 IMPORT COMPLETED!")
                 print(f"✅ Successfully imported: {success_count}")
                 print(f"⏭️ Skipped (not found): {skip_count}")
                 print(f"❌ Failed: {failed_count}")
                 print(f"📊 Total processed: {success_count + skip_count + failed_count}/{total_import}")
+                if inner_voice_imported:
+                    print(f"🎭 Inner Voice config imported successfully!")
                 
                 # Update status và show results
                 self.update_status(f"✅ Import completed: {success_count} success, {skip_count} skipped, {failed_count} failed")
                 
                 # Show completion dialog
-                QMessageBox.information(
-                    self,
-                    "Import Hoàn Thành",
+                completion_msg = (
                     f"📥 Import emotion configuration completed!\n\n"
                     f"✅ Successfully imported: {success_count} emotions\n"
                     f"⏭️ Skipped (not found): {skip_count} emotions\n"
                     f"❌ Failed: {failed_count} emotions\n\n"
-                    f"📊 Total: {success_count + skip_count + failed_count}/{total_import}\n\n"
-                    f"💡 UI đã được cập nhật với imported values!"
+                    f"📊 Total: {success_count + skip_count + failed_count}/{total_import}\n"
                 )
+                
+                if inner_voice_imported:
+                    completion_msg += f"\n🎭 Inner Voice config cũng đã được import!\n"
+                
+                completion_msg += f"\n💡 UI đã được cập nhật với imported values!"
+                
+                QMessageBox.information(self, "Import Hoàn Thành", completion_msg)
                     
         except Exception as e:
             self.update_status(f"❌ Lỗi import: {str(e)}")
@@ -1589,3 +1692,289 @@ class EmotionConfigTab(QWidget):
                 f"Không thể reset tất cả emotions:\n{str(e)}\n\n"
                 f"Vui lòng thử lại hoặc reset từng emotion riêng lẻ."
             ) 
+
+    def on_inner_voice_toggle(self):
+        # Enable/disable các spinbox theo trạng thái bật/tắt
+        enabled = self.inner_voice_group.isChecked()
+        for w in self.inner_voice_type_widgets.values():
+            for key in ["delay", "decay", "gain", "filter", "reset", "group"]:
+                w[key].setEnabled(enabled)
+
+    def reset_inner_voice_type(self, type_name: str):
+        # Reset về thông số ORIGINAL (từ file hoặc user's settings)
+        if type_name in self.inner_voice_original_values and type_name in self.inner_voice_type_widgets:
+            original_vals = self.inner_voice_original_values[type_name]
+            widgets = self.inner_voice_type_widgets[type_name]
+            
+            print(f"🔄 RESETTING {type_name} to ORIGINAL values:")
+            print(f"   delay: {original_vals['delay']}")
+            print(f"   decay: {original_vals['decay']}")
+            print(f"   gain: {original_vals['gain']}")
+            print(f"   filter: '{original_vals['filter']}'")
+            
+            # Temporarily block signals để tránh trigger auto-save
+            widgets["delay"].blockSignals(True)
+            widgets["decay"].blockSignals(True)
+            widgets["gain"].blockSignals(True)
+            widgets["filter"].blockSignals(True)
+            
+            widgets["delay"].setValue(original_vals["delay"])
+            widgets["decay"].setValue(original_vals["decay"])
+            widgets["gain"].setValue(original_vals["gain"])
+            widgets["filter"].setText(original_vals["filter"])
+            
+            # Unblock signals
+            widgets["delay"].blockSignals(False)
+            widgets["decay"].blockSignals(False)
+            widgets["gain"].blockSignals(False)
+            widgets["filter"].blockSignals(False)
+            
+            print(f"✅ Reset completed for {type_name}")
+            
+            # Cập nhật InnerVoiceProcessor với thông số mới
+            self.update_inner_voice_processor_preset(type_name)
+            
+            # Save config sau khi reset
+            self.save_inner_voice_config_to_file()
+        else:
+            print(f"❌ Cannot reset {type_name}: No original values or widgets not found")
+    
+    def update_inner_voice_processor_preset(self, type_name: str):
+        """Cập nhật preset InnerVoiceProcessor với thông số từ UI"""
+        try:
+            if type_name in self.inner_voice_type_widgets:
+                widgets = self.inner_voice_type_widgets[type_name]
+                
+                # Thu thập thông số từ UI
+                delay = widgets["delay"].value()
+                decay = widgets["decay"].value()
+                gain = widgets["gain"].value()
+                
+                # Auto-generate filter string từ current values
+                auto_filter = self.generate_filter_string(type_name, delay, decay, gain)
+                
+                # Cập nhật filter text field để sync với values
+                widgets["filter"].setText(auto_filter)
+                
+                custom_preset = {
+                    "delay": delay,
+                    "decay": decay, 
+                    "gain": gain,
+                    "filter": auto_filter
+                }
+                
+                # Import và cập nhật InnerVoiceProcessor
+                from core.inner_voice_processor import InnerVoiceProcessor
+                processor = InnerVoiceProcessor()
+                processor.set_custom_preset(type_name, custom_preset)
+                
+                print(f"🎭 Updated InnerVoiceProcessor preset for {type_name}: {custom_preset}")
+                
+        except Exception as e:
+            print(f"⚠️ Warning: Không thể cập nhật InnerVoiceProcessor preset: {e}")
+    
+    def generate_filter_string(self, type_name: str, delay: float, decay: float, gain: float) -> str:
+        """Generate FFmpeg filter string từ UI parameters"""
+        
+        # Base aecho filter cho tất cả types
+        base_filter = f"aecho={gain}:{decay}:{delay}:{decay}"
+        
+        # Type-specific enhancements
+        if type_name == "light":
+            # Light: simple echo
+            return base_filter
+            
+        elif type_name == "deep":
+            # Deep: dual echo với lowpass
+            return f"{base_filter}|0.3,lowpass=f=3000"
+            
+        elif type_name == "dreamy":
+            # Dreamy: volume + echo + lowpass
+            return f"volume=0.8,{base_filter},lowpass=f=3000"
+            
+        else:
+            # Fallback
+            return base_filter
+    
+    def save_inner_voice_config_to_file(self):
+        """Lưu cấu hình inner voice vào unified_emotions.json"""
+        try:
+            config_path = "configs/emotions/unified_emotions.json"
+            
+            print(f"🔍 DEBUGGING SAVE: Starting save to {config_path}")
+            
+            # Đọc config hiện tại
+            import json
+            if os.path.exists(config_path):
+                with open(config_path, 'r', encoding='utf-8') as f:
+                    config = json.load(f)
+                print(f"✅ Successfully read existing config file")
+            else:
+                config = {}
+                print(f"⚠️ Config file doesn't exist, creating new one")
+            
+            # Cập nhật inner voice config
+            if hasattr(self, 'inner_voice_group') and hasattr(self, 'inner_voice_type_widgets'):
+                print(f"🎭 Inner Voice enabled: {self.inner_voice_group.isChecked()}")
+                
+                config["inner_voice_config"] = {
+                    "enabled": self.inner_voice_group.isChecked(),
+                    "description": "Inner voice (thoại nội tâm) system configuration",
+                    "presets": {}
+                }
+                
+                # Lưu thông số từ UI
+                for type_name in ["light", "deep", "dreamy"]:
+                    if type_name in self.inner_voice_type_widgets:
+                        widgets = self.inner_voice_type_widgets[type_name]
+                        current_values = {
+                            "delay": widgets["delay"].value(),
+                            "decay": widgets["decay"].value(),
+                            "gain": widgets["gain"].value(),
+                            "filter": widgets["filter"].text(),
+                            "description": f"Preset {type_name} - cài đặt từ UI"
+                        }
+                        config["inner_voice_config"]["presets"][type_name] = current_values
+                        
+                        print(f"📊 {type_name}: delay={current_values['delay']}, decay={current_values['decay']}, gain={current_values['gain']}, filter='{current_values['filter']}'")
+                
+                # Ghi lại file với error handling
+                try:
+                    with open(config_path, 'w', encoding='utf-8') as f:
+                        json.dump(config, f, indent=2, ensure_ascii=False)
+                    
+                    # Verify write
+                    with open(config_path, 'r', encoding='utf-8') as f:
+                        verify_config = json.load(f)
+                    
+                    if "inner_voice_config" in verify_config:
+                        print(f"✅ SAVE VERIFIED: File updated successfully")
+                        
+                        # Show current file values for debugging
+                        saved_presets = verify_config["inner_voice_config"]["presets"]
+                        for type_name, preset in saved_presets.items():
+                            print(f"   📝 Saved {type_name}: delay={preset['delay']}, filter='{preset['filter']}'")
+                    else:
+                        print(f"❌ SAVE FAILED: inner_voice_config not found in saved file")
+                        
+                except Exception as write_error:
+                    print(f"❌ FILE WRITE ERROR: {write_error}")
+                    raise write_error
+                
+                print(f"💾 SAVE COMPLETED: {config_path}")
+                
+            else:
+                print(f"❌ SAVE FAILED: Missing inner_voice_group or inner_voice_type_widgets")
+                
+        except Exception as e:
+            print(f"❌ CRITICAL SAVE ERROR: {e}")
+            import traceback
+            traceback.print_exc()
+    
+    def load_inner_voice_config_from_file(self):
+        """Load cấu hình inner voice từ unified_emotions.json khi khởi tạo"""
+        try:
+            config_path = "configs/emotions/unified_emotions.json"
+            
+            if os.path.exists(config_path):
+                import json
+                with open(config_path, 'r', encoding='utf-8') as f:
+                    config = json.load(f)
+                
+                if "inner_voice_config" in config and hasattr(self, 'inner_voice_group'):
+                    inner_config = config["inner_voice_config"]
+                    
+                    # Apply enabled state
+                    if "enabled" in inner_config:
+                        self.inner_voice_group.setChecked(inner_config["enabled"])
+                        self.on_inner_voice_toggle()
+                    
+                    # Apply presets và lưu original values
+                    if "presets" in inner_config:
+                        for type_name, preset in inner_config["presets"].items():
+                            if type_name in self.inner_voice_type_widgets:
+                                widgets = self.inner_voice_type_widgets[type_name]
+                                
+                                # Lưu original values để reset về sau này
+                                self.inner_voice_original_values[type_name] = {
+                                    "delay": preset.get("delay", 500),
+                                    "decay": preset.get("decay", 0.3),
+                                    "gain": preset.get("gain", 0.5),
+                                    "filter": preset.get("filter", "aecho=0.6:0.5:500:0.3")
+                                }
+                                
+                                # Apply values to UI
+                                widgets["delay"].setValue(preset.get("delay", 500))
+                                widgets["decay"].setValue(preset.get("decay", 0.3))
+                                widgets["gain"].setValue(preset.get("gain", 0.5))
+                                widgets["filter"].setText(preset.get("filter", "aecho=0.6:0.5:500:0.3"))
+                                
+                                print(f"📥 Loaded {type_name}: delay={preset.get('delay')}, filter='{preset.get('filter')}'")
+                    
+                    print(f"✅ Loaded inner voice config from {config_path}")
+                else:
+                    # Nếu không có config, set default original values
+                    self.set_default_original_values()
+                    
+            else:
+                # Nếu file không tồn tại, set defaults
+                self.set_default_original_values()
+                    
+        except Exception as e:
+            print(f"⚠️ Warning: Không thể load inner voice config: {e}")
+            self.set_default_original_values()
+    
+    def set_default_original_values(self):
+        """Set default original values khi không có config file"""
+        # Generate filter strings theo values mới
+        light_filter = self.generate_filter_string("light", 50, 0.3, 0.5)
+        deep_filter = self.generate_filter_string("deep", 150, 0.6, 0.7)
+        dreamy_filter = self.generate_filter_string("dreamy", 300, 0.8, 0.6)
+        
+        self.inner_voice_original_values = {
+            "light": {"delay": 50, "decay": 0.3, "gain": 0.5, "filter": light_filter},
+            "deep": {"delay": 150, "decay": 0.6, "gain": 0.7, "filter": deep_filter},
+            "dreamy": {"delay": 300, "decay": 0.8, "gain": 0.6, "filter": dreamy_filter}
+        }
+        
+        print("📋 Set default original values for Inner Voice:")
+        for type_name, values in self.inner_voice_original_values.items():
+            print(f"   🎛️ {type_name}: delay={values['delay']}, filter='{values['filter']}'")
+        print("📋 Set default original values for Inner Voice")
+    
+    def connect_inner_voice_signals(self):
+        """Kết nối signals cho inner voice widgets để auto-save"""
+        try:
+            if hasattr(self, 'inner_voice_group') and hasattr(self, 'inner_voice_type_widgets'):
+                # Kết nối signal cho checkbox chính
+                self.inner_voice_group.toggled.connect(self.save_inner_voice_config_to_file)
+                
+                # Kết nối signals cho từng type widget
+                for type_name, widgets in self.inner_voice_type_widgets.items():
+                    # Kết nối spinbox value changes
+                    if "delay" in widgets:
+                        widgets["delay"].valueChanged.connect(lambda v, t=type_name: self.on_inner_voice_param_changed(t))
+                    if "decay" in widgets:
+                        widgets["decay"].valueChanged.connect(lambda v, t=type_name: self.on_inner_voice_param_changed(t))
+                    if "gain" in widgets:
+                        widgets["gain"].valueChanged.connect(lambda v, t=type_name: self.on_inner_voice_param_changed(t))
+                    if "filter" in widgets:
+                        widgets["filter"].textChanged.connect(lambda v, t=type_name: self.on_inner_voice_param_changed(t))
+                
+                print("🔗 Connected inner voice signals for auto-save")
+                
+        except Exception as e:
+            print(f"⚠️ Warning: Không thể connect inner voice signals: {e}")
+    
+    def on_inner_voice_param_changed(self, type_name: str):
+        """Xử lý khi user thay đổi thông số inner voice"""
+        try:
+            # Cập nhật processor với preset mới
+            self.update_inner_voice_processor_preset(type_name)
+            
+            # Auto-save config
+            self.save_inner_voice_config_to_file()
+            
+        except Exception as e:
+            print(f"⚠️ Warning: Lỗi xử lý param change cho {type_name}: {e}")
+    

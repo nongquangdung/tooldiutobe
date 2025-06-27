@@ -23,6 +23,22 @@ except ImportError as e:
     CHATTERBOX_PROVIDER_AVAILABLE = False
     print(f"⚠️ RealChatterboxProvider not available: {e}")
 
+# Import Inner Voice Processor
+try:
+    import sys
+    import os
+    # Add current directory to path for inner voice processor
+    current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if current_dir not in sys.path:
+        sys.path.insert(0, current_dir)
+    
+    from core.inner_voice_processor import InnerVoiceProcessor
+    INNER_VOICE_AVAILABLE = True
+    print("✅ InnerVoiceProcessor imported successfully")
+except ImportError as e:
+    INNER_VOICE_AVAILABLE = False
+    print(f"⚠️ InnerVoiceProcessor not available: {e}")
+
 load_dotenv('config.env')
 
 class VoiceGenerator:
@@ -38,6 +54,19 @@ class VoiceGenerator:
                 print(f"🎙️ REAL Chatterbox TTS Status: {self.chatterbox_provider.get_device_info()}")
             except Exception as e:
                 print(f"⚠️ Failed to initialize Real Chatterbox TTS: {e}")
+        
+        # Initialize Inner Voice Processor
+        self.inner_voice_processor = None
+        if INNER_VOICE_AVAILABLE:
+            try:
+                self.inner_voice_processor = InnerVoiceProcessor()
+                if self.inner_voice_processor.ffmpeg_available:
+                    print("🎭 Inner Voice Processor initialized successfully")
+                else:
+                    print("⚠️ Inner Voice Processor initialized but FFmpeg not available")
+            except Exception as e:
+                print(f"⚠️ Failed to initialize Inner Voice Processor: {e}")
+                self.inner_voice_processor = None
         
         # Danh sách giọng Google TTS
         self.google_voices = {
@@ -392,6 +421,9 @@ class VoiceGenerator:
                     text = dialogue['text']
                     voice_name = voice_mapping.get(speaker, 'vi-VN-Standard-A')
                     
+                    # Check inner voice flag
+                    inner_voice = dialogue.get('inner_voice', False)
+                    
                     # Tên file cho dialogue này
                     audio_filename = f"s{segment_idx+1}_d{dialogue_idx+1}_{speaker}.mp3"
                     audio_path = os.path.join(output_dir, audio_filename)
@@ -400,9 +432,36 @@ class VoiceGenerator:
                     result = self.generate_voice_google_with_voice(text, voice_name, audio_path)
                     
                     if result["success"]:
-                        segment_audio_files.append(audio_path)
-                        character_audio_files[speaker].append(audio_path)
-                        print(f"✅ Created audio: {audio_filename} ({voice_name})")
+                        final_audio_path = audio_path
+                        
+                        # Xử lý inner voice nếu có flag
+                        if inner_voice and self.inner_voice_processor:
+                            print(f"🎭 Processing inner voice for: {speaker}")
+                            inner_result = self.inner_voice_processor.process_dialogue_with_inner_voice(
+                                audio_path, dialogue, output_dir
+                            )
+                            
+                            if inner_result["success"] and inner_result.get("inner_voice_applied", False):
+                                final_audio_path = inner_result["output_path"]
+                                print(f"   ✅ Inner voice applied: {inner_result.get('preset_name', 'Unknown')}")
+                                
+                                # Xóa file gốc nếu đã tạo inner voice version
+                                try:
+                                    os.remove(audio_path)
+                                except:
+                                    pass
+                            else:
+                                print(f"   ⚠️ Inner voice failed: {inner_result.get('error', 'Unknown error')}")
+                        elif inner_voice and not self.inner_voice_processor:
+                            print(f"⚠️ Inner voice requested but processor not available for: {speaker}")
+                        
+                        segment_audio_files.append(final_audio_path)
+                        character_audio_files[speaker].append(final_audio_path)
+                        
+                        # Update filename display
+                        display_filename = os.path.basename(final_audio_path)
+                        inner_indicator = "🎭" if inner_voice else ""
+                        print(f"✅ Created audio: {display_filename} ({voice_name}) {inner_indicator}")
                     else:
                         print(f"❌ Failed to create audio for {speaker}: {result.get('error')}")
                         return {"success": False, "error": f"Lỗi tạo audio cho {speaker}: {result.get('error')}"}
