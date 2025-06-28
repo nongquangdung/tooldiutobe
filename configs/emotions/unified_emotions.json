@@ -640,32 +640,5 @@
     "anticipatory": "suspenseful",
     "urgent": "urgent",
     "romantic": "romantic"
-  },
-  "inner_voice_config": {
-    "enabled": true,
-    "description": "Inner voice (thoại nội tâm) system configuration",
-    "presets": {
-      "light": {
-        "delay": 0.0,
-        "decay": 0.0,
-        "gain": 0.0,
-        "filter": "",
-        "description": "Preset light - cài đặt từ UI"
-      },
-      "deep": {
-        "delay": 0.0,
-        "decay": 0.0,
-        "gain": 0.0,
-        "filter": "",
-        "description": "Preset deep - cài đặt từ UI"
-      },
-      "dreamy": {
-        "delay": 0.0,
-        "decay": 0.0,
-        "gain": 0.0,
-        "filter": "",
-        "description": "Preset dreamy - cài đặt từ UI"
-      }
-    }
   }
 }

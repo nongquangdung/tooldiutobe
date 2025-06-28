@@ -28,30 +28,64 @@ IS_MACOS = platform.system() == "Darwin"
 if IS_MACOS:
     print("🍎 macOS detected - will use CPU mode or demo fallback")
 
-try:
-    # Try to import from local chatterbox clone first
-    import sys
-    chatterbox_path = r"D:\LearnCusor\BOTAY.COM\chatterbox\src"
-    if chatterbox_path not in sys.path:
-        sys.path.insert(0, chatterbox_path)
+# Conditional import with proper error handling for cross-platform compatibility
+ChatterboxTTS = None
+CHATTERBOX_AVAILABLE = False
+
+def _import_chatterbox_safely():
+    """Safely import ChatterboxTTS với detailed error handling"""
+    global ChatterboxTTS, CHATTERBOX_AVAILABLE
     
-    from chatterbox.tts import ChatterboxTTS
-    CHATTERBOX_AVAILABLE = True
-    print("✅ Real Chatterbox TTS imported successfully from local clone")
-except ImportError as e:
+    if CHATTERBOX_AVAILABLE:
+        return True  # Already imported successfully
+    
     try:
-        # Fallback to installed package
-        from chatterbox.tts import ChatterboxTTS
+        # Check Python version first 
+        import sys
+        python_version = sys.version_info
+        
+        if python_version < (3, 11):
+            print(f"⚠️ Python {python_version.major}.{python_version.minor} detected")
+            print(f"   ChatterboxTTS requires Python 3.11+ for typing.Self support")
+            if IS_MACOS:
+                print("🍎 macOS: Falling back to demo mode for compatibility")
+            return False
+            
+        # Try to import from local chatterbox clone first (Windows dev environment)
+        if not IS_MACOS:  # Only try local path on non-macOS
+            chatterbox_path = r"D:\LearnCusor\BOTAY.COM\chatterbox\src"
+            if chatterbox_path not in sys.path:
+                sys.path.insert(0, chatterbox_path)
+        
+        from chatterbox.tts import ChatterboxTTS as _ChatterboxTTS
+        ChatterboxTTS = _ChatterboxTTS
         CHATTERBOX_AVAILABLE = True
-        print("✅ Real Chatterbox TTS imported from installed package")
-    except ImportError as e2:
+        print("✅ Real Chatterbox TTS imported successfully")
+        return True
+        
+    except ImportError as e:
+        try:
+            # Fallback to installed package
+            from chatterbox.tts import ChatterboxTTS as _ChatterboxTTS
+            ChatterboxTTS = _ChatterboxTTS
+            CHATTERBOX_AVAILABLE = True
+            print("✅ Real Chatterbox TTS imported from installed package")
+            return True
+        except ImportError as e2:
+            CHATTERBOX_AVAILABLE = False
+            print(f"❌ Real Chatterbox TTS import failed: {e2}")
+            if IS_MACOS:
+                print("🍎 macOS: Will use demo mode instead")
+                print("   💡 For real TTS: upgrade to Python 3.11+ or use demo mode")
+            else:
+                print(f"   💡 Try: pip install chatterbox-tts torch")
+            return False
+    except Exception as e:
         CHATTERBOX_AVAILABLE = False
-        print(f"❌ Real Chatterbox TTS import failed: {e2}")
-        if IS_MACOS:
-            print("🍎 macOS: Will use demo mode instead")
-        else:
-            print(f"   Local path tried: {chatterbox_path}")
-            print(f"   Please ensure chatterbox is cloned to: D:\\LearnCusor\\BOTAY.COM\\chatterbox")
+        print(f"❌ Unexpected error importing ChatterboxTTS: {e}")
+        return False
+
+# Don't import at module level - defer to actual usage
 
 logger = logging.getLogger(__name__)
 
@@ -157,7 +191,10 @@ class RealChatterboxProvider:
     
     def _initialize_provider(self):
         """Initialize provider with real Chatterbox TTS first, demo as fallback"""
-        if not CHATTERBOX_AVAILABLE:
+        # Try to import ChatterboxTTS safely first
+        chatterbox_import_success = _import_chatterbox_safely()
+        
+        if not chatterbox_import_success:
             print(f"⚠️ Chatterbox TTS not available - using demo mode")
             self.demo_mode = True
             self.is_initialized = True
@@ -199,7 +236,7 @@ class RealChatterboxProvider:
             "device": self.device,
             "device_name": self.device_name,
             "torch_available": TORCH_AVAILABLE,
-            "chatterbox_available": CHATTERBOX_AVAILABLE,  # Fixed typo
+            "chatterbox_available": CHATTERBOX_AVAILABLE,
             "provider_type": "Real Chatterbox TTS (Official)"
         }
         

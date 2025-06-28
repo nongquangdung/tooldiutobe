@@ -1057,7 +1057,7 @@ class EmotionConfigTab(QWidget):
                         f"💡 Emotion đã được thêm vào bảng và bạn có thể tuỉnh chỉnh parameters!"
                     )
                     self.update_status(f"✅ Đã thêm custom emotion: {name}")
-                dialog.accept()
+                    dialog.accept()
                 else:
                     QMessageBox.critical(dialog, "Lỗi", "Không thể thêm emotion. Vui lòng thử lại.")
                 

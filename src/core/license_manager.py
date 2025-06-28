@@ -62,29 +62,50 @@ class LicenseManager:
             return self.hardware_id
             
         try:
+            print(f"🔑 Collecting hardware ID for license (no password required)...")
             # Thu thập thông tin hardware
             system_info = []
             
-            # CPU Info
+            # CPU Info - Safe cross-platform approach
             try:
                 if platform.system() == "Windows":
                     cpu_info = subprocess.check_output("wmic cpu get ProcessorId", shell=True).decode().strip()
                     system_info.append(cpu_info.replace('ProcessorId', '').strip())
-                else:
+                elif platform.system() == "Linux":
+                    # Only try /proc/cpuinfo on Linux (not macOS)
                     cpu_info = subprocess.check_output("cat /proc/cpuinfo | grep 'Serial'", shell=True).decode().strip()
                     system_info.append(cpu_info)
+                else:
+                    # macOS and other - use platform.processor() directly
+                    system_info.append(platform.processor())
             except:
                 system_info.append(platform.processor())
             
-            # Motherboard UUID
+            # Hardware UUID - NO SUDO REQUIRED
             try:
                 if platform.system() == "Windows":
                     mb_uuid = subprocess.check_output("wmic csproduct get UUID", shell=True).decode().strip()
                     system_info.append(mb_uuid.replace('UUID', '').strip())
-                else:
-                    mb_uuid = subprocess.check_output("sudo dmidecode -s system-uuid", shell=True).decode().strip()
+                elif platform.system() == "Darwin":  # macOS
+                    # Use system_profiler instead of sudo dmidecode (NO PASSWORD REQUIRED!)
+                    mb_uuid = subprocess.check_output(
+                        "system_profiler SPHardwareDataType | grep 'Hardware UUID' | awk '{print $3}'", 
+                        shell=True
+                    ).decode().strip()
                     system_info.append(mb_uuid)
-            except:
+                elif platform.system() == "Linux":
+                    # Try without sudo first, fallback to MAC address if fails
+                    try:
+                        mb_uuid = subprocess.check_output("cat /sys/class/dmi/id/product_uuid", shell=True).decode().strip()
+                        system_info.append(mb_uuid)
+                    except:
+                        # Fallback to MAC-based ID
+                        system_info.append(str(uuid.getnode()))
+                else:
+                    # Unknown platform - use MAC address
+                    system_info.append(str(uuid.getnode()))
+            except Exception as e:
+                print(f"⚠️ Hardware UUID detection failed: {e}, using MAC address fallback")
                 system_info.append(str(uuid.getnode()))
             
             # MAC Address
