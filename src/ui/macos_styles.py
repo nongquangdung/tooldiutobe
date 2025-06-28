@@ -80,14 +80,12 @@ def get_macos_stylesheet(dark_mode=False):
             font-size: 13px;
             min-width: 100px;
             color: {colors['text_secondary']};
-            transition: all 0.2s ease;
         }}
         
         QTabBar::tab:selected {{
             background-color: {colors['accent']};
             color: white;
             font-weight: 600;
-            transform: scale(1.02);
         }}
         
         QTabBar::tab:hover:!selected {{
@@ -105,26 +103,19 @@ def get_macos_stylesheet(dark_mode=False):
             font-weight: 600;
             font-size: 13px;
             min-height: 24px;
-            transition: all 0.2s ease;
         }}
         
         QPushButton:hover {{
             background-color: {colors['accent_hover']};
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3);
         }}
         
         QPushButton:pressed {{
             background-color: {colors['accent_pressed']};
-            transform: translateY(0px);
-            box-shadow: 0 2px 8px rgba(0, 122, 255, 0.2);
         }}
         
         QPushButton:disabled {{
             background-color: {colors['border']};
             color: {colors['text_tertiary']};
-            transform: none;
-            box-shadow: none;
         }}
         
         /* Secondary Button Style */
@@ -137,7 +128,6 @@ def get_macos_stylesheet(dark_mode=False):
         QPushButton[class="secondary"]:hover {{
             background-color: {colors['bg_secondary']};
             border-color: {colors['accent']};
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }}
         
         /* Success Button */
@@ -147,7 +137,6 @@ def get_macos_stylesheet(dark_mode=False):
         
         QPushButton[class="success"]:hover {{
             background-color: #28cd47;
-            box-shadow: 0 4px 12px rgba(52, 199, 89, 0.3);
         }}
         
         /* Warning Button */
@@ -157,7 +146,6 @@ def get_macos_stylesheet(dark_mode=False):
         
         QPushButton[class="warning"]:hover {{
             background-color: #e6850e;
-            box-shadow: 0 4px 12px rgba(255, 149, 0, 0.3);
         }}
         
         /* Danger Button */
@@ -167,7 +155,6 @@ def get_macos_stylesheet(dark_mode=False):
         
         QPushButton[class="danger"]:hover {{
             background-color: #d70015;
-            box-shadow: 0 4px 12px rgba(255, 59, 48, 0.3);
         }}
         
         /* ============ MODERN INPUT FIELDS ============ */
@@ -179,13 +166,11 @@ def get_macos_stylesheet(dark_mode=False):
             font-size: 13px;
             color: {colors['text_primary']};
             selection-background-color: {colors['selection']};
-            transition: all 0.2s ease;
         }}
         
         QLineEdit:focus, QTextEdit:focus, QComboBox:focus {{
             border: 2px solid {colors['border_focus']};
             outline: none;
-            box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.1);
         }}
         
         QTextEdit {{
@@ -201,172 +186,105 @@ def get_macos_stylesheet(dark_mode=False):
         }}
         
         QComboBox::down-arrow {{
-            image: none;
-            border-left: 6px solid transparent;
-            border-right: 6px solid transparent;
-            border-top: 6px solid {colors['text_secondary']};
-            margin-right: 8px;
+            image: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIiIGhlaWdodD0iOCIgdmlld0JveD0iMCAwIDEyIDgiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxwYXRoIGQ9Ik0xIDFMNiA2TDExIDEiIHN0cm9rZT0iIzNjM2M0MyIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgo8L3N2Zz4K);
+            width: 12px;
+            height: 8px;
+        }}
+        
+        QComboBox::down-arrow:hover {{
         }}
         
         QComboBox QAbstractItemView {{
             border: 1px solid {colors['border']};
-            border-radius: 12px;
+            border-radius: 8px;
             background-color: {colors['bg_card']};
             selection-background-color: {colors['accent']};
             selection-color: white;
-            padding: 8px;
-            outline: none;
+            padding: 4px;
+            margin: 2px;
         }}
         
         QComboBox QAbstractItemView::item {{
-            padding: 10px 16px;
-            border-radius: 8px;
-            margin: 2px 4px;
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin: 1px;
         }}
         
-        /* ============ MODERN GROUP BOXES ============ */
-        QGroupBox {{
-            font-weight: 600;
-            font-size: 15px;
-            border: 2px solid {colors['border']};
-            border-radius: 16px;
-            margin-top: 16px;
-            padding-top: 20px;
+        QComboBox QAbstractItemView::item:selected {{
+            background-color: {colors['accent']};
+            color: white;
+        }}
+        
+        QComboBox QAbstractItemView::item:hover {{
+            background-color: {colors['bg_tertiary']};
+        }}
+        
+        /* ============ MODERN FRAMES & SECTIONS ============ */
+        QFrame[class="header-section"] {{
+            background-color: transparent;
+            border: none;
+            padding: 20px 0;
+        }}
+        
+        QFrame[class="card-section"] {{
             background-color: {colors['bg_card']};
-            color: {colors['text_primary']};
+            border: 1px solid {colors['border']};
+            border-radius: 12px;
+            padding: 24px;
+            margin: 8px 0;
         }}
         
-        QGroupBox::title {{
-            subcontrol-origin: margin;
-            left: 20px;
-            padding: 0 12px 0 12px;
-            background-color: {colors['bg_card']};
-            color: {colors['text_primary']};
-            font-weight: 700;
+        QFrame[class="status-section"] {{
+            background-color: {colors['bg_tertiary']};
+            border: 1px solid {colors['border']};
+            border-radius: 10px;
+            padding: 16px;
         }}
         
-        /* ============ TYPOGRAPHY ============ */
-        QLabel {{
-            color: {colors['text_primary']};
-            font-size: 13px;
-        }}
-        
+        /* ============ MODERN LABELS ============ */
         QLabel[class="header"] {{
-            font-size: 20px;
+            font-size: 32px;
             font-weight: 700;
             color: {colors['text_primary']};
-            letter-spacing: -0.5px;
+            margin: 8px 0;
         }}
         
         QLabel[class="subheader"] {{
-            font-size: 16px;
+            font-size: 18px;
             font-weight: 600;
             color: {colors['text_secondary']};
-            letter-spacing: -0.2px;
+            margin: 4px 0;
         }}
         
         QLabel[class="caption"] {{
             font-size: 12px;
-            font-weight: 500;
+            font-weight: 400;
             color: {colors['text_tertiary']};
+            margin: 2px 0;
         }}
         
-        /* ============ MODERN PROGRESS BAR ============ */
-        QProgressBar {{
-            border: none;
-            border-radius: 12px;
-            text-align: center;
-            background-color: {colors['bg_tertiary']};
-            height: 24px;
-            font-weight: 600;
-            color: {colors['text_primary']};
-        }}
-        
-        QProgressBar::chunk {{
-            background: qlineargradient(x1: 0, y1: 0, x2: 1, y2: 0,
-                                      stop: 0 {colors['accent']}, 
-                                      stop: 1 #5AC8FA);
-            border-radius: 12px;
-            margin: 2px;
-        }}
-        
-        /* ============ ENHANCED LIST WIDGET ============ */
-        QListWidget {{
-            border: 1px solid {colors['border']};
-            border-radius: 12px;
-            background-color: {colors['bg_card']};
-            alternate-background-color: {colors['bg_tertiary']};
-            selection-background-color: {colors['accent']};
-            selection-color: white;
-            padding: 8px;
-            outline: none;
-        }}
-        
-        QListWidget::item {{
-            padding: 12px 16px;
+        QLabel[class="status"] {{
+            font-size: 13px;
+            font-weight: 500;
+            padding: 6px 12px;
             border-radius: 8px;
-            margin: 2px 4px;
-            transition: all 0.2s ease;
+            background-color: {colors['bg_secondary']};
+            color: {colors['text_secondary']};
         }}
         
-        QListWidget::item:hover {{
-            background-color: {colors['bg_tertiary']};
-            transform: translateX(4px);
-        }}
-        
-        QListWidget::item:selected {{
-            background-color: {colors['accent']};
+        QLabel[class="status-success"] {{
+            background-color: {colors['success']};
             color: white;
-            font-weight: 600;
         }}
         
-        /* ============ MODERN SCROLLBARS ============ */
-        QScrollArea {{
-            border: none;
-            background-color: transparent;
+        QLabel[class="status-warning"] {{
+            background-color: {colors['warning']};
+            color: white;
         }}
         
-        QScrollBar:vertical {{
-            background-color: transparent;
-            width: 8px;
-            border-radius: 4px;
-            margin: 0;
-        }}
-        
-        QScrollBar::handle:vertical {{
-            background-color: {colors['border']};
-            border-radius: 4px;
-            min-height: 24px;
-            margin: 0;
-        }}
-        
-        QScrollBar::handle:vertical:hover {{
-            background-color: {colors['text_tertiary']};
-        }}
-        
-        QScrollBar:horizontal {{
-            background-color: transparent;
-            height: 8px;
-            border-radius: 4px;
-            margin: 0;
-        }}
-        
-        QScrollBar::handle:horizontal {{
-            background-color: {colors['border']};
-            border-radius: 4px;
-            min-width: 24px;
-            margin: 0;
-        }}
-        
-        /* ============ ELEGANT SPLITTER ============ */
-        QSplitter::handle {{
-            background-color: {colors['border']};
-            width: 2px;
-            border-radius: 1px;
-        }}
-        
-        QSplitter::handle:hover {{
-            background-color: {colors['accent']};
+        QLabel[class="status-error"] {{
+            background-color: {colors['error']};
+            color: white;
         }}
         
         /* ============ MODERN CHECKBOXES ============ */
@@ -382,7 +300,6 @@ def get_macos_stylesheet(dark_mode=False):
             border-radius: 6px;
             border: 2px solid {colors['border']};
             background-color: {colors['bg_card']};
-            transition: all 0.2s ease;
         }}
         
         QCheckBox::indicator:checked {{
@@ -393,7 +310,6 @@ def get_macos_stylesheet(dark_mode=False):
         
         QCheckBox::indicator:hover {{
             border-color: {colors['accent']};
-            transform: scale(1.05);
         }}
         
         /* ============ ENHANCED SPIN BOX ============ */
@@ -409,7 +325,6 @@ def get_macos_stylesheet(dark_mode=False):
         
         QSpinBox:focus, QDoubleSpinBox:focus {{
             border: 2px solid {colors['border_focus']};
-            box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.1);
         }}
         
         QSpinBox::up-button, QSpinBox::down-button,
@@ -434,7 +349,6 @@ def get_macos_stylesheet(dark_mode=False):
             padding: 8px 12px;
             font-size: 12px;
             font-weight: 500;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
         }}
         
         /* ============ TABLE WIDGET ============ */
@@ -485,12 +399,54 @@ def get_macos_stylesheet(dark_mode=False):
         
         QSlider::handle:horizontal:hover {{
             background-color: {colors['accent_hover']};
-            transform: scale(1.1);
         }}
         
         QSlider::sub-page:horizontal {{
             background-color: {colors['accent']};
             border-radius: 3px;
+        }}
+        
+        /* ============ PROGRESS BAR ============ */
+        QProgressBar {{
+            border: none;
+            border-radius: 8px;
+            background-color: {colors['bg_tertiary']};
+            height: 16px;
+            text-align: center;
+            font-size: 11px;
+            font-weight: 600;
+        }}
+        
+        QProgressBar::chunk {{
+            border-radius: 8px;
+            background-color: {colors['accent']};
+        }}
+        
+        /* ============ SCROLL AREAS ============ */
+        QScrollArea {{
+            border: none;
+            background-color: transparent;
+        }}
+        
+        QScrollBar:vertical {{
+            border: none;
+            background-color: {colors['bg_tertiary']};
+            width: 12px;
+            border-radius: 6px;
+        }}
+        
+        QScrollBar::handle:vertical {{
+            background-color: {colors['border']};
+            border-radius: 6px;
+            min-height: 30px;
+        }}
+        
+        QScrollBar::handle:vertical:hover {{
+            background-color: {colors['text_tertiary']};
+        }}
+        
+        QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
+            height: 0px;
         }}
     """
 
