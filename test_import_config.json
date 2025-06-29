@@ -1,0 +1,88 @@
+{
+  "export_info": {
+    "timestamp": 1750910636,
+    "version": "unified_emotion_system_v1.0",
+    "source": "Voice Studio Emotion Config Tab",
+    "total_emotions": 5
+  },
+  "emotions": {
+    "neutral": {
+      "description": "Balanced, objective narration",
+      "category": "neutral",
+      "parameters": {
+        "exaggeration": 0.6,
+        "cfg_weight": 0.6,
+        "temperature": 0.75,
+        "speed": 1.0
+      },
+      "source": "unified_system"
+    },
+    "calm": {
+      "description": "Peaceful, composed speech",
+      "category": "neutral",
+      "parameters": {
+        "exaggeration": 0.8,
+        "cfg_weight": 0.5,
+        "temperature": 0.8,
+        "speed": 0.9
+      },
+      "source": "unified_system"
+    },
+    "happy": {
+      "description": "General joy, positive mood",
+      "category": "positive",
+      "parameters": {
+        "exaggeration": 1.2,
+        "cfg_weight": 0.5,
+        "temperature": 1.0,
+        "speed": 1.1
+      },
+      "source": "unified_system"
+    },
+    "sad": {
+      "description": "General sadness, melancholy",
+      "category": "negative",
+      "parameters": {
+        "exaggeration": 0.8,
+        "cfg_weight": 0.5,
+        "temperature": 0.7,
+        "speed": 0.85
+      },
+      "source": "unified_system"
+    },
+    "test_new_emotion": {
+      "description": "Test emotion được import",
+      "category": "special",
+      "parameters": {
+        "exaggeration": 1.5,
+        "cfg_weight": 0.7,
+        "temperature": 0.9,
+        "speed": 1.2
+      },
+      "source": "imported"
+    }
+  },
+  "inner_voice_config": {
+    "enabled": false,
+    "presets": {
+      "light": {
+        "delay": 0.0,
+        "decay": 0.0,
+        "gain": 0.0,
+        "filter": ""
+      },
+      "deep": {
+        "delay": 0.0,
+        "decay": 0.0,
+        "gain": 0.0,
+        "filter": ""
+      },
+      "dreamy": {
+        "delay": 0.0,
+        "decay": 0.0,
+        "gain": 0.0,
+        "filter": ""
+      }
+    }
+  }
+} 

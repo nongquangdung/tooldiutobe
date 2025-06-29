@@ -4840,7 +4840,7 @@ Create a video script about "[TOPIC]" with **complete creative freedom** accordi
                             
                             status_label.setStyleSheet(status_colors.get(status, ''))
                 break
-    
+
     def get_character_name_by_id(self, char_id):
         """Helper để lấy tên nhân vật từ ID"""
         if self.voice_studio_script_data:

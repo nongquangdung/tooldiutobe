@@ -1,0 +1,1078 @@
+{
+  "export_info": {
+    "timestamp": 1750910636,
+    "version": "unified_emotion_system_v1.0",
+    "source": "Voice Studio Emotion Config Tab",
+    "total_emotions": 95
+  },
+  "emotions": {
+    "neutral": {
+      "description": "Balanced, objective narration",
+      "category": "neutral",
+      "parameters": {
+        "exaggeration": 1.0,
+        "cfg_weight": 0.6,
+        "temperature": 0.8,
+        "speed": 1.0
+      },
+      "source": "unified_system"
+    },
+    "calm": {
+      "description": "Peaceful, composed speech",
+      "category": "neutral",
+      "parameters": {
+        "exaggeration": 0.9,
+        "cfg_weight": 0.5,
+        "temperature": 0.7,
+        "speed": 0.9
+      },
+      "source": "unified_system"
+    },
+    "contemplative": {
+      "description": "Deep inner thoughts",
+      "category": "neutral",
+      "parameters": {
+        "exaggeration": 0.9,
+        "cfg_weight": 0.5,
+        "temperature": 0.8,
+        "speed": 0.8
+      },
+      "source": "unified_system"
+    },
+    "soft": {
+      "description": "Gentle, tender expressions",
+      "category": "neutral",
+      "parameters": {
+        "exaggeration": 0.8,
+        "cfg_weight": 0.5,
+        "temperature": 0.7,
+        "speed": 0.9
+      },
+      "source": "unified_system"
+    },
+    "whisper": {
+      "description": "Intimate, secretive tone",
+      "category": "neutral",
+      "parameters": {
+        "exaggeration": 0.8,
+        "cfg_weight": 0.5,
+        "temperature": 0.7,
+        "speed": 0.8
+      },
+      "source": "unified_system"
+    },
+    "happy": {
+      "description": "General joy, positive mood",
+      "category": "positive",
+      "parameters": {
+        "exaggeration": 1.2,
+        "cfg_weight": 0.6,
+        "temperature": 0.9,
+        "speed": 1.1
+      },
+      "source": "unified_system"
+    },
+    "excited": {
+      "description": "High energy, enthusiastic",
+      "category": "positive",
+      "parameters": {
+        "exaggeration": 1.2,
+        "cfg_weight": 0.6,
+        "temperature": 1.0,
+        "speed": 1.3
+      },
+      "source": "unified_system"
+    },
+    "cheerful": {
+      "description": "Bright, uplifting tone",
+      "category": "positive",
+      "parameters": {
+        "exaggeration": 1.1,
+        "cfg_weight": 0.6,
+        "temperature": 0.9,
+        "speed": 1.1
+      },
+      "source": "unified_system"
+    },
+    "friendly": {
+      "description": "Warm, welcoming tone",
+      "category": "positive",
+      "parameters": {
+        "exaggeration": 1.0,
+        "cfg_weight": 0.6,
+        "temperature": 0.8,
+        "speed": 1.0
+      },
+      "source": "unified_system"
+    },
+    "confident": {
+      "description": "Self-assured, determined",
+      "category": "positive",
+      "parameters": {
+        "exaggeration": 1.1,
+        "cfg_weight": 0.6,
+        "temperature": 0.8,
+        "speed": 1.0
+      },
+      "source": "unified_system"
+    },
+    "encouraging": {
+      "description": "Inspiring, motivating",
+      "category": "positive",
+      "parameters": {
+        "exaggeration": 1.1,
+        "cfg_weight": 0.6,
+        "temperature": 0.9,
+        "speed": 1.0
+      },
+      "source": "unified_system"
+    },
+    "admiring": {
+      "description": "Genuine praise, impressed",
+      "category": "positive",
+      "parameters": {
+        "exaggeration": 1.1,
+        "cfg_weight": 0.6,
+        "temperature": 0.8,
+        "speed": 1.0
+      },
+      "source": "unified_system"
+    },
+    "playful": {
+      "description": "Fun, teasing tone",
+      "category": "positive",
+      "parameters": {
+        "exaggeration": 1.1,
+        "cfg_weight": 0.6,
+        "temperature": 0.9,
+        "speed": 1.1
+      },
+      "source": "unified_system"
+    },
+    "romantic": {
+      "description": "Loving, tender expressions",
+      "category": "positive",
+      "parameters": {
+        "exaggeration": 1.0,
+        "cfg_weight": 0.6,
+        "temperature": 0.8,
+        "speed": 0.9
+      },
+      "source": "unified_system"
+    },
+    "innocent": {
+      "description": "Childlike, naive expression",
+      "category": "positive",
+      "parameters": {
+        "exaggeration": 1.0,
+        "cfg_weight": 0.6,
+        "temperature": 0.8,
+        "speed": 1.0
+      },
+      "source": "unified_system"
+    },
+    "sad": {
+      "description": "General sadness, melancholy",
+      "category": "negative",
+      "parameters": {
+        "exaggeration": 0.9,
+        "cfg_weight": 0.5,
+        "temperature": 0.7,
+        "speed": 0.8
+      },
+      "source": "unified_system"
+    },
+    "angry": {
+      "description": "General anger, irritation",
+      "category": "negative",
+      "parameters": {
+        "exaggeration": 1.2,
+        "cfg_weight": 0.7,
+        "temperature": 0.9,
+        "speed": 1.2
+      },
+      "source": "unified_system"
+    },
+    "sarcastic": {
+      "description": "Mocking, ironic tone",
+      "category": "negative",
+      "parameters": {
+        "exaggeration": 1.0,
+        "cfg_weight": 0.6,
+        "temperature": 0.8,
+        "speed": 1.1
+      },
+      "source": "unified_system"
+    },
+    "disappointed": {
+      "description": "Let down, dissatisfied",
+      "category": "negative",
+      "parameters": {
+        "exaggeration": 0.9,
+        "cfg_weight": 0.5,
+        "temperature": 0.7,
+        "speed": 0.9
+      },
+      "source": "unified_system"
+    },
+    "anxious": {
+      "description": "Worried, underlying tension",
+      "category": "negative",
+      "parameters": {
+        "exaggeration": 1.0,
+        "cfg_weight": 0.6,
+        "temperature": 0.8,
+        "speed": 1.1
+      },
+      "source": "unified_system"
+    },
+    "fearful": {
+      "description": "Afraid, scared expressions",
+      "category": "negative",
+      "parameters": {
+        "exaggeration": 1.0,
+        "cfg_weight": 0.6,
+        "temperature": 0.8,
+        "speed": 1.0
+      },
+      "source": "unified_system"
+    },
+    "confused": {
+      "description": "Hesitant, lacking confidence",
+      "category": "negative",
+      "parameters": {
+        "exaggeration": 0.9,
+        "cfg_weight": 0.6,
+        "temperature": 0.8,
+        "speed": 0.9
+      },
+      "source": "unified_system"
+    },
+    "cold": {
+      "description": "Emotionless, distant",
+      "category": "negative",
+      "parameters": {
+        "exaggeration": 0.8,
+        "cfg_weight": 0.6,
+        "temperature": 0.7,
+        "speed": 1.0
+      },
+      "source": "unified_system"
+    },
+    "dramatic": {
+      "description": "Theatrical, intense expression",
+      "category": "dramatic",
+      "parameters": {
+        "exaggeration": 1.2,
+        "cfg_weight": 0.6,
+        "temperature": 1.0,
+        "speed": 1.0
+      },
+      "source": "unified_system"
+    },
+    "mysterious": {
+      "description": "Enigmatic, secretive tone",
+      "category": "dramatic",
+      "parameters": {
+        "exaggeration": 1.0,
+        "cfg_weight": 0.6,
+        "temperature": 0.8,
+        "speed": 0.9
+      },
+      "source": "unified_system"
+    },
+    "surprised": {
+      "description": "Shock, disbelief, amazement",
+      "category": "dramatic",
+      "parameters": {
+        "exaggeration": 1.2,
+        "cfg_weight": 0.6,
+        "temperature": 0.9,
+        "speed": 1.2
+      },
+      "source": "unified_system"
+    },
+    "commanding": {
+      "description": "Authoritative, in control",
+      "category": "authoritative",
+      "parameters": {
+        "exaggeration": 1.1,
+        "cfg_weight": 0.7,
+        "temperature": 0.8,
+        "speed": 1.0
+      },
+      "source": "unified_system"
+    },
+    "urgent": {
+      "description": "Emergency, warning calls",
+      "category": "dramatic",
+      "parameters": {
+        "exaggeration": 1.2,
+        "cfg_weight": 0.7,
+        "temperature": 0.9,
+        "speed": 1.2
+      },
+      "source": "unified_system"
+    },
+    "contemptuous": {
+      "description": "Harsh mockery, clear disdain",
+      "category": "dramatic",
+      "parameters": {
+        "exaggeration": 1.1,
+        "cfg_weight": 0.6,
+        "temperature": 0.8,
+        "speed": 1.0
+      },
+      "source": "unified_system"
+    },
+    "bewildered": {
+      "description": "Confused, don't understand",
+      "category": "dramatic",
+      "parameters": {
+        "exaggeration": 1.1,
+        "cfg_weight": 0.6,
+        "temperature": 0.8,
+        "speed": 0.9
+      },
+      "source": "unified_system"
+    },
+    "pleading": {
+      "description": "Begging, deep emotional appeals",
+      "category": "dramatic",
+      "parameters": {
+        "exaggeration": 1.1,
+        "cfg_weight": 0.6,
+        "temperature": 0.8,
+        "speed": 1.0
+      },
+      "source": "unified_system"
+    },
+    "persuasive": {
+      "description": "Convincing, eloquent argument",
+      "category": "special",
+      "parameters": {
+        "exaggeration": 1.0,
+        "cfg_weight": 0.6,
+        "temperature": 0.8,
+        "speed": 1.0
+      },
+      "source": "unified_system"
+    },
+    "humorous": {
+      "description": "Funny, charming, witty",
+      "category": "special",
+      "parameters": {
+        "exaggeration": 1.1,
+        "cfg_weight": 0.6,
+        "temperature": 0.9,
+        "speed": 1.1
+      },
+      "source": "unified_system"
+    },
+    "flirtatious": {
+      "description": "Playful, suggestive tone",
+      "category": "special",
+      "parameters": {
+        "exaggeration": 1.1,
+        "cfg_weight": 0.6,
+        "temperature": 0.9,
+        "speed": 1.0
+      },
+      "source": "unified_system"
+    },
+    "sleepy": {
+      "description": "Drowsy, tired expression",
+      "category": "special",
+      "parameters": {
+        "exaggeration": 0.8,
+        "cfg_weight": 0.5,
+        "temperature": 0.7,
+        "speed": 0.8
+      },
+      "source": "unified_system"
+    },
+    "shy": {
+      "description": "Timid, bashful tone",
+      "category": "special",
+      "parameters": {
+        "exaggeration": 0.8,
+        "cfg_weight": 0.5,
+        "temperature": 0.7,
+        "speed": 0.9
+      },
+      "source": "unified_system"
+    },
+    "suspenseful": {
+      "description": "Tense, anticipatory",
+      "category": "dramatic",
+      "parameters": {
+        "exaggeration": 1.0,
+        "cfg_weight": 0.6,
+        "temperature": 0.8,
+        "speed": 0.9
+      },
+      "source": "unified_system"
+    },
+    "shocked": {
+      "description": "Intense surprise, stunned reaction",
+      "category": "surprise",
+      "parameters": {
+        "exaggeration": 1.2,
+        "cfg_weight": 0.6,
+        "temperature": 1.0,
+        "speed": 1.2
+      },
+      "source": "unified_system"
+    },
+    "amazed": {
+      "description": "Wonder, awe, impressed",
+      "category": "surprise",
+      "parameters": {
+        "exaggeration": 1.1,
+        "cfg_weight": 0.5,
+        "temperature": 0.9,
+        "speed": 1.0
+      },
+      "source": "unified_system"
+    },
+    "stunned": {
+      "description": "Completely surprised, speechless",
+      "category": "surprise",
+      "parameters": {
+        "exaggeration": 1.0,
+        "cfg_weight": 0.5,
+        "temperature": 0.8,
+        "speed": 0.9
+      },
+      "source": "unified_system"
+    },
+    "hurt": {
+      "description": "Emotional pain, heartache",
+      "category": "negative",
+      "parameters": {
+        "exaggeration": 0.8,
+        "cfg_weight": 0.5,
+        "temperature": 0.7,
+        "speed": 0.8
+      },
+      "source": "unified_system"
+    },
+    "melancholy": {
+      "description": "Deep sadness, pensiveness",
+      "category": "negative",
+      "parameters": {
+        "exaggeration": 0.8,
+        "cfg_weight": 0.4,
+        "temperature": 0.7,
+        "speed": 0.8
+      },
+      "source": "unified_system"
+    },
+    "melancholic": {
+      "description": "Reflective sadness, wistful",
+      "category": "negative",
+      "parameters": {
+        "exaggeration": 0.8,
+        "cfg_weight": 0.4,
+        "temperature": 0.7,
+        "speed": 0.8
+      },
+      "source": "unified_system"
+    },
+    "furious": {
+      "description": "Intense anger, rage",
+      "category": "negative",
+      "parameters": {
+        "exaggeration": 1.2,
+        "cfg_weight": 0.7,
+        "temperature": 1.0,
+        "speed": 1.3
+      },
+      "source": "unified_system"
+    },
+    "irritated": {
+      "description": "Annoyed, slightly angry",
+      "category": "negative",
+      "parameters": {
+        "exaggeration": 1.1,
+        "cfg_weight": 0.6,
+        "temperature": 0.9,
+        "speed": 1.1
+      },
+      "source": "unified_system"
+    },
+    "frustrated": {
+      "description": "Blocked progress, impatient",
+      "category": "negative",
+      "parameters": {
+        "exaggeration": 1.1,
+        "cfg_weight": 0.6,
+        "temperature": 0.9,
+        "speed": 1.1
+      },
+      "source": "unified_system"
+    },
+    "disgusted": {
+      "description": "Strong distaste, revulsion",
+      "category": "negative",
+      "parameters": {
+        "exaggeration": 1.0,
+        "cfg_weight": 0.6,
+        "temperature": 0.8,
+        "speed": 1.0
+      },
+      "source": "unified_system"
+    },
+    "earnest": {
+      "description": "Sincere, serious appeal",
+      "category": "desperate",
+      "parameters": {
+        "exaggeration": 0.9,
+        "cfg_weight": 0.5,
+        "temperature": 0.8,
+        "speed": 0.9
+      },
+      "source": "unified_system"
+    },
+    "desperate": {
+      "description": "Last resort, urgent need",
+      "category": "desperate",
+      "parameters": {
+        "exaggeration": 1.1,
+        "cfg_weight": 0.5,
+        "temperature": 0.9,
+        "speed": 1.0
+      },
+      "source": "unified_system"
+    },
+    "begging": {
+      "description": "Imploring, asking desperately",
+      "category": "desperate",
+      "parameters": {
+        "exaggeration": 1.0,
+        "cfg_weight": 0.5,
+        "temperature": 0.8,
+        "speed": 0.9
+      },
+      "source": "unified_system"
+    },
+    "worried": {
+      "description": "Concerned, troubled",
+      "category": "nervous",
+      "parameters": {
+        "exaggeration": 0.9,
+        "cfg_weight": 0.5,
+        "temperature": 0.8,
+        "speed": 0.9
+      },
+      "source": "unified_system"
+    },
+    "nervous": {
+      "description": "Jittery, on edge",
+      "category": "nervous",
+      "parameters": {
+        "exaggeration": 1.0,
+        "cfg_weight": 0.6,
+        "temperature": 0.8,
+        "speed": 1.1
+      },
+      "source": "unified_system"
+    },
+    "restless": {
+      "description": "Unable to settle, agitated",
+      "category": "nervous",
+      "parameters": {
+        "exaggeration": 0.9,
+        "cfg_weight": 0.55,
+        "temperature": 0.8,
+        "speed": 1.1
+      },
+      "source": "unified_system"
+    },
+    "paranoid": {
+      "description": "Suspicious, fearful of threats",
+      "category": "nervous",
+      "parameters": {
+        "exaggeration": 1.1,
+        "cfg_weight": 0.6,
+        "temperature": 0.9,
+        "speed": 1.1
+      },
+      "source": "unified_system"
+    },
+    "ominous": {
+      "description": "Threatening, foreboding",
+      "category": "mysterious",
+      "parameters": {
+        "exaggeration": 1.0,
+        "cfg_weight": 0.5,
+        "temperature": 0.7,
+        "speed": 0.8
+      },
+      "source": "unified_system"
+    },
+    "eerie": {
+      "description": "Strange, unsettling",
+      "category": "mysterious",
+      "parameters": {
+        "exaggeration": 0.9,
+        "cfg_weight": 0.4,
+        "temperature": 0.7,
+        "speed": 0.8
+      },
+      "source": "unified_system"
+    },
+    "cryptic": {
+      "description": "Hidden meaning, puzzling",
+      "category": "mysterious",
+      "parameters": {
+        "exaggeration": 0.9,
+        "cfg_weight": 0.5,
+        "temperature": 0.7,
+        "speed": 0.8
+      },
+      "source": "unified_system"
+    },
+    "warning": {
+      "description": "Alert, caution signal",
+      "category": "urgent",
+      "parameters": {
+        "exaggeration": 1.2,
+        "cfg_weight": 0.7,
+        "temperature": 1.0,
+        "speed": 1.2
+      },
+      "source": "unified_system"
+    },
+    "emergency": {
+      "description": "Crisis situation, alarm",
+      "category": "urgent",
+      "parameters": {
+        "exaggeration": 1.2,
+        "cfg_weight": 0.7,
+        "temperature": 1.0,
+        "speed": 1.3
+      },
+      "source": "unified_system"
+    },
+    "alarm": {
+      "description": "Warning signal, alert",
+      "category": "urgent",
+      "parameters": {
+        "exaggeration": 1.2,
+        "cfg_weight": 0.7,
+        "temperature": 1.0,
+        "speed": 1.2
+      },
+      "source": "unified_system"
+    },
+    "critical": {
+      "description": "Extremely important, crucial",
+      "category": "urgent",
+      "parameters": {
+        "exaggeration": 1.2,
+        "cfg_weight": 0.7,
+        "temperature": 1.0,
+        "speed": 1.3
+      },
+      "source": "unified_system"
+    },
+    "mocking": {
+      "description": "Ridiculing, derisive",
+      "category": "sarcastic",
+      "parameters": {
+        "exaggeration": 0.8,
+        "cfg_weight": 0.5,
+        "temperature": 0.8,
+        "speed": 1.0
+      },
+      "source": "unified_system"
+    },
+    "ironic": {
+      "description": "Contrary to expectation",
+      "category": "sarcastic",
+      "parameters": {
+        "exaggeration": 0.9,
+        "cfg_weight": 0.5,
+        "temperature": 0.8,
+        "speed": 1.0
+      },
+      "source": "unified_system"
+    },
+    "cynical": {
+      "description": "Skeptical, distrusting",
+      "category": "sarcastic",
+      "parameters": {
+        "exaggeration": 0.9,
+        "cfg_weight": 0.5,
+        "temperature": 0.8,
+        "speed": 0.9
+      },
+      "source": "unified_system"
+    },
+    "impressed": {
+      "description": "Favorably affected, amazed",
+      "category": "positive",
+      "parameters": {
+        "exaggeration": 1.0,
+        "cfg_weight": 0.5,
+        "temperature": 0.8,
+        "speed": 1.0
+      },
+      "source": "unified_system"
+    },
+    "praising": {
+      "description": "Expressing approval, commending",
+      "category": "positive",
+      "parameters": {
+        "exaggeration": 1.1,
+        "cfg_weight": 0.6,
+        "temperature": 0.9,
+        "speed": 1.0
+      },
+      "source": "unified_system"
+    },
+    "enthusiastic": {
+      "description": "Highly excited, passionate",
+      "category": "positive",
+      "parameters": {
+        "exaggeration": 1.2,
+        "cfg_weight": 0.6,
+        "temperature": 1.0,
+        "speed": 1.2
+      },
+      "source": "unified_system"
+    },
+    "delighted": {
+      "description": "Greatly pleased, joyful",
+      "category": "positive",
+      "parameters": {
+        "exaggeration": 1.1,
+        "cfg_weight": 0.6,
+        "temperature": 0.9,
+        "speed": 1.1
+      },
+      "source": "unified_system"
+    },
+    "grateful": {
+      "description": "Thankful, appreciative",
+      "category": "positive",
+      "parameters": {
+        "exaggeration": 1.0,
+        "cfg_weight": 0.5,
+        "temperature": 0.8,
+        "speed": 0.9
+      },
+      "source": "unified_system"
+    },
+    "optimistic": {
+      "description": "Hopeful, positive outlook",
+      "category": "positive",
+      "parameters": {
+        "exaggeration": 1.1,
+        "cfg_weight": 0.6,
+        "temperature": 0.9,
+        "speed": 1.0
+      },
+      "source": "unified_system"
+    },
+    "proud": {
+      "description": "Feeling satisfied with achievement",
+      "category": "positive",
+      "parameters": {
+        "exaggeration": 1.1,
+        "cfg_weight": 0.6,
+        "temperature": 0.9,
+        "speed": 1.0
+      },
+      "source": "unified_system"
+    },
+    "embarrassed": {
+      "description": "Self-conscious, awkward",
+      "category": "confused",
+      "parameters": {
+        "exaggeration": 0.8,
+        "cfg_weight": 0.4,
+        "temperature": 0.7,
+        "speed": 0.8
+      },
+      "source": "unified_system"
+    },
+    "hesitant": {
+      "description": "Uncertain, tentative",
+      "category": "confused",
+      "parameters": {
+        "exaggeration": 0.8,
+        "cfg_weight": 0.5,
+        "temperature": 0.7,
+        "speed": 0.8
+      },
+      "source": "unified_system"
+    },
+    "uncertain": {
+      "description": "Doubtful, unsure",
+      "category": "confused",
+      "parameters": {
+        "exaggeration": 0.8,
+        "cfg_weight": 0.5,
+        "temperature": 0.7,
+        "speed": 0.8
+      },
+      "source": "unified_system"
+    },
+    "perplexed": {
+      "description": "Completely puzzled, baffled",
+      "category": "confused",
+      "parameters": {
+        "exaggeration": 0.8,
+        "cfg_weight": 0.5,
+        "temperature": 0.7,
+        "speed": 0.9
+      },
+      "source": "unified_system"
+    },
+    "doubtful": {
+      "description": "Questioning, uncertain",
+      "category": "confused",
+      "parameters": {
+        "exaggeration": 0.8,
+        "cfg_weight": 0.5,
+        "temperature": 0.7,
+        "speed": 0.8
+      },
+      "source": "unified_system"
+    },
+    "puzzled": {
+      "description": "Confused, trying to understand",
+      "category": "confused",
+      "parameters": {
+        "exaggeration": 0.8,
+        "cfg_weight": 0.5,
+        "temperature": 0.7,
+        "speed": 0.9
+      },
+      "source": "unified_system"
+    },
+    "dominant": {
+      "description": "Controlling, assertive",
+      "category": "authoritative",
+      "parameters": {
+        "exaggeration": 1.1,
+        "cfg_weight": 0.7,
+        "temperature": 0.9,
+        "speed": 1.0
+      },
+      "source": "unified_system"
+    },
+    "demanding": {
+      "description": "Insisting, requiring",
+      "category": "authoritative",
+      "parameters": {
+        "exaggeration": 1.1,
+        "cfg_weight": 0.7,
+        "temperature": 0.9,
+        "speed": 1.1
+      },
+      "source": "unified_system"
+    },
+    "stern": {
+      "description": "Serious, strict",
+      "category": "authoritative",
+      "parameters": {
+        "exaggeration": 1.0,
+        "cfg_weight": 0.6,
+        "temperature": 0.8,
+        "speed": 0.9
+      },
+      "source": "unified_system"
+    },
+    "firm": {
+      "description": "Resolute, determined",
+      "category": "authoritative",
+      "parameters": {
+        "exaggeration": 1.0,
+        "cfg_weight": 0.6,
+        "temperature": 0.8,
+        "speed": 0.9
+      },
+      "source": "unified_system"
+    },
+    "assertive": {
+      "description": "Confident, direct",
+      "category": "authoritative",
+      "parameters": {
+        "exaggeration": 1.0,
+        "cfg_weight": 0.6,
+        "temperature": 0.8,
+        "speed": 1.0
+      },
+      "source": "unified_system"
+    },
+    "naive": {
+      "description": "Simple, unsophisticated",
+      "category": "innocent",
+      "parameters": {
+        "exaggeration": 0.8,
+        "cfg_weight": 0.5,
+        "temperature": 0.7,
+        "speed": 0.9
+      },
+      "source": "unified_system"
+    },
+    "childlike": {
+      "description": "Pure, simple wonder",
+      "category": "innocent",
+      "parameters": {
+        "exaggeration": 0.9,
+        "cfg_weight": 0.5,
+        "temperature": 0.8,
+        "speed": 1.0
+      },
+      "source": "unified_system"
+    },
+    "dreamy": {
+      "description": "Ethereal, otherworldly",
+      "category": "special",
+      "parameters": {
+        "exaggeration": 0.8,
+        "cfg_weight": 0.4,
+        "temperature": 0.7,
+        "speed": 0.8
+      },
+      "source": "unified_system"
+    },
+    "mystical": {
+      "description": "Spiritual, transcendent",
+      "category": "special",
+      "parameters": {
+        "exaggeration": 0.9,
+        "cfg_weight": 0.5,
+        "temperature": 0.7,
+        "speed": 0.8
+      },
+      "source": "unified_system"
+    },
+    "ethereal": {
+      "description": "Heavenly, otherworldly",
+      "category": "special",
+      "parameters": {
+        "exaggeration": 0.8,
+        "cfg_weight": 0.4,
+        "temperature": 0.7,
+        "speed": 0.8
+      },
+      "source": "unified_system"
+    },
+    "hypnotic": {
+      "description": "Mesmerizing, entrancing",
+      "category": "special",
+      "parameters": {
+        "exaggeration": 0.9,
+        "cfg_weight": 0.5,
+        "temperature": 0.7,
+        "speed": 0.8
+      },
+      "source": "unified_system"
+    },
+    "seductive": {
+      "description": "Alluring, enticing",
+      "category": "special",
+      "parameters": {
+        "exaggeration": 1.0,
+        "cfg_weight": 0.6,
+        "temperature": 0.8,
+        "speed": 0.9
+      },
+      "source": "unified_system"
+    },
+    "fear": {
+      "description": "Basic fear emotion",
+      "category": "negative",
+      "parameters": {
+        "exaggeration": 0.9,
+        "cfg_weight": 0.5,
+        "temperature": 0.8,
+        "speed": 1.0
+      },
+      "source": "unified_system"
+    },
+    "terrified": {
+      "description": "Extremely frightened",
+      "category": "negative",
+      "parameters": {
+        "exaggeration": 1.1,
+        "cfg_weight": 0.6,
+        "temperature": 0.9,
+        "speed": 1.2
+      },
+      "source": "unified_system"
+    },
+    "horrified": {
+      "description": "Filled with horror",
+      "category": "negative",
+      "parameters": {
+        "exaggeration": 1.1,
+        "cfg_weight": 0.6,
+        "temperature": 0.9,
+        "speed": 1.1
+      },
+      "source": "unified_system"
+    },
+    "matter_of_fact": {
+      "description": "Straightforward, factual",
+      "category": "neutral",
+      "parameters": {
+        "exaggeration": 0.8,
+        "cfg_weight": 0.5,
+        "temperature": 0.7,
+        "speed": 0.9
+      },
+      "source": "unified_system"
+    },
+    "informative": {
+      "description": "Educational, explaining",
+      "category": "neutral",
+      "parameters": {
+        "exaggeration": 0.9,
+        "cfg_weight": 0.5,
+        "temperature": 0.8,
+        "speed": 1.0
+      },
+      "source": "unified_system"
+    },
+    "sdasdasd": {
+      "description": "đasadas",
+      "category": "neutral",
+      "parameters": {
+        "exaggeration": 1.0,
+        "cfg_weight": 0.6,
+        "temperature": 0.8,
+        "speed": 1.0
+      },
+      "source": "unified_system"
+    }
+  },
+  "inner_voice_config": {
+    "enabled": false,
+    "presets": {
+      "light": {
+        "delay": 0.0,
+        "decay": 0.0,
+        "gain": 0.0,
+        "filter": ""
+      },
+      "deep": {
+        "delay": 0.0,
+        "decay": 0.0,
+        "gain": 0.0,
+        "filter": ""
+      },
+      "dreamy": {
+        "delay": 0.0,
+        "decay": 0.0,
+        "gain": 0.0,
+        "filter": ""
+      }
+    }
+  }
+}

@@ -1,0 +1,671 @@
+{
+  "version": "2.0",
+  "description": "Unified Emotion System - Consolidated from 3 legacy systems",
+  "total_emotions": 37,
+  "total_aliases": 93,
+  "expert_recommendations": {
+    "temperature": "0.7 - 1.0",
+    "exaggeration": "0.8 - 1.2",
+    "cfg_weight": "0.5 - 0.7",
+    "speed": "0.8 - 1.3"
+  },
+  "emotions": {
+    "neutral": {
+      "name": "neutral",
+      "temperature": 0.8,
+      "exaggeration": 1.0,
+      "cfg_weight": 0.6,
+      "speed": 1.0,
+      "description": "Balanced, objective narration",
+      "category": "neutral",
+      "source_system": "core+ui+chatterbox",
+      "aliases": [
+        "normal",
+        "balanced"
+      ]
+    },
+    "calm": {
+      "name": "calm",
+      "temperature": 0.7,
+      "exaggeration": 0.9,
+      "cfg_weight": 0.5,
+      "speed": 0.9,
+      "description": "Peaceful, composed speech",
+      "category": "neutral",
+      "source_system": "core+ui+chatterbox",
+      "aliases": [
+        "peaceful",
+        "composed"
+      ]
+    },
+    "contemplative": {
+      "name": "contemplative",
+      "temperature": 0.8,
+      "exaggeration": 0.9,
+      "cfg_weight": 0.5,
+      "speed": 0.8,
+      "description": "Deep inner thoughts",
+      "category": "neutral",
+      "source_system": "core+ui",
+      "aliases": [
+        "thoughtful",
+        "meditative"
+      ]
+    },
+    "soft": {
+      "name": "soft",
+      "temperature": 0.7,
+      "exaggeration": 0.8,
+      "cfg_weight": 0.5,
+      "speed": 0.9,
+      "description": "Gentle, tender expressions",
+      "category": "neutral",
+      "source_system": "ui",
+      "aliases": [
+        "gentle",
+        "tender"
+      ]
+    },
+    "whisper": {
+      "name": "whisper",
+      "temperature": 0.7,
+      "exaggeration": 0.8,
+      "cfg_weight": 0.5,
+      "speed": 0.8,
+      "description": "Intimate, secretive tone",
+      "category": "neutral",
+      "source_system": "core+ui+chatterbox",
+      "aliases": [
+        "secret",
+        "intimate"
+      ]
+    },
+    "happy": {
+      "name": "happy",
+      "temperature": 0.9,
+      "exaggeration": 1.2,
+      "cfg_weight": 0.6,
+      "speed": 1.1,
+      "description": "General joy, positive mood",
+      "category": "positive",
+      "source_system": "core+ui+chatterbox",
+      "aliases": [
+        "joyful",
+        "pleased"
+      ]
+    },
+    "excited": {
+      "name": "excited",
+      "temperature": 1.0,
+      "exaggeration": 1.2,
+      "cfg_weight": 0.6,
+      "speed": 1.3,
+      "description": "High energy, enthusiastic",
+      "category": "positive",
+      "source_system": "core+ui+chatterbox",
+      "aliases": [
+        "energetic",
+        "thrilled"
+      ]
+    },
+    "cheerful": {
+      "name": "cheerful",
+      "temperature": 0.9,
+      "exaggeration": 1.1,
+      "cfg_weight": 0.6,
+      "speed": 1.1,
+      "description": "Bright, uplifting tone",
+      "category": "positive",
+      "source_system": "ui",
+      "aliases": [
+        "bright",
+        "uplifting"
+      ]
+    },
+    "friendly": {
+      "name": "friendly",
+      "temperature": 0.8,
+      "exaggeration": 1.0,
+      "cfg_weight": 0.6,
+      "speed": 1.0,
+      "description": "Warm, welcoming tone",
+      "category": "positive",
+      "source_system": "core+ui",
+      "aliases": [
+        "warm",
+        "welcoming"
+      ]
+    },
+    "confident": {
+      "name": "confident",
+      "temperature": 0.8,
+      "exaggeration": 1.1,
+      "cfg_weight": 0.6,
+      "speed": 1.0,
+      "description": "Self-assured, determined",
+      "category": "positive",
+      "source_system": "core+ui",
+      "aliases": [
+        "assured",
+        "determined"
+      ]
+    },
+    "encouraging": {
+      "name": "encouraging",
+      "temperature": 0.9,
+      "exaggeration": 1.1,
+      "cfg_weight": 0.6,
+      "speed": 1.0,
+      "description": "Inspiring, motivating",
+      "category": "positive",
+      "source_system": "ui",
+      "aliases": [
+        "motivating",
+        "inspiring",
+        "enthusiastic"
+      ]
+    },
+    "admiring": {
+      "name": "admiring",
+      "temperature": 0.8,
+      "exaggeration": 1.1,
+      "cfg_weight": 0.6,
+      "speed": 1.0,
+      "description": "Genuine praise, impressed",
+      "category": "positive",
+      "source_system": "ui",
+      "aliases": [
+        "impressed",
+        "praising"
+      ]
+    },
+    "playful": {
+      "name": "playful",
+      "temperature": 0.9,
+      "exaggeration": 1.1,
+      "cfg_weight": 0.6,
+      "speed": 1.1,
+      "description": "Fun, teasing tone",
+      "category": "positive",
+      "source_system": "ui",
+      "aliases": [
+        "teasing",
+        "mischievous"
+      ]
+    },
+    "romantic": {
+      "name": "romantic",
+      "temperature": 0.8,
+      "exaggeration": 1.0,
+      "cfg_weight": 0.6,
+      "speed": 0.9,
+      "description": "Loving, tender expressions",
+      "category": "positive",
+      "source_system": "ui",
+      "aliases": [
+        "loving",
+        "affectionate"
+      ]
+    },
+    "innocent": {
+      "name": "innocent",
+      "temperature": 0.8,
+      "exaggeration": 1.0,
+      "cfg_weight": 0.6,
+      "speed": 1.0,
+      "description": "Childlike, naive expression",
+      "category": "positive",
+      "source_system": "core+ui",
+      "aliases": [
+        "naive",
+        "childlike",
+        "carefree"
+      ]
+    },
+    "sad": {
+      "name": "sad",
+      "temperature": 0.7,
+      "exaggeration": 0.9,
+      "cfg_weight": 0.5,
+      "speed": 0.8,
+      "description": "General sadness, melancholy",
+      "category": "negative",
+      "source_system": "core+ui+chatterbox",
+      "aliases": [
+        "melancholy",
+        "melancholic",
+        "hurt"
+      ]
+    },
+    "angry": {
+      "name": "angry",
+      "temperature": 0.9,
+      "exaggeration": 1.2,
+      "cfg_weight": 0.7,
+      "speed": 1.2,
+      "description": "General anger, irritation",
+      "category": "negative",
+      "source_system": "core+ui+chatterbox",
+      "aliases": [
+        "furious",
+        "irritated",
+        "frustrated"
+      ]
+    },
+    "sarcastic": {
+      "name": "sarcastic",
+      "temperature": 0.8,
+      "exaggeration": 1.0,
+      "cfg_weight": 0.6,
+      "speed": 1.1,
+      "description": "Mocking, ironic tone",
+      "category": "negative",
+      "source_system": "core+ui",
+      "aliases": [
+        "mocking",
+        "ironic"
+      ]
+    },
+    "disappointed": {
+      "name": "disappointed",
+      "temperature": 0.7,
+      "exaggeration": 0.9,
+      "cfg_weight": 0.5,
+      "speed": 0.9,
+      "description": "Let down, dissatisfied",
+      "category": "negative",
+      "source_system": "ui",
+      "aliases": [
+        "dissatisfied",
+        "letdown"
+      ]
+    },
+    "anxious": {
+      "name": "anxious",
+      "temperature": 0.8,
+      "exaggeration": 1.0,
+      "cfg_weight": 0.6,
+      "speed": 1.1,
+      "description": "Worried, underlying tension",
+      "category": "negative",
+      "source_system": "ui",
+      "aliases": [
+        "worried",
+        "nervous",
+        "restless"
+      ]
+    },
+    "fearful": {
+      "name": "fearful",
+      "temperature": 0.8,
+      "exaggeration": 1.0,
+      "cfg_weight": 0.6,
+      "speed": 1.0,
+      "description": "Afraid, scared expressions",
+      "category": "negative",
+      "source_system": "ui",
+      "aliases": [
+        "afraid",
+        "scared",
+        "fear"
+      ]
+    },
+    "confused": {
+      "name": "confused",
+      "temperature": 0.8,
+      "exaggeration": 0.9,
+      "cfg_weight": 0.6,
+      "speed": 0.9,
+      "description": "Hesitant, lacking confidence",
+      "category": "negative",
+      "source_system": "ui",
+      "aliases": [
+        "embarrassed",
+        "hesitant",
+        "uncertain"
+      ]
+    },
+    "cold": {
+      "name": "cold",
+      "temperature": 0.7,
+      "exaggeration": 0.8,
+      "cfg_weight": 0.6,
+      "speed": 1.0,
+      "description": "Emotionless, distant",
+      "category": "negative",
+      "source_system": "core+ui",
+      "aliases": [
+        "distant",
+        "indifferent",
+        "detached"
+      ]
+    },
+    "dramatic": {
+      "name": "dramatic",
+      "temperature": 1.0,
+      "exaggeration": 1.2,
+      "cfg_weight": 0.6,
+      "speed": 1.0,
+      "description": "Theatrical, intense expression",
+      "category": "dramatic",
+      "source_system": "core+ui+chatterbox",
+      "aliases": [
+        "theatrical",
+        "intense"
+      ]
+    },
+    "mysterious": {
+      "name": "mysterious",
+      "temperature": 0.8,
+      "exaggeration": 1.0,
+      "cfg_weight": 0.6,
+      "speed": 0.9,
+      "description": "Enigmatic, secretive tone",
+      "category": "dramatic",
+      "source_system": "core+ui",
+      "aliases": [
+        "enigmatic",
+        "secretive",
+        "ominous",
+        "eerie"
+      ]
+    },
+    "surprised": {
+      "name": "surprised",
+      "temperature": 0.9,
+      "exaggeration": 1.2,
+      "cfg_weight": 0.6,
+      "speed": 1.2,
+      "description": "Shock, disbelief, amazement",
+      "category": "dramatic",
+      "source_system": "ui",
+      "aliases": [
+        "shocked",
+        "amazed",
+        "astonished"
+      ]
+    },
+    "commanding": {
+      "name": "commanding",
+      "temperature": 0.8,
+      "exaggeration": 1.1,
+      "cfg_weight": 0.7,
+      "speed": 1.0,
+      "description": "Authoritative, decisive tone",
+      "category": "dramatic",
+      "source_system": "ui",
+      "aliases": [
+        "authoritative",
+        "decisive",
+        "firm"
+      ]
+    },
+    "urgent": {
+      "name": "urgent",
+      "temperature": 0.9,
+      "exaggeration": 1.2,
+      "cfg_weight": 0.7,
+      "speed": 1.2,
+      "description": "Emergency, warning calls",
+      "category": "dramatic",
+      "source_system": "ui",
+      "aliases": [
+        "warning",
+        "emergency",
+        "alarm"
+      ]
+    },
+    "contemptuous": {
+      "name": "contemptuous",
+      "temperature": 0.8,
+      "exaggeration": 1.1,
+      "cfg_weight": 0.6,
+      "speed": 1.0,
+      "description": "Harsh mockery, clear disdain",
+      "category": "dramatic",
+      "source_system": "ui",
+      "aliases": [
+        "scornful",
+        "disdainful",
+        "condescending"
+      ]
+    },
+    "bewildered": {
+      "name": "bewildered",
+      "temperature": 0.8,
+      "exaggeration": 1.1,
+      "cfg_weight": 0.6,
+      "speed": 0.9,
+      "description": "Confused, don't understand",
+      "category": "dramatic",
+      "source_system": "ui",
+      "aliases": [
+        "lost",
+        "perplexed",
+        "dazed"
+      ]
+    },
+    "pleading": {
+      "name": "pleading",
+      "temperature": 0.8,
+      "exaggeration": 1.1,
+      "cfg_weight": 0.6,
+      "speed": 1.0,
+      "description": "Begging, deep emotional appeals",
+      "category": "dramatic",
+      "source_system": "ui",
+      "aliases": [
+        "earnest",
+        "desperate"
+      ]
+    },
+    "persuasive": {
+      "name": "persuasive",
+      "temperature": 0.8,
+      "exaggeration": 1.0,
+      "cfg_weight": 0.6,
+      "speed": 1.0,
+      "description": "Convincing, eloquent argument",
+      "category": "special",
+      "source_system": "core+ui",
+      "aliases": [
+        "convincing",
+        "eloquent",
+        "rhetorical"
+      ]
+    },
+    "humorous": {
+      "name": "humorous",
+      "temperature": 0.9,
+      "exaggeration": 1.1,
+      "cfg_weight": 0.6,
+      "speed": 1.1,
+      "description": "Funny, charming, witty",
+      "category": "special",
+      "source_system": "ui",
+      "aliases": [
+        "witty",
+        "amusing",
+        "charming"
+      ]
+    },
+    "flirtatious": {
+      "name": "flirtatious",
+      "temperature": 0.9,
+      "exaggeration": 1.1,
+      "cfg_weight": 0.6,
+      "speed": 1.0,
+      "description": "Playful, suggestive tone",
+      "category": "special",
+      "source_system": "ui",
+      "aliases": [
+        "provocative",
+        "seductive"
+      ]
+    },
+    "sleepy": {
+      "name": "sleepy",
+      "temperature": 0.7,
+      "exaggeration": 0.8,
+      "cfg_weight": 0.5,
+      "speed": 0.8,
+      "description": "Drowsy, tired expression",
+      "category": "special",
+      "source_system": "ui",
+      "aliases": [
+        "drowsy",
+        "tired"
+      ]
+    },
+    "shy": {
+      "name": "shy",
+      "temperature": 0.7,
+      "exaggeration": 0.8,
+      "cfg_weight": 0.5,
+      "speed": 0.9,
+      "description": "Timid, bashful tone",
+      "category": "special",
+      "source_system": "ui",
+      "aliases": [
+        "timid",
+        "bashful"
+      ]
+    },
+    "suspenseful": {
+      "name": "suspenseful",
+      "temperature": 0.8,
+      "exaggeration": 1.0,
+      "cfg_weight": 0.6,
+      "speed": 0.9,
+      "description": "Tense, anticipatory",
+      "category": "dramatic",
+      "source_system": "ui",
+      "aliases": [
+        "tense",
+        "anticipatory"
+      ]
+    }
+  },
+  "aliases": {
+    "normal": "neutral",
+    "balanced": "neutral",
+    "peaceful": "calm",
+    "composed": "calm",
+    "thoughtful": "contemplative",
+    "meditative": "contemplative",
+    "gentle": "soft",
+    "tender": "soft",
+    "secret": "whisper",
+    "intimate": "whisper",
+    "joyful": "happy",
+    "pleased": "happy",
+    "energetic": "excited",
+    "thrilled": "excited",
+    "bright": "cheerful",
+    "uplifting": "cheerful",
+    "warm": "friendly",
+    "welcoming": "friendly",
+    "assured": "confident",
+    "determined": "commanding",
+    "motivating": "encouraging",
+    "inspiring": "encouraging",
+    "enthusiastic": "encouraging",
+    "impressed": "admiring",
+    "praising": "admiring",
+    "teasing": "playful",
+    "mischievous": "playful",
+    "loving": "romantic",
+    "affectionate": "romantic",
+    "naive": "innocent",
+    "childlike": "innocent",
+    "carefree": "innocent",
+    "melancholy": "sad",
+    "melancholic": "sad",
+    "hurt": "sad",
+    "furious": "angry",
+    "irritated": "angry",
+    "frustrated": "angry",
+    "mocking": "sarcastic",
+    "ironic": "sarcastic",
+    "dissatisfied": "disappointed",
+    "letdown": "disappointed",
+    "worried": "anxious",
+    "nervous": "anxious",
+    "restless": "anxious",
+    "afraid": "fearful",
+    "scared": "fearful",
+    "fear": "fearful",
+    "embarrassed": "confused",
+    "hesitant": "confused",
+    "uncertain": "confused",
+    "distant": "cold",
+    "indifferent": "cold",
+    "detached": "cold",
+    "theatrical": "dramatic",
+    "intense": "dramatic",
+    "enigmatic": "mysterious",
+    "secretive": "mysterious",
+    "ominous": "mysterious",
+    "eerie": "mysterious",
+    "shocked": "surprised",
+    "amazed": "surprised",
+    "astonished": "surprised",
+    "authoritative": "commanding",
+    "decisive": "commanding",
+    "firm": "commanding",
+    "warning": "urgent",
+    "emergency": "urgent",
+    "alarm": "urgent",
+    "scornful": "contemptuous",
+    "disdainful": "contemptuous",
+    "condescending": "contemptuous",
+    "lost": "bewildered",
+    "perplexed": "bewildered",
+    "dazed": "bewildered",
+    "earnest": "pleading",
+    "desperate": "pleading",
+    "convincing": "persuasive",
+    "eloquent": "persuasive",
+    "rhetorical": "persuasive",
+    "witty": "humorous",
+    "amusing": "humorous",
+    "charming": "humorous",
+    "provocative": "flirtatious",
+    "seductive": "flirtatious",
+    "drowsy": "sleepy",
+    "tired": "sleepy",
+    "timid": "shy",
+    "bashful": "shy",
+    "tense": "suspenseful",
+    "anticipatory": "suspenseful",
+    "urgent": "urgent",
+    "romantic": "romantic"
+  },
+  "inner_voice_config": {
+    "enabled": true,
+    "description": "Inner voice (thoại nội tâm) system configuration",
+    "presets": {
+      "light": {
+        "delay": 50.0,
+        "decay": 0.3,
+        "gain": 0.5,
+        "filter": "aecho=0.5:0.3:50.0:0.3",
+        "description": "Preset light - cài đặt từ UI"
+      },
+      "deep": {
+        "delay": 150.0,
+        "decay": 0.6,
+        "gain": 0.7,
+        "filter": "aecho=0.7:0.6:150.0:0.6|0.3,lowpass=f=3000",
+        "description": "Preset deep - cài đặt từ UI"
+      },
+      "dreamy": {
+        "delay": 300.0,
+        "decay": 0.8,
+        "gain": 0.6,
+        "filter": "volume=0.8,aecho=0.6:0.8:300.0:0.8,lowpass=f=3000",
+        "description": "Preset dreamy - cài đặt từ UI"
+      }
+    }
+  }
+}

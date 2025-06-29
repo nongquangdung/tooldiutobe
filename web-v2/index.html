@@ -1,504 +1,1044 @@
-<!DOCTYPE html>
-<html lang="en" class="dark"> <!-- Default to dark mode, script will manage preference -->
-
+﻿<!DOCTYPE html>
+<html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Voice Studio Web V2.0 - Professional TTS Platform</title>
-
-    <!--
-      Local and third-party assets.
-      - styles.css: Pre-compiled stylesheet containing all Tailwind and custom component styles.
-      - wavesurfer.min.js: The WaveSurfer.js library for audio visualization, served locally.
-    -->
-    <link rel="stylesheet" href="styles.css">
-    <link rel="stylesheet" href="voice-studio-styles.css">
-    <script src="vendor/wavesurfer.min.js"></script>
-    <script src="voice-studio-config.js"></script>
-    <script src="voice-studio-advanced.js"></script>
+    <title>Voice Studio Professional</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+            height: 100vh;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            overflow: hidden;
+            transition: background-color 0.3s ease;
+        }
+        
+        /* Theme Variables */
+        :root {
+            /* Light Theme (Default) */
+            --bg-color: #f8f9fb;
+            --text-color: #333;
+            --card-bg: rgba(255, 255, 255, 0.95);
+            --card-border: rgba(0, 0, 0, 0.1);
+            --sidebar-bg: rgba(255, 255, 255, 0.95);
+            --input-bg: rgba(255, 255, 255, 0.95);
+            --input-text: #333;
+            --btn-bg: #7aa2f7;
+            --btn-text: white;
+            --accent-color: #7aa2f7;
+            --sidebar-text: #333;
+            --menu-hover: rgba(122, 162, 247, 0.1);
+            --menu-active: rgba(122, 162, 247, 0.2);
+        }
+        
+        /* Dark Theme */
+        .dark-theme {
+            --bg-color: #1a1b25;
+            --text-color: #d1d5db;
+            --card-bg: rgba(30, 30, 46, 0.8);
+            --card-border: rgba(255, 255, 255, 0.1);
+            --sidebar-bg: rgba(26, 27, 38, 0.95);
+            --input-bg: rgba(30, 30, 46, 0.8);
+            --input-text: #d1d5db;
+            --btn-bg: #7aa2f7;
+            --btn-text: #1a1b26;
+            --accent-color: #7aa2f7;
+            --sidebar-text: #d1d5db;
+            --menu-hover: rgba(122, 162, 247, 0.1);
+            --menu-active: rgba(122, 162, 247, 0.2);
+        }
+        
+        .app-container {
+            display: flex;
+            height: 100vh;
+            padding: 16px;
+            gap: 16px;
+        }
+        .sidebar {
+            width: 280px;
+            background: var(--sidebar-bg);
+            backdrop-filter: blur(20px);
+            border-radius: 32px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 4px 32px 0 rgba(0, 0, 0, 0.10);
+            margin: 0;
+            flex-shrink: 0;
+        }
+        .sidebar-header { 
+            padding: 24px 20px 20px 20px; 
+            border-bottom: 1px solid var(--card-border);
+        }
+        .logo {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--sidebar-text);
+            letter-spacing: 1px;
+            margin-bottom: 20px;
+        }
+        .new-session-btn {
+            width: 100%;
+            padding: 12px 16px;
+            background: var(--btn-bg);
+            color: var(--btn-text);
+            border: none;
+            border-radius: 25px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        .new-session-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+        }
+        .menu-section { padding: 16px 0; }
+        .menu-title {
+            padding: 0 20px;
+            margin-bottom: 8px;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--sidebar-text);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            opacity: 0.7;
+        }
+        .menu-item {
+            padding: 12px 20px;
+            cursor: pointer;
+            transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+            font-size: 14px;
+            color: var(--sidebar-text);
+            font-weight: 400;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .menu-item:hover {
+            background: var(--menu-hover);
+        }
+        .menu-item.active {
+            background: var(--menu-active);
+            color: var(--accent-color);
+            font-weight: 500;
+        }
+        .menu-item-pro {
+            padding: 12px 20px;
+            cursor: pointer;
+            transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+            font-size: 14px;
+            color: var(--sidebar-text);
+            opacity: 0.6;
+            font-weight: 400;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .menu-item-pro:hover {
+            background: var(--menu-hover);
+            opacity: 0.8;
+        }
+        .pro-badge {
+            font-size: 10px;
+            font-weight: 600;
+            color: #f59e0b;
+            background: rgba(245, 158, 11, 0.1);
+            padding: 2px 6px;
+            border-radius: 10px;
+        }
+        .upgrade-section {
+            padding: 16px 20px;
+            margin: 0 12px 16px 12px;
+            background: linear-gradient(to right, #f59e0b, #f97316);
+            border-radius: 12px;
+        }
+        .upgrade-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: white;
+            margin-bottom: 4px;
+        }
+        .upgrade-desc {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 12px;
+        }
+        .upgrade-btn {
+            width: 100%;
+            padding: 8px 12px;
+            background: white;
+            color: #f97316;
+            border: none;
+            border-radius: 20px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 13px;
+            text-align: center;
+        }
+        .upgrade-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        .sidebar-footer {
+            padding: 16px 20px;
+            border-top: 1px solid var(--card-border);
+            margin-top: auto;
+        }
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+        }
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--accent-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--btn-text);
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            min-width: 0;
+        }
+        .content-area {
+            flex: 1;
+            padding: 0;
+            overflow-y: auto;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        .voice-studio-grid {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            height: 100%;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+        .text-input-container {
+            background: var(--input-bg);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 16px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+            border: 1px solid var(--card-border);
+            position: relative;
+            max-width: 900px;
+            margin: 0 auto;
+            width: 90%;
+            max-width: 800px;
+        }
+        .text-input {
+            width: 100%;
+            min-height: 56px;
+            max-height: 200px;
+            padding: 12px 16px;
+            border: none;
+            border-radius: 14px;
+            font-size: 15px;
+            font-family: inherit;
+            resize: none;
+            outline: none;
+            transition: all 0.2s ease;
+            line-height: 1.6;
+            background: transparent;
+            backdrop-filter: blur(5px);
+            color: var(--input-text);
+        }
+        .text-input::placeholder {
+            color: var(--text-color);
+            opacity: 0.6;
+        }
+        .text-input:focus {
+            background: transparent;
+        }
+        .input-footer {
+            margin-top: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .char-counter { 
+            font-size: 12px; 
+            color: var(--text-color);
+            opacity: 0.7;
+        }
+        .generate-btn {
+            width: 40px;
+            height: 40px;
+            background: var(--btn-bg);
+            color: var(--btn-text);
+            border: none;
+            border-radius: 50%;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .generate-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+        }
+        
+        /* Voice Config */
+        .voice-config {
+            position: fixed;
+            bottom: 90px;
+            right: 24px;
+            width: 320px;
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            z-index: 10;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(10px);
+            transition: all 0.2s ease;
+        }
+        
+        .voice-config.show {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+        
+        .config-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-color);
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .config-close {
+            cursor: pointer;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            background: transparent;
+            transition: background 0.2s;
+        }
+        
+        .config-close:hover {
+            background: rgba(0,0,0,0.05);
+        }
+        
+        .setting-group { margin-bottom: 6px; }
+        .setting-label {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-color);
+            opacity: 0.8;
+            margin-bottom: 5px;
+            display: block;
+        }
+        .setting-control {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            font-size: 13px;
+            background: var(--input-bg);
+            backdrop-filter: blur(5px);
+            color: var(--text-color);
+        }
+        .setting-control option {
+            background: var(--card-bg);
+            color: var(--text-color);
+        }
+        .slider-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .slider-control input { 
+            flex: 1;
+            accent-color: var(--accent-color);
+        }
+        .slider-value {
+            min-width: 35px;
+            text-align: center;
+            font-size: 11px;
+            font-family: monospace;
+            color: var(--text-color);
+            opacity: 0.8;
+        }
+        
+        /* Audio Player Bar */
+        .audio-player-bar {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 600px;
+            max-width: calc(100% - 340px);
+            height: 60px;
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(20px);
+            border-radius: 30px;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+        }
+        .player-controls {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .play-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--btn-bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        .play-btn svg {
+            width: 16px;
+            height: 16px;
+            fill: var(--btn-text);
+        }
+        .progress-track {
+            flex: 1;
+            height: 4px;
+            background: var(--card-border);
+            border-radius: 2px;
+            position: relative;
+            cursor: pointer;
+        }
+        .progress-bar-fill {
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            background: var(--accent-color);
+            border-radius: 2px;
+            width: 30%; /* For demonstration */
+        }
+        .time-display {
+            font-size: 12px;
+            color: var(--text-color);
+            font-family: monospace;
+            margin: 0 16px;
+        }
+        .audio-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .action-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.05);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .action-btn:hover {
+            background: rgba(0, 0, 0, 0.1);
+        }
+        .action-btn svg {
+            width: 14px;
+            height: 14px;
+            stroke: var(--text-color);
+        }
+        
+        /* Tools Button */
+        .tools-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--card-bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-right: 8px;
+        }
+        
+        .tools-btn:hover {
+            background: rgba(0, 0, 0, 0.05);
+        }
+        
+        .tools-btn svg {
+            width: 18px;
+            height: 18px;
+            stroke: var(--text-color);
+            opacity: 0.7;
+        }
+        
+        /* Theme Toggle */
+        .theme-toggle {
+            position: fixed;
+            top: 24px;
+            right: 24px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--card-bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .theme-toggle svg {
+            width: 20px;
+            height: 20px;
+            stroke: var(--text-color);
+        }
+        
+        /* Progress Indicator */
+        .progress-indicator {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 8px 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            display: none;
+        }
+        .progress-spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(0, 0, 0, 0.1);
+            border-top: 2px solid var(--accent-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .progress-text {
+            font-size: 12px;
+            color: var(--text-color);
+        }
+        
+        @media (max-width: 1200px) {
+            .audio-player-bar {
+                max-width: calc(100% - 300px);
+            }
+        }
+        @media (max-width: 1024px) {
+            .audio-player-bar {
+                max-width: calc(100% - 32px);
+                width: 500px;
+            }
+        }
+        @media (max-width: 768px) {
+            .app-container {
+                padding: 8px;
+                gap: 8px;
+            }
+            .sidebar {
+                width: 240px;
+                position: fixed;
+                left: -250px;
+                top: 8px;
+                bottom: 8px;
+                z-index: 1000;
+                transition: left 0.3s ease;
+            }
+            .sidebar.open {
+                left: 8px;
+            }
+            .menu-toggle {
+                position: fixed;
+                top: 16px;
+                left: 16px;
+                z-index: 1001;
+                width: 40px;
+                height: 40px;
+                border-radius: 50%;
+                background: var(--card-bg);
+                backdrop-filter: blur(10px);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+            }
+            .menu-toggle svg {
+                stroke: var(--text-color);
+            }
+            .audio-player-bar {
+                width: calc(100% - 32px);
+                padding: 0 12px;
+            }
+            .time-display {
+                display: none;
+            }
+            .text-input-container {
+                left: 16px;
+                right: 16px;
+                bottom: 16px;
+                width: calc(100% - 32px);
+            }
+            .voice-config {
+                width: calc(100% - 32px);
+                left: 16px;
+                right: 16px;
+                bottom: 90px;
+            }
+        }
+    </style>
 </head>
-
-<body class="body-base">
-    <div class="min-h-full">
-        <!-- Navigation Bar -->
-        <nav class="nav-base">
-            <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                <div class="flex h-16 items-center justify-between">
-                    <div class="flex items-center">
-                        <div class="flex-shrink-0 voice-studio-logo">
-                            <a href="/" id="app-title-link" class="title-link">🎙️ Voice Studio Web V2.0</a>
-                            <span class="voice-studio-badge">Professional</span>
-                        </div>
-                    </div>
-                    <div class="flex items-center space-x-3 sm:space-x-4">
-                        <a href="/docs" target="_blank" class="nav-link">API Docs</a>
-                        <button id="theme-toggle-btn" type="button" class="theme-switch-button"
-                            title="Toggle light/dark mode">
-                            <span class="sr-only">Toggle theme</span>
-                            <span class="theme-switch-thumb">
-                                <svg class="theme-icon-sun" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
-                                    fill="currentColor">
-                                    <path
-                                        d="M12 2.25a.75.75 0 01.75.75v2.25a.75.75 0 01-1.5 0V3a.75.75 0 01.75-.75zM7.5 12a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM18.894 6.166a.75.75 0 00-1.06-1.06l-1.591 1.59a.75.75 0 101.06 1.061l1.591-1.59zM21.75 12a.75.75 0 01-.75.75h-2.25a.75.75 0 010-1.5H21a.75.75 0 01.75.75zM17.834 18.894a.75.75 0 001.06-1.06l-1.59-1.591a.75.75 0 10-1.061 1.06l1.59 1.591zM12 18a.75.75 0 01.75.75V21a.75.75 0 01-1.5 0v-2.25A.75.75 0 0112 18zM7.758 17.303a.75.75 0 00-1.061-1.06l-1.591 1.59a.75.75 0 001.06 1.061l1.591-1.59zM6 12a.75.75 0 01-.75.75H3a.75.75 0 010-1.5h2.25A.75.75 0 016 12zM6.697 7.757a.75.75 0 001.06-1.06l-1.59-1.591a.75.75 0 00-1.061 1.06l1.59 1.591z" />
-                                </svg>
-                                <svg class="theme-icon-moon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
-                                    fill="currentColor">
-                                    <path fill-rule="evenodd"
-                                        d="M9.528 1.718a.75.75 0 01.162.819A8.97 8.97 0 009 6a9 9 0 009 9 8.97 8.97 0 003.463-.69.75.75 0 01.981.98 10.503 10.503 0 01-9.694 6.46c-5.799 0-10.5-4.701-10.5-10.5 0-4.368 2.667-8.112 6.46-9.694a.75.75 0 01.818.162z"
-                                        clip-rule="evenodd" />
-                                </svg>
-                            </span>
-                        </button>
-                    </div>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">VOICE STUDIO</div>
+                <button class="new-session-btn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                    Tạo mới
+                </button>
+            </div>
+            
+            <!-- Standard Features -->
+            <div class="menu-section">
+                <div class="menu-title">Dự án gần đây</div>
+                <div class="menu-item active">
+                    <span>Dự án không tên</span>
+                    <span>3:42</span>
+                </div>
+                <div class="menu-item">
+                    <span>Podcast tập 1</span>
+                    <span>5:18</span>
+                </div>
+                <div class="menu-item">
+                    <span>Giọng đọc sách</span>
+                    <span>12:05</span>
                 </div>
             </div>
-        </nav>
-
-        <!-- Main Content Area -->
-        <main>
-            <div class="mx-auto max-w-7xl px-4 py-1 sm:px-6 lg:px-8">
-
-                <div id="notification-area" class="mb-6 space-y-3"></div>
-
-                <div class="card-base">
-                    <form id="tts-form" action="#" method="post" class="flex flex-col" onsubmit="return false;">
-                        <div class="p-6 sm:p-8">
-                            <div class="flex items-center justify-between mb-4">
-                                <h2 id="tts-form-header" class="card-header">🎯 Voice Generation Studio</h2>
-                                <div class="flex items-center space-x-2">
-                                    <div class="status-indicator online">
-                                        <div class="status-dot online"></div>
-                                        <span>Advanced Features</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="mb-5">
-                                <label for="text" class="label-base">Text to synthesize</label>
-                                <p class="text-xs text-slate-500 dark:text-slate-400 mb-2">
-                                    Enter the text you want to convert to speech. For audiobooks, you can paste long
-                                    chapters.
-                                </p>
-                                <div class="relative">
-                                    <textarea name="text" id="text" rows="8" class="textarea-base"
-                                        placeholder="Enter text here..." required></textarea>
-                                    <div class="absolute bottom-2.5 right-3 text-xs text-slate-500 dark:text-slate-400">
-                                        <span id="char-count">0</span> Characters
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="flex flex-wrap items-center gap-x-6 gap-y-4 mb-6">
-                                <button type="button" id="generate-btn" class="btn-primary">
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                                        stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-1.5 inline-block">
-                                        <path stroke-linecap="round" stroke-linejoin="round"
-                                            d="M19.114 5.636a9 9 0 0 1 0 12.728M16.463 8.288a5.25 5.25 0 0 1 0 7.424M6.75 8.25l4.72-4.72a.75.75 0 0 1 1.28.53v15.88a.75.75 0 0 1-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.009 9.009 0 0 1 2.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75Z" />
-                                    </svg>
-                                    Generate Speech
-                                </button>
-                                <label for="split-text-toggle"
-                                    class="flex items-center cursor-pointer text-sm label-base select-none">
-                                    <input type="checkbox" id="split-text-toggle" name="split_text"
-                                        class="mr-2 h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 dark:border-slate-600 dark:bg-slate-700 dark:focus:ring-offset-slate-800 dark:checked:bg-indigo-500 dark:checked:border-indigo-500">
-                                    Split text into chunks
-                                </label>
-                                <div id="chunk-size-controls" class="flex items-center space-x-2 hidden">
-                                    <label for="chunk-size-slider" class="text-sm label-base whitespace-nowrap">Chunk
-                                        Size:</label>
-                                    <input type="range" id="chunk-size-slider" name="chunk_size" min="50" max="1000"
-                                        step="10" value="120" class="slider-base w-32">
-                                    <span id="chunk-size-value"
-                                        class="text-sm font-medium text-slate-700 dark:text-slate-300 w-10 text-right tabular-nums">120</span>
-                                </div>
-                            </div>
-                            <p id="chunk-explanation" class="text-xs text-slate-500 dark:text-slate-400 mb-6 hidden">
-                                Splitting is essential for longer texts like articles or audiobook chapters.
-                                Recommended chunk size: ~150-400 characters.
-                            </p>
-
-                            <div class="mb-6">
-                                <label class="label-base mb-2">Voice Mode:</label>
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <label class="voice-mode-option" data-mode="predefined">
-                                        <input type="radio" name="voice_mode" value="predefined" class="hidden peer"
-                                            checked>
-                                        <span>Predefined Voices</span>
-                                    </label>
-                                    <label class="voice-mode-option" data-mode="clone">
-                                        <input type="radio" name="voice_mode" value="clone" class="hidden peer">
-                                        <span>Voice Cloning (Reference)</span>
-                                    </label>
-                                </div>
-                            </div>
-
-                            <div id="predefined-voice-options" class="mb-6">
-                                <label for="predefined-voice-select" class="label-base">Select Predefined Voice:</label>
-                                <div class="flex items-center gap-2">
-                                    <select id="predefined-voice-select" name="predefined_voice_select"
-                                        class="select-base flex-grow">
-                                        <option value="none">-- Select Voice --</option>
-                                    </select>
-                                    <input type="file" id="predefined-voice-file-input" class="hidden" multiple
-                                        accept=".wav,.mp3" aria-label="Upload predefined voice file">
-                                    <button type="button" id="predefined-voice-import-button" class="btn-import"
-                                        title="Import new predefined voice files">
-                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                            <path
-                                                d="M9.25 13.25a.75.75 0 0 0 1.5 0V4.636l2.955 3.129a.75.75 0 0 0 1.09-1.03l-4.25-4.5a.75.75 0 0 0-1.09 0l-4.25 4.5a.75.75 0 1 0 1.09 1.03L9.25 4.636v8.614Z" />
-                                            <path
-                                                d="M3.5 12.75a.75.75 0 0 0-1.5 0v2.5A2.75 2.75 0 0 0 4.75 18h10.5A2.75 2.75 0 0 0 18 15.25v-2.5a.75.75 0 0 0-1.5 0v2.5c0 .69-.56 1.25-1.25 1.25H4.75c-.69 0-1.25-.56-1.25-1.25v-2.5Z" />
-                                        </svg>
-                                        Import
-                                    </button>
-                                    <button type="button" id="predefined-voice-refresh-button" class="btn-refresh"
-                                        title="Refresh predefined voice list">
-                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                            <path fill-rule="evenodd"
-                                                d="M15.312 11.424a5.5 5.5 0 0 1-9.201-4.42 5.5 5.5 0 0 1 10.89 2.01a.75.75 0 0 1-1.49.174a4 4 0 0 0-7.486-2.641a4 4 0 0 0 6.688 2.947a.75.75 0 0 1 .999.057l-.004-.005ZM4.688 8.576a5.5 5.5 0 0 1 9.201 4.42a5.5 5.5 0 0 1-10.89-2.01a.75.75 0 0 1 1.49-.174a4 4 0 0 0 7.486 2.641a4 4 0 0 0-6.688-2.947a.75.75 0 0 1-.999-.057l.004.005Z"
-                                                clip-rule="evenodd" />
-                                        </svg>
-                                        Refresh
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div id="clone-options" class="mb-6 hidden">
-                                <label for="clone-reference-select" class="label-base">Reference Audio File</label>
-                                <p class="text-xs text-slate-500 dark:text-slate-400 mb-2">
-                                    Select an uploaded <code class="code-inline">.wav</code> or <code
-                                        class="code-inline">.mp3</code> file.
-                                    For best results, use clean audio recordings.
-                                </p>
-                                <div class="flex items-center gap-2">
-                                    <select id="clone-reference-select" name="clone_reference_select"
-                                        class="select-base flex-grow">
-                                        <option value="none">-- Select Reference File --</option>
-                                    </select>
-                                    <input type="file" id="clone-file-input" class="hidden" multiple accept=".wav,.mp3"
-                                        aria-label="Upload reference audio file">
-                                    <button type="button" id="clone-import-button" class="btn-import"
-                                        title="Import new reference files">
-                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                            <path
-                                                d="M9.25 13.25a.75.75 0 0 0 1.5 0V4.636l2.955 3.129a.75.75 0 0 0 1.09-1.03l-4.25-4.5a.75.75 0 0 0-1.09 0l-4.25 4.5a.75.75 0 1 0 1.09 1.03L9.25 4.636v8.614Z" />
-                                            <path
-                                                d="M3.5 12.75a.75.75 0 0 0-1.5 0v2.5A2.75 2.75 0 0 0 4.75 18h10.5A2.75 2.75 0 0 0 18 15.25v-2.5a.75.75 0 0 0-1.5 0v2.5c0 .69-.56 1.25-1.25 1.25H4.75c-.69 0-1.25-.56-1.25-1.25v-2.5Z" />
-                                        </svg>
-                                        Import
-                                    </button>
-                                    <button type="button" id="clone-refresh-button" class="btn-refresh"
-                                        title="Refresh reference file list">
-                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                            <path fill-rule="evenodd"
-                                                d="M15.312 11.424a5.5 5.5 0 0 1-9.201-4.42 5.5 5.5 0 0 1 10.89 2.01a.75.75 0 0 1-1.49.174a4 4 0 0 0-7.486-2.641a4 4 0 0 0 6.688 2.947a.75.75 0 0 1 .999.057l-.004-.005ZM4.688 8.576a5.5 5.5 0 0 1 9.201 4.42a5.5 5.5 0 0 1-10.89-2.01a.75.75 0 0 1 1.49-.174a4 4 0 0 0 7.486 2.641a4 4 0 0 0-6.688-2.947a.75.75 0 0 1-.999-.057l.004.005Z"
-                                                clip-rule="evenodd" />
-                                        </svg>
-                                        Refresh
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div class="mb-6">
-                                <label class="label-base mb-2">Load Example Preset:</label>
-                                <div id="presets-container" class="flex flex-wrap gap-2">
-                                    <p id="presets-placeholder" class="text-sm text-slate-500 dark:text-slate-400">
-                                        Loading presets...</p>
-                                </div>
-                            </div>
-
-                            <div class="mb-6">
-                                <details class="group" open>
-                                    <summary class="list-none flex cursor-pointer items-center group">
-                                        <span
-                                            class="text-sm font-medium label-base group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">Generation
-                                            Parameters</span>
-                                        <span
-                                            class="ml-1.5 text-slate-400 group-hover:text-indigo-500 dark:group-hover:text-indigo-400 transition-colors">
-                                            <svg class="group-open:rotate-180 h-5 w-5 transition-transform duration-200 ease-in-out"
-                                                viewBox="0 0 20 20" fill="currentColor">
-                                                <path fill-rule="evenodd"
-                                                    d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                                                    clip-rule="evenodd" />
-                                            </svg>
-                                        </span>
-                                    </summary>
-                                    <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
-                                        <div>
-                                            <label for="temperature" class="label-base">Temperature (<span
-                                                    id="temperature-value"
-                                                    class="font-semibold tabular-nums">0.8</span>)</label>
-                                            <input type="range" id="temperature" name="temperature" min="0.0" max="1.5"
-                                                step="0.01" value="0.8" class="slider-base">
-                                        </div>
-                                        <div>
-                                            <label for="exaggeration" class="label-base">Exaggeration (<span
-                                                    id="exaggeration-value"
-                                                    class="font-semibold tabular-nums">0.5</span>)</label>
-                                            <input type="range" id="exaggeration" name="exaggeration" min="0.0"
-                                                max="2.0" step="0.01" value="0.5" class="slider-base">
-                                        </div>
-                                        <div>
-                                            <label for="cfg-weight" class="label-base">CFG Weight (<span
-                                                    id="cfg-weight-value"
-                                                    class="font-semibold tabular-nums">0.5</span>)</label>
-                                            <input type="range" id="cfg-weight" name="cfg_weight" min="0.0" max="2.0"
-                                                step="0.01" value="0.5" class="slider-base">
-                                        </div>
-                                        <div>
-                                            <label for="speed-factor" class="label-base">
-                                                Speed Factor (<span id="speed-factor-value"
-                                                    class="font-semibold tabular-nums">1.0</span>)
-                                                <span id="speed-factor-warning"
-                                                    class="text-xs text-yellow-600 dark:text-yellow-400 ml-2 hidden"></span>
-                                            </label>
-                                            <input type="range" id="speed-factor" name="speed_factor" min="0.25"
-                                                max="4.0" step="0.05" value="1.0" class="slider-base">
-                                        </div>
-                                        <div>
-                                            <label for="seed" class="label-base">Generation Seed</label>
-                                            <div class="w-36">
-                                                <input type="number" id="seed" name="seed" value="0"
-                                                    placeholder="0 (or -1 for random)" class="input-base"
-                                                    title="Enter an integer seed for reproducible results, or -1 for random. 0 may also be random depending on engine.">
-                                            </div>
-                                            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1.5">
-                                                Integer for reproducible results. Some engines use 0 or -1 for random.
-                                            </p>
-                                        </div>
-                                        <div id="language-select-container">
-                                            <label for="language" class="label-base">Language</label>
-                                            <select id="language" name="language" class="select-base w-36">
-                                                <option value="en">English</option>
-                                            </select>
-                                        </div>
-                                        <div>
-                                            <label for="output-format" class="label-base">Output Format</label>
-                                            <select id="output-format" name="output_format" class="select-base w-36">
-                                                <option value="wav">WAV</option>
-                                                <option value="mp3" selected>MP3</option>
-                                                <option value="opus">Opus</option>
-                                            </select>
-                                            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1.5">
-                                                MP3 is recommended for smaller file sizes (e.g., audiobooks).
-                                            </p>
-                                        </div>
-                                        <div class="col-span-1 md:col-span-2 mt-4 flex items-center gap-4">
-                                            <button id="save-gen-defaults-btn" type="button" class="btn-settings">Save
-                                                Generation Parameters</button>
-                                            <span id="gen-defaults-status" class="text-xs hidden"></span>
-                                        </div>
-                                    </div>
-                                </details>
-                            </div>
-
-                            <div class="mb-6">
-                                <details class="group" open> <!-- Server Config expanded by default -->
-                                    <summary class="list-none flex cursor-pointer items-center group">
-                                        <span
-                                            class="text-sm font-medium label-base group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">Server
-                                            Configuration</span>
-                                        <span
-                                            class="ml-1.5 text-slate-400 group-hover:text-indigo-500 dark:group-hover:text-indigo-400 transition-colors">
-                                            <svg class="group-open:rotate-180 h-5 w-5 transition-transform duration-200 ease-in-out"
-                                                viewBox="0 0 20 20" fill="currentColor">
-                                                <path fill-rule="evenodd"
-                                                    d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                                                    clip-rule="evenodd" />
-                                            </svg>
-                                        </span>
-                                    </summary>
-                                    <div id="server-config-form"
-                                        class="mt-4 border-t border-slate-200 dark:border-slate-700 pt-5">
-                                        <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">
-                                            These settings are loaded from <code class="code-inline">config.yaml</code>
-                                            via an API call.
-                                            <strong class="font-medium">Restart the server</strong> to apply changes to
-                                            Host, Port, Model, or Path settings if modified here or directly in the
-                                            file.
-                                        </p>
-                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-                                            <div><label for="config-server-host" class="label-base text-xs">Server
-                                                    Host</label><input type="text" id="config-server-host"
-                                                    name="server.host" class="input-base text-sm"></div>
-                                            <div><label for="config-server-port" class="label-base text-xs">Server
-                                                    Port</label><input type="number" id="config-server-port"
-                                                    name="server.port" class="input-base text-sm"></div>
-                                            <div><label for="config-tts-engine-device" class="label-base text-xs">TTS
-                                                    Device</label><input type="text" id="config-tts-engine-device"
-                                                    name="tts_engine.device" class="input-base text-sm"></div>
-                                            <div><label for="config-tts-engine-default_voice_id"
-                                                    class="label-base text-xs">Default Voice ID</label><input
-                                                    type="text" id="config-tts-engine-default_voice_id"
-                                                    name="tts_engine.default_voice_id" class="input-base text-sm"></div>
-                                            <div><label for="config-paths-model_cache" class="label-base text-xs">Model
-                                                    Cache Path</label><input type="text" id="config-paths-model_cache"
-                                                    name="paths.model_cache" class="input-base text-sm"></div>
-                                            <div><label for="config-tts-engine-predefined_voices_path"
-                                                    class="label-base text-xs">Predefined Voices Path</label><input
-                                                    type="text" id="config-tts-engine-predefined_voices_path"
-                                                    name="tts_engine.predefined_voices_path" class="input-base text-sm">
-                                            </div>
-                                            <div><label for="config-tts-engine-reference_audio_path"
-                                                    class="label-base text-xs">Reference Audio Path</label><input
-                                                    type="text" id="config-tts-engine-reference_audio_path"
-                                                    name="tts_engine.reference_audio_path" class="input-base text-sm">
-                                            </div>
-                                            <div><label for="config-paths-output" class="label-base text-xs">Output
-                                                    Path</label><input type="text" id="config-paths-output"
-                                                    name="paths.output" class="input-base text-sm"></div>
-                                            <div><label for="config-audio_output-format"
-                                                    class="label-base text-xs">Audio Output Format</label><input
-                                                    type="text" id="config-audio_output-format"
-                                                    name="audio_output.format" class="input-base text-sm"></div>
-                                            <div><label for="config-audio_output-sample_rate"
-                                                    class="label-base text-xs">Audio Sample Rate</label><input
-                                                    type="number" id="config-audio_output-sample_rate"
-                                                    name="audio_output.sample_rate" class="input-base text-sm"></div>
-
-                                            <div
-                                                class="col-span-1 md:col-span-2 mt-4 flex flex-col md:flex-row gap-4 items-center">
-                                                <button id="save-config-btn" type="button" class="btn-settings">Save
-                                                    Server Configuration</button>
-                                                <button id="restart-server-btn" type="button"
-                                                    class="btn-danger w-full md:w-auto hidden">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none"
-                                                        viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"
-                                                        class="w-5 h-5 mr-1.5 inline-block">
-                                                        <path stroke-linecap="round" stroke-linejoin="round"
-                                                            d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
-                                                    </svg>
-                                                    Restart Server
-                                                </button>
-                                                <span id="config-status" class="text-xs ml-2 hidden"></span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </details>
-                            </div>
-                        </div>
-
-                        <div class="card-footer">
-                            <button id="reset-settings-btn" type="button" class="btn-settings">Reset All
-                                Settings</button>
-                            <div class="text-xs text-slate-500 dark:text-slate-400 ml-2">
-                                Resets settings to their defaults.
-                            </div>
-                        </div>
-                    </form>
+            
+            <!-- Pro Features -->
+            <div class="menu-section">
+                <div class="menu-title">Tính năng</div>
+                <div class="menu-item">
+                    <span>Thư viện giọng</span>
                 </div>
-
-                <div id="audio-player-container" class="mt-8"></div>
-
-                <div class="mt-10">
-                    <h2 class="card-header mb-4 text-base font-semibold">Tips & Tricks</h2>
-                    <div class="card-base">
-                        <div class="p-6 sm:p-8">
-                            <ul class="list-disc space-y-2.5 pl-5 text-sm text-slate-700 dark:text-slate-300">
-                                <li>For **Audiobooks**, use **MP3** format, enable **Split text**, and set a chunk size
-                                    of ~250-500.</li>
-                                <li>Use **Predefined Voices** for consistent, high-quality output. You can import new
-                                    ones.</li>
-                                <li>For **Voice Cloning**, upload clean reference audio (<code
-                                        class="code-inline">.wav</code>/<code class="code-inline">.mp3</code>). Quality
-                                    of reference is key.</li>
-                                <li>Experiment with **Temperature** and other generation parameters to fine-tune output.
-                                </li>
-                                <li>Adjusting **Speed Factor** away from 1.0 is experimental and may cause echo.</li>
-                                <li>Check the <code class="code-inline">/docs</code> endpoint for API details.</li>
-                            </ul>
-                        </div>
+                <div class="menu-item">
+                    <span>Cài đặt cảm xúc</span>
+                </div>
+                <div class="menu-item-pro">
+                    <span>Chỉnh sửa nâng cao</span>
+                    <span class="pro-badge">PRO</span>
+                </div>
+                <div class="menu-item-pro">
+                    <span>Xuất file</span>
+                    <span class="pro-badge">PRO</span>
+                </div>
+            </div>
+            
+            <!-- Upgrade Section -->
+            <div class="upgrade-section">
+                <div class="upgrade-title">Nâng cấp lên Pro</div>
+                <div class="upgrade-desc">Mở khóa tất cả tính năng nâng cao</div>
+                <button class="upgrade-btn">Nâng cấp ngay</button>
+            </div>
+            
+            <div class="sidebar-footer">
+                <div class="user-profile">
+                    <div class="user-avatar">U</div>
+                    <div>
+                        <div style="font-size: 14px; font-weight: 500; color: var(--sidebar-text);">User</div>
+                        <div style="font-size: 12px; color: var(--sidebar-text); opacity: 0.7;">Free Plan</div>
                     </div>
                 </div>
             </div>
-        </main>
-
-        <footer class="bg-slate-100 dark:bg-slate-800 py-8 mt-16 border-t border-slate-200 dark:border-slate-700/80">
-            <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                <div class="flex justify-center">
-                    <a href="https://github.com/devnen/Chatterbox-TTS-Server" target="_blank" rel="noopener noreferrer"
-                        class="flex items-center gap-2 text-slate-500 dark:text-slate-400 text-sm hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor"
-                            viewBox="0 0 16 16" class="flex-shrink-0">
-                            <path
-                                d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.012 8.012 0 0 0 16 8c0-4.42-3.58-8-8-8z" />
-                        </svg>
-                        <span>View Project on GitHub | Powered by FastAPI</span>
-                    </a>
-                </div>
-            </div>
-        </footer>
-    </div>
-
-    <div id="loading-overlay" class="loading-overlay-base hidden opacity-0" data-state="closed" style="display: none;">
-        <div class="loading-box-base">
-            <svg class="loading-spinner animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none"
-                viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
-                </path>
+        </div>
+        
+        <!-- Mobile Menu Toggle -->
+        <div class="menu-toggle" onclick="toggleSidebar()">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="3" y1="12" x2="21" y2="12"></line>
+                <line x1="3" y1="6" x2="21" y2="6"></line>
+                <line x1="3" y1="18" x2="21" y2="18"></line>
             </svg>
-            <p id="loading-message" class="loading-text">Generating audio...</p>
-            <p id="loading-status" class="loading-status">Please wait.</p>
-            <button id="loading-cancel-btn" type="button" class="btn-secondary mt-1"
-                title="Cancel UI request. Backend may continue briefly.">Cancel</button>
+        </div>
+        
+        <!-- Theme Toggle -->
+        <div class="theme-toggle" id="themeToggle">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="5"></circle>
+                <line x1="12" y1="1" x2="12" y2="3"></line>
+                <line x1="12" y1="21" x2="12" y2="23"></line>
+                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                <line x1="1" y1="12" x2="3" y2="12"></line>
+                <line x1="21" y1="12" x2="23" y2="12"></line>
+                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+            </svg>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="content-area">
+                <div class="voice-studio-grid">
+                    <!-- Text Input (trái) -->
+                    <div class="text-input-container">
+                        <textarea class="text-input" id="text-input" placeholder="Nhập nội dung văn bản..." rows="1"></textarea>
+                        <div class="input-footer">
+                            <div class="char-counter"><span id="char-count">0</span> ký tự</div>
+                            <div style="display: flex; align-items: center;">
+                                <div class="tools-btn" id="voiceConfigBtn">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <circle cx="12" cy="12" r="3"></circle>
+                                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                                    </svg>
+                                </div>
+                                <button class="generate-btn">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Voice Config (phải) -->
+                    <div class="voice-config" id="voiceConfig">
+                        <div class="config-title">
+                            Cấu hình giọng nói
+                            <div class="config-close" id="closeConfig">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                </svg>
+                            </div>
+                        </div>
+                        
+                        <div class="setting-group">
+                            <label class="setting-label">Giọng nói</label>
+                            <select class="setting-control">
+                                <option value="female1">Nữ 1 - Miền Bắc</option>
+                                <option value="female2">Nữ 2 - Miền Nam</option>
+                                <option value="male1">Nam 1 - Miền Bắc</option>
+                                <option value="male2">Nam 2 - Miền Nam</option>
+                            </select>
+                        </div>
+                        
+                        <div class="setting-group">
+                            <label class="setting-label">Cảm xúc</label>
+                            <select class="setting-control">
+                                <option value="neutral">Bình thường</option>
+                                <option value="happy">Vui vẻ</option>
+                                <option value="sad">Buồn bã</option>
+                                <option value="angry">Tức giận</option>
+                                <option value="fearful">Sợ hãi</option>
+                            </select>
+                        </div>
+                        
+                        <div class="setting-group">
+                            <label class="setting-label">Tốc độ</label>
+                            <div class="slider-control">
+                                <input type="range" min="0.5" max="2.0" step="0.1" value="1.0" id="speed-slider">
+                                <span class="slider-value" id="speed-value">1.0x</span>
+                            </div>
+                        </div>
+                        
+                        <div class="setting-group">
+                            <label class="setting-label">Độ cao</label>
+                            <div class="slider-control">
+                                <input type="range" min="0.5" max="2.0" step="0.1" value="1.0" id="temperature-slider">
+                                <span class="slider-value" id="temperature-value">1.0</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Progress Indicator -->
+                <div class="progress-indicator" id="progress-indicator">
+                    <div class="progress-spinner"></div>
+                    <div class="progress-text">Đang tạo giọng nói...</div>
+                </div>
+            </div>
+            
+            <!-- Audio Player Bar (macOS style) - luôn hiển thị -->
+            <div class="audio-player-bar" id="audio-player-bar">
+                <div class="player-controls">
+                    <div class="play-btn" onclick="togglePlay()">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M8 5v14l11-7z"/>
+                        </svg>
+                    </div>
+                    <div class="progress-track" onclick="seekAudio(event)">
+                        <div class="progress-bar-fill" id="progress-fill"></div>
+                    </div>
+                    <div class="time-display">
+                        <span id="current-time">0:00</span> / <span id="total-time">1:23</span>
+                    </div>
+                </div>
+                <div class="audio-actions">
+                    <div class="action-btn" onclick="toggleDownloadMenu()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7,10 12,15 17,10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                    </div>
+                    <div class="action-btn" onclick="shareAudio()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="18" cy="5" r="3"></circle>
+                            <circle cx="6" cy="12" r="3"></circle>
+                            <circle cx="18" cy="19" r="3"></circle>
+                            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                            <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+                        </svg>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
-
-    <div id="chunk-warning-modal" class="modal-overlay hidden opacity-0" data-state="closed" style="display: none;">
-        <div class="modal-box">
-            <h3 class="modal-title">Chunking Voice Consistency Warning</h3>
-            <div class="modal-content">
-                <p>You are generating with text splitting enabled and not using Predefined Voices or Voice Cloning with
-                    a fixed seed.</p>
-                <p class="mt-2">This combination may result in <strong class="font-semibold">different voices for
-                        different text chunks</strong>, leading to inconsistent audio.</p>
-                <p class="mt-2">For consistent voices across chunks, please use:</p>
-                <ul class="list-disc pl-5 mt-1 space-y-1">
-                    <li>"Predefined Voices" mode.</li>
-                    <li>"Voice Cloning" mode.</li>
-                    <li>A specific integer in "Generation Seed" (not random).</li>
-                </ul>
-            </div>
-            <div class="mt-4 mb-5 flex items-center">
-                <input type="checkbox" id="hide-chunk-warning-checkbox"
-                    class="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 dark:border-slate-600 dark:bg-slate-700 dark:focus:ring-offset-slate-800 dark:checked:bg-indigo-500 dark:checked:border-indigo-500">
-                <label for="hide-chunk-warning-checkbox"
-                    class="ml-2 block text-sm text-slate-700 dark:text-slate-300 cursor-pointer">Do not show this
-                    warning again</label>
-            </div>
-            <div class="modal-actions">
-                <button id="chunk-warning-cancel" type="button" class="btn-secondary">Cancel Generation</button>
-                <button id="chunk-warning-ok" type="button" class="btn-primary">Proceed Anyway</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="generation-warning-modal" class="modal-overlay hidden opacity-0" data-state="closed"
-        style="display: none;">
-        <div class="modal-box">
-            <h3 class="modal-title">Generation Quality Notice</h3>
-            <div class="modal-content">
-                <p>Please be aware that text-to-speech models may sometimes produce unexpected results or artifacts.</p>
-                <p class="mt-2">This can include variations in voice consistency, delivery, or minor audio
-                    imperfections. Experiment with parameters for best results.</p>
-            </div>
-            <div class="mt-4 mb-5 flex items-center">
-                <input type="checkbox" id="hide-generation-warning-checkbox"
-                    class="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 dark:border-slate-600 dark:bg-slate-700 dark:focus:ring-offset-slate-800 dark:checked:bg-indigo-500 dark:checked:border-indigo-500">
-                <label for="hide-generation-warning-checkbox"
-                    class="ml-2 block text-sm text-slate-700 dark:text-slate-300 cursor-pointer">Do not show this
-                    warning again</label>
-            </div>
-            <div class="modal-actions">
-                <button id="generation-warning-acknowledge" type="button" class="btn-primary">Acknowledge &
-                    Generate</button>
-            </div>
-        </div>
-    </div>
-
-    <script src="script.js" defer></script>
+    
+    <script>
+        let isGenerating = false;
+        let isPlaying = false;
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            updateCharCount();
+            setupEventListeners();
+            
+            // Audio player luôn hiển thị
+            document.getElementById('audio-player-bar').style.display = 'flex';
+            
+            // Auto-resize text input
+            const textInput = document.getElementById('text-input');
+            textInput.addEventListener('input', function() {
+                this.style.height = 'auto';
+                this.style.height = (this.scrollHeight) + 'px';
+            });
+        });
+        
+        function setupEventListeners() {
+            document.getElementById('text-input').addEventListener('input', updateCharCount);
+            
+            // Slider updates
+            document.getElementById('speed-slider').addEventListener('input', function() {
+                document.getElementById('speed-value').textContent = this.value + 'x';
+            });
+            document.getElementById('temperature-slider').addEventListener('input', function() {
+                document.getElementById('temperature-value').textContent = this.value;
+            });
+        }
+        
+        function updateCharCount() {
+            const textInput = document.getElementById('text-input');
+            const charCount = document.getElementById('char-count');
+            if (textInput && charCount) {
+                charCount.textContent = textInput.value.length;
+            }
+        }
+        
+        function startNewSession() {
+            document.getElementById('text-input').value = '';
+            updateCharCount();
+            // Audio player luôn hiển thị
+            // document.getElementById('audio-player-bar').style.display = 'none';
+        }
+        
+        function toggleSidebar() {
+            document.querySelector('.sidebar').classList.toggle('open');
+        }
+        
+        async function generateAudio() {
+            const textInput = document.getElementById('text-input');
+            const text = textInput.value.trim();
+            
+            if (!text) {
+                alert('Vui lòng nhập nội dung để tạo giọng nói');
+                return;
+            }
+            
+            if (isGenerating) return;
+            
+            isGenerating = true;
+            showProgress();
+            
+            try {
+                await simulateGeneration();
+                // Audio player luôn hiển thị nên không cần hiển thị lại
+                // showAudioPlayer();
+            } catch (error) {
+                alert('Tạo thất bại: ' + error.message);
+            } finally {
+                isGenerating = false;
+                hideProgress();
+            }
+        }
+        
+        function showProgress() {
+            document.getElementById('progress-indicator').style.display = 'flex';
+        }
+        
+        function hideProgress() {
+            document.getElementById('progress-indicator').style.display = 'none';
+        }
+        
+        function showAudioPlayer() {
+            document.getElementById('audio-player-bar').style.display = 'flex';
+        }
+        
+        async function simulateGeneration() {
+            await new Promise(resolve => setTimeout(resolve, 2000));
+        }
+        
+        function togglePlay() {
+            isPlaying = !isPlaying;
+            const playBtn = document.querySelector('.play-btn svg');
+            
+            if (isPlaying) {
+                playBtn.innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
+            } else {
+                playBtn.innerHTML = '<path d="M8 5v14l11-7z"/>';
+            }
+        }
+        
+        function seekAudio(event) {
+            const track = event.currentTarget;
+            const rect = track.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const percent = x / rect.width;
+            
+            document.getElementById('progress-fill').style.width = (percent * 100) + '%';
+            
+            // Update time display
+            const totalSeconds = 83; // 1:23 in seconds
+            const currentSeconds = Math.floor(percent * totalSeconds);
+            const mins = Math.floor(currentSeconds / 60);
+            const secs = currentSeconds % 60;
+            document.getElementById('current-time').textContent = mins + ':' + (secs < 10 ? '0' + secs : secs);
+        }
+        
+        function toggleDownloadMenu() {
+            alert('Tải xuống dưới dạng MP3');
+        }
+        
+        function shareAudio() {
+            alert('Tính năng chia sẻ sẽ sớm có!');
+        }
+        
+        // Toggle voice config popout
+        const voiceConfigBtn = document.getElementById('voiceConfigBtn');
+        const voiceConfig = document.getElementById('voiceConfig');
+        const closeConfig = document.getElementById('closeConfig');
+        
+        voiceConfigBtn.addEventListener('click', () => {
+            voiceConfig.classList.toggle('show');
+        });
+        
+        closeConfig.addEventListener('click', () => {
+            voiceConfig.classList.remove('show');
+        });
+        
+        // Toggle theme
+        const themeToggle = document.getElementById('themeToggle');
+        const body = document.body;
+        
+        themeToggle.addEventListener('click', () => {
+            body.classList.toggle('dark-theme');
+            
+            // Update theme toggle icon
+            if (body.classList.contains('dark-theme')) {
+                themeToggle.innerHTML = `
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                `;
+            } else {
+                themeToggle.innerHTML = `
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                `;
+            }
+        });
+        
+        // Mobile menu toggle
+        const menuToggle = document.querySelector('.menu-toggle');
+        const sidebar = document.querySelector('.sidebar');
+        
+        menuToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('open');
+        });
+        
+        // Auto-resize text input
+        const textInput = document.querySelector('.text-input');
+        const charCounter = document.querySelector('.char-counter');
+        
+        textInput.addEventListener('input', () => {
+            textInput.style.height = 'auto';
+            textInput.style.height = textInput.scrollHeight + 'px';
+            
+            // Update character counter
+            const charCount = textInput.value.length;
+            charCounter.textContent = `${charCount}/500 ký tự`;
+        });
+    </script>
 </body>
-
 </html>

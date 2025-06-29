@@ -1,0 +1,53 @@
+{
+  "project": {
+    "title": "Demo Inner Voice trong Advanced UI",
+    "duration": 60
+  },
+  "segments": [
+    {
+      "id": 1,
+      "title": "Câu chuyện nội tâm",
+      "dialogues": [
+        {
+          "speaker": "narrator",
+          "text": "Hôm nay trời thật đẹp, nắng vàng rực rỡ.",
+          "emotion": "happy"
+        },
+        {
+          "speaker": "narrator",
+          "text": "Mình có nên ra ngoài chơi không nhỉ?",
+          "emotion": "contemplative",
+          "inner_voice": true,
+          "inner_voice_type": "light"
+        },
+        {
+          "speaker": "narrator",
+          "text": "Nhớ lại ngày hôm qua, mình đã làm việc từ sáng đến khuya...",
+          "emotion": "nostalgic",
+          "inner_voice": true,
+          "inner_voice_type": "deep"
+        },
+        {
+          "speaker": "narrator",
+          "text": "Giá như mình có thể bay đi khắp thế giới, thăm những vùng đất xa xôi...",
+          "emotion": "dreamy",
+          "inner_voice": true,
+          "inner_voice_type": "dreamy"
+        },
+        {
+          "speaker": "narrator",
+          "text": "Thôi được rồi, quyết định đi dạo công viên vậy!",
+          "emotion": "determined"
+        }
+      ]
+    }
+  ],
+  "characters": [
+    {
+      "id": "narrator",
+      "name": "Người kể chuyện",
+      "gender": "female",
+      "default_emotion": "friendly"
+    }
+  ]
+} 

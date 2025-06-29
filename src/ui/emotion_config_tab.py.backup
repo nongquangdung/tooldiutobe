@@ -1,0 +1,2771 @@
+#!/usr/bin/env python3
+"""
+🎭 EMOTION CONFIGURATION TAB - TABLE FORMAT (IMPROVED)
+====================================================
+
+Tab quản lý cảm xúc với format bảng được cải thiện về UI/UX.
+
+Features:
+- Table format với row height phù hợp
+- Preview âm thanh hoạt động tốt
+- Action buttons gọn gàng
+- Text formatting nhất quán
+"""
+
+import os
+import json
+import time
+from typing import Dict, List, Optional, Any
+from PySide6.QtWidgets import (
+    QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
+    QGroupBox, QLabel, QPushButton, QComboBox,
+    QSlider, QLineEdit, QMessageBox, QFileDialog,
+    QCheckBox, QScrollArea, QFormLayout, QDialog,
+    QTableWidget, QTableWidgetItem, QHeaderView,
+    QSpinBox, QDoubleSpinBox, QProgressBar, QProgressDialog
+)
+from PySide6.QtCore import Qt, Signal, QThread, QTimer
+from PySide6.QtGui import QFont, QColor
+from PySide6.QtWidgets import QApplication
+
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+from core.unified_emotion_system import UnifiedEmotionSystem
+from core.unified_emotion_helpers import get_emotion_parameters
+
+# Import TTS provider để preview âm thanh thật
+try:
+    from tts.real_chatterbox_provider import RealChatterboxProvider
+    PREVIEW_AVAILABLE = True
+except ImportError:
+    PREVIEW_AVAILABLE = False
+    print("⚠️ TTS provider not available - preview will be simulated")
+
+# Import flag xem InnerVoiceProcessor có khả dụng toàn hệ thống không
+try:
+    from tts.voice_generator import INNER_VOICE_AVAILABLE  # pylint: disable=import-error
+except Exception:
+    INNER_VOICE_AVAILABLE = False
+    print("⚠️ INNER_VOICE_AVAILABLE flag not found – sẽ coi là False")
+
+import logging
+logger = logging.getLogger(__name__)
+
+class AudioPreviewThread(QThread):
+    """Thread để generate preview âm thanh thật"""
+    preview_completed = Signal(str, str, bool)  # emotion_name, audio_path, success
+    preview_progress = Signal(str, int)  # emotion_name, progress_percent
+    preview_error = Signal(str, str)  # emotion_name, error_message
+    
+    def __init__(self, emotion_name: str, parameters: dict):
+        super().__init__()
+        self.emotion_name = emotion_name
+        self.parameters = parameters
+        # Dùng prompt ngắn gọn; nếu cần có bảng EMOTION_PROMPTS có thể nâng cấp sau
+        self.preview_text = f"This is a preview of the {emotion_name} emotion with custom parameters."
+    
+    def run(self):
+        """Generate emotion preview audio using RealChatterboxProvider (if available)"""
+        try:
+            # 10% – bắt đầu
+            self.preview_progress.emit(self.emotion_name, 10)
+
+            if PREVIEW_AVAILABLE:
+                try:
+                    provider = RealChatterboxProvider()
+                    self.preview_progress.emit(self.emotion_name, 30)
+
+                    # Bảo đảm tên file duy nhất tránh xung đột/permission denied
+                    preview_dir = "test_audio_output"
+                    os.makedirs(preview_dir, exist_ok=True)
+                    import time as _preview_time
+                    ts = int(_preview_time.time())
+                    audio_path = os.path.join(preview_dir, f"emotion_preview_{self.emotion_name}_{ts}.wav")
+
+                    # 60% – đang generate
+                    self.preview_progress.emit(self.emotion_name, 60)
+
+                    result = provider.generate_voice(
+                        text=self.preview_text,
+                        save_path=audio_path,
+                        emotion_exaggeration=self.parameters.get("exaggeration", 1.0),
+                        cfg_weight=self.parameters.get("cfg_weight", 0.5),
+                        speed=self.parameters.get("speed", 1.0),
+                    )
+
+                    success = result.get("success", False)
+                    # 100% – hoàn tất
+                    self.preview_progress.emit(self.emotion_name, 100)
+
+                    if success and os.path.exists(audio_path):
+                        self.preview_completed.emit(self.emotion_name, audio_path, True)
+                    else:
+                        self.preview_error.emit(self.emotion_name, "TTS generation failed")
+
+                except Exception as gen_err:
+                    self.preview_error.emit(self.emotion_name, f"TTS error: {gen_err}")
+            else:
+                # Simulation mode nếu thiếu provider
+                import time as _sim_time
+                _sim_time.sleep(2)
+                self.preview_progress.emit(self.emotion_name, 100)
+                self.preview_completed.emit(self.emotion_name, "simulated_preview.wav", False)
+
+        except Exception as e:
+            self.preview_error.emit(self.emotion_name, str(e))
+    
+class InnerVoicePreviewThread(QThread):
+    """SIMPLIFIED: Generate TTS then apply FFmpeg effects"""
+    preview_completed = Signal(str, str, bool)  # inner_voice_type, audio_path, success
+    preview_error = Signal(str, str)  # inner_voice_type, error_message
+    preview_progress = Signal(str, int)  # inner_voice_type, progress_percent
+    
+    def __init__(self, inner_voice_type: str, parameters: dict):
+        super().__init__()
+        self.inner_voice_type = inner_voice_type
+        self.parameters = parameters
+        
+        # Sample texts for each type
+        self.texts = {
+            'light': 'This is a preview of the light emotion with custom effects applied.',
+            'deep': 'The deep voice resonates with powerful undertones and rich harmonics.',
+            'dreamy': 'Cotton candy clouds carry wishes to sleeping mountains far away.'
+        }
+    
+    def run(self):
+        """SIMPLE: 2-step process - TTS then FFmpeg"""
+        try:
+            import time
+            import subprocess
+            import os
+            
+            print(f"🎵 [SIMPLE] Starting preview: {self.inner_voice_type}")
+            
+            # Step 1: Generate base TTS
+            text = self.texts.get(self.inner_voice_type, self.texts['light'])
+            timestamp = int(time.time())
+            base_file = f"test_audio_output/base_{self.inner_voice_type}_{timestamp}.wav"
+            
+            os.makedirs("test_audio_output", exist_ok=True)
+            
+            # Use RealChatterboxProvider directly (same as AudioPreviewThread)
+            try:
+                provider = RealChatterboxProvider()
+                
+                result = provider.generate_voice(
+                    text=text,
+                    save_path=base_file,
+                    emotion_exaggeration=1.0,
+                    cfg_weight=0.5,
+                    speed=1.0
+                )
+                success = result.get('success', False)
+                
+                if not success or not os.path.exists(base_file):
+                    self.preview_error.emit(self.inner_voice_type, "Failed to generate base TTS")
+                    return
+                    
+                print(f"✅ [SIMPLE] Base TTS: {base_file}")
+                
+            except Exception as e:
+                self.preview_error.emit(self.inner_voice_type, f"TTS error: {e}")
+                return
+            
+            # Step 2: Apply Inner Voice effects using simple processor
+            output_file = f"test_inner_voice_output/preview_{self.inner_voice_type}_{timestamp}.wav"
+            os.makedirs("test_inner_voice_output", exist_ok=True)
+            
+            try:
+                from core.inner_voice_simple import apply_inner_voice_effects
+                
+                success = apply_inner_voice_effects(
+                    input_file=base_file,
+                    output_file=output_file,
+                    voice_type=self.inner_voice_type,
+                    custom_params=self.parameters
+                )
+                
+                if success and os.path.exists(output_file):
+                    print(f"✅ [SIMPLE] Effects applied: {output_file}")
+                    
+                    # Cleanup base file
+                    try:
+                        os.remove(base_file)
+                    except:
+                        pass
+                    
+                    self.preview_completed.emit(self.inner_voice_type, output_file, True)
+                else:
+                    self.preview_error.emit(self.inner_voice_type, "Failed to apply inner voice effects")
+                    
+            except Exception as e:
+                print(f"❌ [SIMPLE] Effects error: {e}")
+                self.preview_error.emit(self.inner_voice_type, f"Effects error: {e}")
+                
+        except Exception as e:
+            print(f"❌ [SIMPLE] Preview error: {e}")
+            self.preview_error.emit(self.inner_voice_type, f"Preview error: {e}")
+
+# 🎭 95 UNIQUE EMOTION PROMPTS - Diverse, engaging texts for each emotion
+EMOTION_PROMPTS = {
+    "neutral": "The quarterly performance metrics indicate steady growth across all operational divisions, with projected improvements in efficiency over the next fiscal period.",
+    "calm": "Listen to the gentle rhythm of rain against the window. Everything unfolds exactly as it should, in perfect harmony with the natural flow of time.",
+        "neutral": "The quarterly performance metrics indicate steady growth across all operational divisions, with projected improvements in efficiency over the next fiscal period.",
+        "calm": "Listen to the gentle rhythm of rain against the window. Everything unfolds exactly as it should, in perfect harmony with the natural flow of time.",
+        "happy": "Sunlight streams through the trees as laughter fills the air! This moment sparkles with pure joy, painting the world in vibrant, beautiful colors.",
+        "sad": "Empty rooms echo with memories of what once was. The silence speaks volumes about dreams that drifted away like autumn leaves on the wind.",
+        "angry": "This betrayal burns like fire in my chest! How dare you break your promises and disrespect everything we built together? I will not stand for this!",
+        "surprised": "No way! Did that really just happen? My mind is completely blown—I never imagined such an incredible twist could be possible!",
+        "excited": "Adventure awaits beyond that horizon! Every fiber of my being vibrates with anticipation as we stand on the edge of something extraordinary and life-changing!",
+        "cheerful": "What a glorious morning to embrace new possibilities! The birds are singing, flowers are blooming, and my heart overflows with optimism for today's adventures!",
+        "optimistic": "Every challenge holds the seeds of opportunity within it. No matter how dark the clouds appear, I know sunshine will break through eventually.",
+        "proud": "Years of dedication have culminated in this magnificent achievement! The countless hours of effort were worth every sacrifice to reach this pinnacle of success.",
+        "grateful": "Your unwavering support lifted me when I was drowning in doubt. I am deeply moved by your kindness and will treasure this gift forever.",
+        "delighted": "This exceeds every expectation I dared to have! The attention to detail, the craftsmanship, the sheer beauty—it's absolutely perfect in every way.",
+        "enthusiastic": "This project ignites my imagination like fireworks! I can envision endless possibilities spreading before us like an ocean of creative potential.",
+        "impressed": "Your mastery of this complex skill leaves me speechless. The precision, the artistry, the innovation—it's truly world-class excellence in action.",
+        "praising": "The elegance with which you handled that crisis was extraordinary. Your leadership transformed chaos into triumph through pure wisdom and grace.",
+        "amazed": "Reality seems to bend around this incredible phenomenon! What I'm witnessing defies everything I thought I understood about the laws of nature.",
+        "stunned": "Words fail me completely. This revelation shatters my understanding of everything, leaving me breathless and searching for new comprehension.",
+        "shocked": "This news hits like lightning from a clear sky! The implications are staggering, and I need time to process this earth-shattering information.",
+        "disappointed": "The bitter taste of broken promises lingers in my heart. After placing my trust so completely, this outcome feels like a crushing blow.",
+        "frustrated": "Every solution I attempt crumbles like sand through my fingers! This endless cycle of setbacks tests the very limits of my patience.",
+        "irritated": "That incessant noise grates against my nerves like chalk on a blackboard! Please, for the love of peace, make it stop immediately!",
+        "furious": "This flagrant violation of our agreement ignites a rage that burns hotter than molten steel! Your betrayal is absolutely inexcusable!",
+        "disgusted": "The repulsive nature of this behavior turns my stomach. How anyone could stoop to such vile, deplorable actions is beyond my comprehension.",
+        "hurt": "Those cruel words pierce my soul like daggers of ice. The pain cuts so deep that I wonder if this wound will ever truly heal.",
+        "melancholy": "Autumn whispers stories of endings, painting the world in sepia tones of gentle sorrow. There's strange beauty in this bittersweet longing.",
+        "melancholic": "The ghost of what might have been haunts these quiet moments. I drift through memories like shadows dancing in twilight's embrace.",
+        "dramatic": "The curtain rises on the final scene! All of history has led to this pivotal moment where heroes are born and legends are written!",
+        "passionate": "This burning desire consumes my very essence! I would brave the fires of hell itself to defend what sets my spirit ablaze!",
+        "intense": "The air crackles with electricity as cosmic forces align! This moment pulses with the raw power to reshape destiny itself!",
+        "commanding": "Hear me clearly, for I speak with absolute authority! Your compliance is not requested—it is demanded without question or hesitation!",
+        "dominant": "I stand as the undisputed master of this domain! All decisions flow through my will, and all power bends to my command!",
+        "demanding": "Results, not excuses! I require immediate action on all fronts. The time for deliberation has passed—now we execute with precision!",
+        "stern": "Your conduct falls far below acceptable standards! This is your final warning before facing serious consequences for your actions.",
+        "firm": "My decision stands like bedrock—unmovable and final! No amount of persuasion will alter this carefully considered judgment.",
+        "assertive": "Let me be perfectly clear about my expectations. These standards are non-negotiable, and adherence is absolutely mandatory.",
+        "urgent": "Time slips away like sand in an hourglass! Every precious second lost brings us closer to irreversible catastrophe!",
+        "emergency": "Code red alert across all sectors! Drop everything and respond to this critical threat that demands immediate full attention!",
+        "warning": "Halt your advance immediately! The path ahead conceals dangers that could prove fatal if you proceed without proper caution!",
+        "alarm": "Sirens wail through the corridors of danger! All personnel must respond to this unprecedented crisis without delay!",
+        "critical": "We balance on a razor's edge between triumph and disaster! One misstep now could topple everything we've fought to build!",
+        "ominous": "Storm clouds gather with malevolent intent while ancient curses stir in the shadows. Something wicked approaches on silent wings.",
+        "eerie": "Ghostly whispers drift through abandoned halls where shadows move without owners. The very walls seem to pulse with supernatural dread.",
+        "fearful": "Invisible threats lurk behind every corner, making my skin crawl with premonition! Something evil watches from the darkness beyond sight.",
+        "anxious": "My heart pounds like thunder while scenarios of doom spiral through my racing mind! What if everything collapses into chaos?",
+        "worried": "Sleep eludes me as nightmarish possibilities parade through my thoughts! The weight of uncertainty presses down like crushing stone.",
+        "nervous": "Trembling hands betray my inner turmoil as sweat beads on my furrowed brow! This crucial moment tests every fiber of my being!",
+        "restless": "Kinetic energy courses through my veins like electricity! I must move, must act, must channel this overwhelming force into motion!",
+        "paranoid": "They conspire in whispered conferences, plotting my downfall! Every glance carries hidden meaning, every smile masks sinister intent!",
+        "terrified": "Bone-deep terror freezes my blood as primal fear overwhelms all rational thought! This nightmare surpasses my darkest imaginings!",
+        "horrified": "The abomination before me violates every law of nature and decency! My mind recoils from this vision of pure evil!",
+        "fear": "Ancient instincts scream warnings as supernatural dread seeps into my soul! This place reeks of malevolent, otherworldly presence!",
+        "sarcastic": "Oh, what a *revolutionary* idea! I'm sure nobody has ever attempted such a *brilliant* strategy in the entire history of civilization.",
+        "mocking": "Behold the great mastermind in action! Such *impressive* intellect surely deserves a standing ovation for this *groundbreaking* achievement.",
+        "ironic": "How perfectly fitting that the champion of truth becomes the master of deception! Life's sense of humor never ceases to amaze me.",
+        "cynical": "Another politician promises paradise while picking our pockets. How refreshingly *original* and completely *trustworthy* they appear.",
+        "confused": "These puzzle pieces refuse to form any coherent picture! My understanding crumbles like a house of cards in a hurricane!",
+        "bewildered": "Reality shifted when I wasn't looking! This bizarre situation defies all logic and leaves me utterly disoriented!",
+        "perplexed": "This enigma tangles my thoughts in knots! The more I analyze, the deeper the mystery becomes and the less I comprehend!",
+        "puzzled": "The narrative fragments don't align to create any sensible story! Critical information remains hidden in impenetrable shadows!",
+        "doubtful": "Skepticism clouds my judgment like morning fog! Something about this situation rings false, though I cannot pinpoint the deception!",
+        "uncertain": "Multiple paths diverge before me, each shrouded in equal mystery! The compass of my decision-making spins wildly without direction!",
+        "hesitant": "Caution whispers warnings while opportunity calls! Perhaps wisdom suggests we pause before leaping into this unknown abyss!",
+        "innocent": "I never intended any harm—honest! My actions came from pure intentions, though the results surprised even me completely!",
+        "naive": "But surely goodness lives in everyone's heart! Why would anyone choose cruelty when kindness feels so much more natural?",
+        "childlike": "Let's build castles from pillows and blankets! Our imagination can transform this ordinary room into a magical kingdom of wonder!",
+        "mysterious": "Ancient secrets whisper through moonlit corridors where forbidden knowledge sleeps! Some truths carry prices that mortals cannot afford to pay.",
+        "mystical": "Sacred energies flow through crystalline streams of consciousness! The veil between worlds grows gossamer-thin in this enchanted realm.",
+        "ethereal": "Starlight weaves melodies through dreams while celestial forces dance! Reality becomes fluid poetry written in languages of pure light.",
+        "cryptic": "The key lies hidden within the riddle itself! Only those who see beyond surface illusions will unlock the treasure within!",
+        "hypnotic": "Consciousness drifts on currents of amber honey while time dissolves into spirals of infinite possibility and transcendent peace.",
+        "dreamy": "Cotton candy clouds carry wishes to sleeping mountains while rainbow bridges span oceans of liquid silver starlight.",
+        "romantic": "Beneath this tapestry of stars, your presence transforms ordinary moments into eternal symphonies of perfect, breathtaking love.",
+        "seductive": "Move closer, my darling, and let me share secrets that will ignite flames of desire in the depths of your beautiful soul.",
+        "flirtatious": "Those sparkling eyes could melt the resolve of saints! You wield charm like a weapon designed to capture hearts completely.",
+        "friendly": "What a delightful surprise to encounter you here! Your radiant smile instantly brightens this ordinary day into something truly special!",
+        "encouraging": "Your potential blazes like a beacon in the darkness! Trust in your abilities—greatness flows through your very essence!",
+        "soft": "Rest now in this sanctuary of peace. Let healing warmth surround you while tomorrow's hopes gather strength in gentle silence.",
+        "sleepy": "Velvet pillows beckon while drowsiness wraps around me like silk! These heavy eyelids surrender to the sweet embrace of slumber.",
+        "contemplative": "Time weaves intricate patterns through the tapestry of choice and consequence! Each decision ripples through eternity's vast ocean.",
+        "humorous": "Picture this absurd scene: me, conducting an important business meeting while wearing bunny slippers! Life's comedy writes itself beautifully!",
+        "playful": "Adventure calls from the playground of imagination! Let's race clouds across the sky and chase butterflies through fields of laughter!",
+        "desperate": "All hope seems lost as options disappear like mirages! I reach out to you as my final lifeline in this ocean of despair!",
+        "begging": "I cast away all pride to plead for your mercy! Please don't abandon me to face this darkness alone—I need you desperately!",
+        "pleading": "From the depths of my heart, I implore your compassion! Consider the countless souls depending on your merciful decision!",
+        "earnest": "Every syllable carries the weight of absolute truth! These words flow from my soul's deepest wells of sincere conviction!",
+        "shy": "Words tangle on my tongue like shy butterflies! Your presence makes my heart flutter with nervous, wonderful anticipation!",
+        "embarrassed": "Crimson heat floods my cheeks as mortification overwhelms! Could the earth please open and swallow me whole right now?",
+        "matter_of_fact": "Statistical analysis reveals definitive correlations between variables X and Y, supporting our hypothesis with 95% confidence intervals.",
+        "informative": "Understanding requires mastering these fundamental principles: first establish parameters, then introduce controlled variables systematically.",
+        "whisper": "Lean closer—walls have ears in this place! The secret I'm about to share could change everything we thought we knew!",
+        "suspenseful": "Footsteps echo down empty hallways while shadows dance with sinister intent! Something approaches through the suffocating darkness!",
+        "admiring": "This artistry transcends human limitation to touch the divine! Every element harmonizes in perfect symphonic brilliance beyond mere mortal achievement!",
+        "cold": "Your apologies fall on deaf ears like snow on frozen ground. This bridge burned beyond repair the moment you chose betrayal over loyalty.",
+        "contemptuous": "Is this pathetic display truly your finest effort? Such mediocrity insults the very concept of excellence and achievement!",
+        "persuasive": "Envision the golden opportunities stretching endlessly before us! This chance may never return—seize destiny while fortune smiles upon us!",
+        "confident": "Success flows through my veins like liquid courage! I've prepared for this moment and nothing can shake my unwavering self-assurance!"
+    }
+    
+    def __init__(self, emotion_name: str, parameters: dict):
+        super().__init__()
+        self.emotion_name = emotion_name
+        self.parameters = parameters
+        # Use high-quality prompt nếu có, fallback to generic
+        self.preview_text = self.EMOTION_PROMPTS.get(
+            emotion_name.lower(), 
+            f"This is a preview of the {emotion_name} emotion with custom parameters."
+        )
+    
+    def run(self):
+        try:
+            self.preview_progress.emit(self.emotion_name, 10)
+            
+            if PREVIEW_AVAILABLE:
+                # Sử dụng TTS thật để generate audio
+                try:
+                    provider = RealChatterboxProvider()
+                    self.preview_progress.emit(self.emotion_name, 30)
+                    
+                    # Tạo file preview với tên duy nhất tránh xung đột file đang mở
+                    preview_dir = "test_audio_output"
+                    os.makedirs(preview_dir, exist_ok=True)
+                    import time as _preview_time
+                    ts = int(_preview_time.time())
+                    audio_path = os.path.join(preview_dir, f"emotion_preview_{self.emotion_name}_{ts}.wav")
+                    
+                    self.preview_progress.emit(self.emotion_name, 60)
+                    
+                    # Generate với parameters - sử dụng method chính xác
+                    result = provider.generate_voice(
+                        text=self.preview_text,
+                        save_path=audio_path,
+                        emotion_exaggeration=self.parameters.get('exaggeration', 1.0),
+                        cfg_weight=self.parameters.get('cfg_weight', 0.5),
+                        speed=self.parameters.get('speed', 1.0)
+                    )
+                    success = result.get('success', False)
+                    
+                    self.preview_progress.emit(self.emotion_name, 100)
+                    
+                    if success and os.path.exists(audio_path):
+                        self.preview_completed.emit(self.emotion_name, audio_path, True)
+                    else:
+                        self.preview_error.emit(self.emotion_name, "TTS generation failed")
+                        
+                except Exception as e:
+                    self.preview_error.emit(self.emotion_name, f"TTS error: {str(e)}")
+            else:
+                # Simulate preview cho demo
+                time.sleep(1.5)
+                self.preview_progress.emit(self.emotion_name, 50)
+                time.sleep(1.0)
+                self.preview_progress.emit(self.emotion_name, 100)
+                
+                self.preview_completed.emit(self.emotion_name, "simulated_preview.wav", False)
+                
+        except Exception as e:
+            self.preview_error.emit(self.emotion_name, str(e))
+
+class EmotionConfigTab(QWidget):
+    """Emotion Configuration Tab với Table Format cải tiến"""
+    
+    def __init__(self):
+        super().__init__()
+        self.unified_emotion_system = UnifiedEmotionSystem()
+        self.preview_threads = {}  # Track active preview threads
+        self.inner_voice_preview_threads = {}  # Track inner voice preview threads
+        
+        # Store original/default Inner Voice values for reset
+        self.inner_voice_original_values = {}
+        
+        self.setup_ui()
+        self.load_emotions_to_table()
+        self.connect_signals()
+        
+        # Load emotions to table
+        self.load_emotions_to_table()
+        
+        # Load inner voice config from file
+        self.load_inner_voice_config_from_file()
+        
+        # Connect signals for auto-saving
+        self.connect_inner_voice_signals()
+        
+        # Update statistics
+        self.update_statistics()
+    
+    def setup_ui(self):
+        layout = QVBoxLayout(self)
+        layout.setSpacing(10)
+        layout.setContentsMargins(10, 10, 10, 10)
+        
+        # Header
+        header_layout = QHBoxLayout()
+        
+        # Title đã được xóa theo yêu cầu người dùng
+        
+        header_layout.addStretch()
+        
+        # Action buttons
+        self.add_emotion_btn = QPushButton("➕ Thêm Emotion")
+        self.add_emotion_btn.setStyleSheet("""
+            QPushButton {
+                background-color: white;
+                color: #28CD41;
+                border: 1px solid #28CD41;
+                padding: 8px 15px;
+                border-radius: 6px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #F0FFF4;
+                border-color: #25B83A;
+            }
+        """)
+        self.add_emotion_btn.clicked.connect(self.add_custom_emotion)
+        header_layout.addWidget(self.add_emotion_btn)
+        
+        self.export_btn = QPushButton("📤 Export")
+        self.export_btn.setStyleSheet("""
+            QPushButton {
+                background-color: white;
+                color: #007AFF;
+                border: 1px solid #007AFF;
+                padding: 8px 15px;
+                border-radius: 6px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #F0F8FF;
+                border-color: #0056CC;
+            }
+        """)
+        self.export_btn.clicked.connect(self.export_config)
+        header_layout.addWidget(self.export_btn)
+        
+        self.import_btn = QPushButton("📥 Import")
+        self.import_btn.setStyleSheet("""
+            QPushButton {
+                background-color: white;
+                color: #FF9500;
+                border: 1px solid #FF9500;
+                padding: 8px 15px;
+                border-radius: 6px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #FFF9F0;
+                border-color: #E6850E;
+            }
+        """)
+        self.import_btn.clicked.connect(self.import_config)
+        header_layout.addWidget(self.import_btn)
+        
+        # Reset All button - đặt trước spacer
+        self.reset_all_btn = QPushButton("🔄 Reset All")
+        self.reset_all_btn.setStyleSheet("""
+            QPushButton {
+                background-color: white;
+                color: #FF6B35;
+                border: 1px solid #FF6B35;
+                padding: 8px 15px;
+                border-radius: 6px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #FFF5F5;
+                border-color: #E55A2B;
+            }
+            QPushButton:pressed {
+                background-color: #FED7CC;
+                border-color: #CC4C26;
+            }
+        """)
+        self.reset_all_btn.clicked.connect(self.reset_all_emotions_to_default)
+        header_layout.addWidget(self.reset_all_btn)
+        
+        layout.addLayout(header_layout)
+        
+        # Filter controls
+        filter_layout = QHBoxLayout()
+        
+        filter_layout.addWidget(QLabel("🔍 Lọc theo category:"))
+        self.category_filter = QComboBox()
+        # Cập nhật categories theo unified emotion system
+        all_categories = ["Tất cả"] + self.unified_emotion_system.get_emotion_categories()
+        self.category_filter.addItems(all_categories)
+        self.category_filter.currentTextChanged.connect(self.filter_emotions)
+        filter_layout.addWidget(self.category_filter)
+        
+        # Thêm sort button
+        self.sort_by_category_btn = QPushButton("🔄 Sort by Category")
+        self.sort_by_category_btn.setStyleSheet("""
+            QPushButton {
+                background-color: white;
+                color: #8B5CF6;
+                border: 1px solid #8B5CF6;
+                padding: 6px 12px;
+                border-radius: 4px;
+                font-weight: bold;
+                font-size: 11px;
+            }
+            QPushButton:hover {
+                background-color: #F5F3FF;
+                border-color: #7C3AED;
+            }
+        """)
+        self.sort_by_category_btn.clicked.connect(self.sort_emotions_by_category)
+        filter_layout.addWidget(self.sort_by_category_btn)
+        
+        self.show_custom_only = QCheckBox("Chỉ hiện custom emotions")
+        self.show_custom_only.toggled.connect(self.filter_emotions)
+        filter_layout.addWidget(self.show_custom_only)
+        
+        filter_layout.addStretch()
+        
+        # Statistics
+        self.stats_label = QLabel("")
+        self.stats_label.setStyleSheet("color: #666; font-size: 12px;")
+        filter_layout.addWidget(self.stats_label)
+        
+        layout.addLayout(filter_layout)
+        
+        # Main table với cải tiến + reset column
+        self.emotions_table = QTableWidget()
+        self.emotions_table.setColumnCount(10)  # Tăng thêm 1 cột cho reset
+        
+        headers = [
+            "🎭 Emotion Name",      # 0
+            "📝 Description",       # 1  
+            "🏷️ Category",         # 2
+            "🎯 Exaggeration",      # 3
+            "⚖️ CFG Weight",       # 4
+            "🌡️ Temperature",      # 5
+            "⚡ Speed",            # 6
+            "🔄 Reset",            # 7 - NEW reset column
+            "🎵 Preview",          # 8
+            "⚙️ Actions"          # 9
+        ]
+        
+        self.emotions_table.setHorizontalHeaderLabels(headers)
+        
+        # Set column widths với reset column
+        header = self.emotions_table.horizontalHeader()
+        header.setSectionResizeMode(0, QHeaderView.Fixed)  # Name
+        header.setSectionResizeMode(1, QHeaderView.Stretch)  # Description
+        header.setSectionResizeMode(2, QHeaderView.Fixed)  # Category
+        header.setSectionResizeMode(3, QHeaderView.Fixed)  # Exaggeration
+        header.setSectionResizeMode(4, QHeaderView.Fixed)  # CFG Weight
+        header.setSectionResizeMode(5, QHeaderView.Fixed)  # Temperature
+        header.setSectionResizeMode(6, QHeaderView.Fixed)  # Speed
+        header.setSectionResizeMode(7, QHeaderView.Fixed)  # Reset
+        header.setSectionResizeMode(8, QHeaderView.Fixed)  # Preview
+        header.setSectionResizeMode(9, QHeaderView.Fixed)  # Actions
+        
+        # Set specific widths
+        self.emotions_table.setColumnWidth(0, 150)  # Name
+        self.emotions_table.setColumnWidth(2, 110)  # Category
+        self.emotions_table.setColumnWidth(3, 120)  # Exaggeration
+        self.emotions_table.setColumnWidth(4, 120)  # CFG Weight
+        self.emotions_table.setColumnWidth(5, 120)  # Temperature
+        self.emotions_table.setColumnWidth(6, 100)  # Speed
+        self.emotions_table.setColumnWidth(7, 60)   # Reset
+        self.emotions_table.setColumnWidth(8, 100)  # Preview
+        self.emotions_table.setColumnWidth(9, 80)   # Actions
+        
+        # Cải thiện row height và table styling
+        self.emotions_table.setAlternatingRowColors(True)
+        self.emotions_table.setSelectionBehavior(QTableWidget.SelectRows)
+        self.emotions_table.verticalHeader().setDefaultSectionSize(45)  # Tăng row height
+        self.emotions_table.setStyleSheet("""
+            QTableWidget {
+                gridline-color: #e0e0e0;
+                background-color: white;
+                alternate-background-color: #f8f9fa;
+                font-size: 11px;
+            }
+            QHeaderView::section {
+                background-color: #f1f3f4;
+                padding: 8px;
+                border: 1px solid #e0e0e0;
+                font-weight: bold;
+                font-size: 11px;
+            }
+            QTableWidget::item {
+                padding: 8px;
+                border-bottom: 1px solid #e0e0e0;
+            }
+        """)
+        
+        layout.addWidget(self.emotions_table)
+        
+        # Status bar
+        self.status_label = QLabel("✅ Sẵn sàng")
+        self.status_label.setStyleSheet("""
+            QLabel {
+                background-color: #f8f9fa;
+                padding: 6px 10px;
+                border-radius: 4px;
+                color: #28CD41;
+                font-weight: bold;
+            }
+        """)
+        layout.addWidget(self.status_label)
+        
+        # === INNER VOICE CONFIG GROUP ===
+        self.inner_voice_group = QGroupBox("Inner Voice (Thoại nội tâm)")
+        self.inner_voice_group.setCheckable(True)
+        self.inner_voice_group.setChecked(False)
+        self.inner_voice_group.toggled.connect(self.on_inner_voice_toggle)
+        inner_voice_layout = QVBoxLayout()
+
+        # 3 type: light, deep, dreamy
+        self.inner_voice_type_widgets = {}
+        # Dictionary để track inner voice preview threads
+        self.inner_voice_preview_threads = {}
+        
+        for type_name, label in [("light", "Nội tâm nhẹ (light)"), ("deep", "Nội tâm sâu (deep)"), ("dreamy", "Nội tâm cách âm (dreamy)")]:
+            group = QGroupBox(label)
+            group_layout = QHBoxLayout()
+            # 4 thông số: delay, decay, gain, filter
+            delay = QDoubleSpinBox(); delay.setRange(0, 2000); delay.setSuffix(" ms"); delay.setSingleStep(10)
+            decay = QDoubleSpinBox(); decay.setRange(0, 1); decay.setSingleStep(0.01)
+            gain = QDoubleSpinBox(); gain.setRange(0, 2); gain.setSingleStep(0.01)
+            filter_edit = QLineEdit(); filter_edit.setPlaceholderText("FFmpeg filter string")
+            group_layout.addWidget(QLabel("Delay:")); group_layout.addWidget(delay)
+            group_layout.addWidget(QLabel("Decay:")); group_layout.addWidget(decay)
+            group_layout.addWidget(QLabel("Gain:")); group_layout.addWidget(gain)
+            group_layout.addWidget(QLabel("Filter:")); group_layout.addWidget(filter_edit)
+            
+            # Preview button cho inner voice
+            preview_btn = QPushButton("🎵 Preview")
+            preview_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: white;
+                    color: #6366F1;
+                    border: 1px solid #6366F1;
+                    padding: 5px 10px;
+                    border-radius: 4px;
+                    font-weight: bold;
+                }
+                QPushButton:hover {
+                    background-color: #F0F0FF;
+                    border-color: #4F46E5;
+                }
+                QPushButton:pressed {
+                    background-color: #E0E0FF;
+                    border-color: #3730A3;
+                }
+                QPushButton:disabled {
+                    background-color: #F8F9FA;
+                    color: #6B7280;
+                    border-color: #D1D5DB;
+                }
+            """)
+            preview_btn.clicked.connect(lambda _, t=type_name: self.preview_inner_voice(t))
+            group_layout.addWidget(preview_btn)
+            
+            reset_btn = QPushButton("Reset mặc định")
+            reset_btn.clicked.connect(lambda _, t=type_name: self.reset_inner_voice_type(t))
+            group_layout.addWidget(reset_btn)
+            
+            group.setLayout(group_layout)
+            inner_voice_layout.addWidget(group)
+            self.inner_voice_type_widgets[type_name] = {
+                "delay": delay, "decay": decay, "gain": gain, "filter": filter_edit, 
+                "preview": preview_btn, "reset": reset_btn, "group": group
+            }
+        
+        self.inner_voice_group.setLayout(inner_voice_layout)
+        layout.addWidget(self.inner_voice_group)
+    
+    def load_emotions_to_table(self):
+        """Load tất cả emotions vào table với styling cải tiến"""
+        all_emotions = self.unified_emotion_system.get_all_emotions()
+        
+        self.emotions_table.setRowCount(len(all_emotions))
+        
+        row = 0
+        for emotion_name, emotion in all_emotions.items():
+            # All emotions are editable in unified system
+            is_custom = False
+            
+            # Column 0: Emotion Name - sửa font weight và màu chữ
+            name_item = QTableWidgetItem(emotion_name)
+            # Font thường không in đậm theo yêu cầu
+            name_item.setFont(QFont("Arial", 10, QFont.Normal))
+            if is_custom:
+                name_item.setBackground(QColor("#E8F5E8"))  # Light green for custom
+                name_item.setForeground(QColor("#000000"))  # Đen cho dễ đọc
+            else:
+                name_item.setBackground(QColor("#E3F2FD"))  # Light blue for default
+                name_item.setForeground(QColor("#000000"))  # Đen cho dễ đọc
+            name_item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)  # Read-only
+            self.emotions_table.setItem(row, 0, name_item)
+            
+            # Column 1: Description
+            desc_item = QTableWidgetItem(emotion.get('description', 'No description'))
+            desc_item.setFont(QFont("Arial", 9))  # Smaller font cho description
+            if not is_custom:
+                desc_item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)  # Read-only for default
+            self.emotions_table.setItem(row, 1, desc_item)
+            
+            # Column 2: Category với sizing phù hợp
+            category_combo = QComboBox()
+            category_combo.addItems(["neutral", "positive", "negative", "dramatic", "special"])
+            category_combo.setCurrentText(emotion.get('category', 'neutral'))
+            category_combo.setMinimumHeight(30)  # Đảm bảo height đủ
+            category_combo.setStyleSheet("""
+                QComboBox {
+                    padding: 4px 8px;
+                    border: 1px solid #ccc;
+                    border-radius: 4px;
+                    font-size: 10px;
+                }
+                QComboBox::drop-down {
+                    width: 20px;
+                }
+            """)
+            if not is_custom:
+                category_combo.setEnabled(False)  # Read-only for default
+            else:
+                category_combo.currentTextChanged.connect(
+                    lambda text, name=emotion_name: self.update_emotion_parameter(name, 'category', text)
+                )
+            self.emotions_table.setCellWidget(row, 2, category_combo)
+            
+            # Column 3: Exaggeration
+            exag_spinbox = QDoubleSpinBox()
+            exag_spinbox.setRange(0.0, 2.5)
+            exag_spinbox.setSingleStep(0.1)
+            exag_spinbox.setDecimals(2)
+            exag_spinbox.setValue(emotion.get('exaggeration', 1.0))
+            exag_spinbox.setMinimumHeight(28)
+            exag_spinbox.setStyleSheet("font-size: 10px; padding: 2px;")
+            exag_spinbox.valueChanged.connect(
+                lambda value, name=emotion_name: self.update_emotion_parameter(name, 'exaggeration', value)
+            )
+            self.emotions_table.setCellWidget(row, 3, exag_spinbox)
+            
+            # Column 4: CFG Weight
+            cfg_spinbox = QDoubleSpinBox()
+            cfg_spinbox.setRange(0.0, 1.0)
+            cfg_spinbox.setSingleStep(0.05)
+            cfg_spinbox.setDecimals(2)
+            cfg_spinbox.setValue(emotion.get('cfg_weight', 0.6))
+            cfg_spinbox.setMinimumHeight(28)
+            cfg_spinbox.setStyleSheet("font-size: 10px; padding: 2px;")
+            cfg_spinbox.valueChanged.connect(
+                lambda value, name=emotion_name: self.update_emotion_parameter(name, 'cfg_weight', value)
+            )
+            self.emotions_table.setCellWidget(row, 4, cfg_spinbox)
+            
+            # Column 5: Temperature
+            temp_spinbox = QDoubleSpinBox()
+            temp_spinbox.setRange(0.1, 1.5)
+            temp_spinbox.setSingleStep(0.1)
+            temp_spinbox.setDecimals(2)
+            temp_spinbox.setValue(emotion.get('temperature', 0.8))
+            temp_spinbox.setMinimumHeight(28)
+            temp_spinbox.setStyleSheet("font-size: 10px; padding: 2px;")
+            temp_spinbox.valueChanged.connect(
+                lambda value, name=emotion_name: self.update_emotion_parameter(name, 'temperature', value)
+            )
+            self.emotions_table.setCellWidget(row, 5, temp_spinbox)
+            
+            # Column 6: Speed
+            speed_spinbox = QDoubleSpinBox()
+            speed_spinbox.setRange(0.5, 2.0)
+            speed_spinbox.setSingleStep(0.1)
+            speed_spinbox.setDecimals(1)
+            speed_spinbox.setValue(emotion.get('speed', 1.0))
+            speed_spinbox.setMinimumHeight(28)
+            speed_spinbox.setStyleSheet("font-size: 10px; padding: 2px;")
+            speed_spinbox.valueChanged.connect(
+                lambda value, name=emotion_name: self.update_emotion_parameter(name, 'speed', value)
+            )
+            self.emotions_table.setCellWidget(row, 6, speed_spinbox)
+            
+            # Column 7: Reset Button - reset về giá trị ban đầu (Center aligned)
+            reset_btn = QPushButton("🔄")
+            reset_btn.setFixedSize(30, 30)  # Size gọn gàng
+            reset_btn.setToolTip(f"Reset {emotion_name} về giá trị ban đầu")
+            reset_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: white;
+                    color: #FF6B35;
+                    border: 1px solid #FF6B35;
+                    border-radius: 4px;
+                    font-size: 12px;
+                    font-weight: bold;
+                }
+                QPushButton:hover {
+                    background-color: #FFF5F5;
+                    border-color: #E55A2B;
+                }
+                QPushButton:pressed {
+                    background-color: #FED7CC;
+                    border-color: #CC4C26;
+                }
+            """)
+            reset_btn.clicked.connect(lambda checked, name=emotion_name: self.reset_emotion_to_default(name))
+            
+            # Tạo wrapper widget để center button
+            reset_widget = QWidget()
+            reset_layout = QHBoxLayout(reset_widget)
+            reset_layout.setContentsMargins(0, 0, 0, 0)
+            reset_layout.addStretch()
+            reset_layout.addWidget(reset_btn)
+            reset_layout.addStretch()
+            self.emotions_table.setCellWidget(row, 7, reset_widget)
+            
+            # Column 8: Preview Button - compact và gọn gàng (Center aligned)
+            preview_btn = QPushButton("🎵")
+            preview_btn.setFixedSize(35, 35)  # Size cố định gọn gàng
+            preview_btn.setToolTip(f"Preview {emotion_name}")
+            preview_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: white;
+                    color: #6366F1;
+                    border: 1px solid #6366F1;
+                    border-radius: 6px;
+                    font-size: 14px;
+                    font-weight: bold;
+                }
+                QPushButton:hover {
+                    background-color: #F0F0FF;
+                    border-color: #4F46E5;
+                }
+                QPushButton:pressed {
+                    background-color: #E0E0FF;
+                    border-color: #3730A3;
+                }
+                QPushButton:disabled {
+                    background-color: #F8F9FA;
+                    color: #6B7280;
+                    border-color: #D1D5DB;
+                }
+            """)
+            preview_btn.clicked.connect(lambda checked, name=emotion_name: self.preview_emotion(name))
+            
+            # Tạo wrapper widget để center button
+            preview_widget = QWidget()
+            preview_layout = QHBoxLayout(preview_widget)
+            preview_layout.setContentsMargins(0, 0, 0, 0)
+            preview_layout.addStretch()
+            preview_layout.addWidget(preview_btn)
+            preview_layout.addStretch()
+            self.emotions_table.setCellWidget(row, 8, preview_widget)  # Cập nhật index từ 7 → 8
+            
+            # Column 9: Actions - chỉ icon gọn gàng (Center aligned)
+            if is_custom:
+                delete_btn = QPushButton("🗑")
+                delete_btn.setFixedSize(30, 30)  # Size nhỏ gọn
+                delete_btn.setToolTip(f"Xóa {emotion_name}")
+                delete_btn.setStyleSheet("""
+                    QPushButton {
+                        background-color: white;
+                        color: #EF4444;
+                        border: 1px solid #EF4444;
+                        border-radius: 4px;
+                        font-size: 12px;
+                    }
+                    QPushButton:hover {
+                        background-color: #FEF2F2;
+                        border-color: #DC2626;
+                    }
+                    QPushButton:pressed {
+                        background-color: #FEE2E2;
+                        border-color: #B91C1C;
+                    }
+                """)
+                delete_btn.clicked.connect(lambda checked, name=emotion_name: self.delete_emotion(name))
+                
+                # Tạo wrapper widget để center button
+                delete_widget = QWidget()
+                delete_layout = QHBoxLayout(delete_widget)
+                delete_layout.setContentsMargins(0, 0, 0, 0)
+                delete_layout.addStretch()
+                delete_layout.addWidget(delete_btn)
+                delete_layout.addStretch()
+                self.emotions_table.setCellWidget(row, 9, delete_widget)  # Cập nhật index từ 8 → 9
+            else:
+                # Default emotions: show locked icon (already centered)
+                locked_label = QLabel("🔒")
+                locked_label.setAlignment(Qt.AlignCenter)
+                locked_label.setToolTip("Emotion mặc định - không thể xóa")
+                locked_label.setStyleSheet("color: #9CA3AF; font-size: 14px;")
+                self.emotions_table.setCellWidget(row, 9, locked_label)  # Cập nhật index từ 8 → 9
+            
+            row += 1
+        
+        self.update_statistics()
+    
+    def update_emotion_parameter(self, emotion_name: str, parameter: str, value):
+        """Cập nhật parameter của emotion"""
+        try:
+            # Cập nhật trong emotion manager
+            kwargs = {parameter: value}
+            # Unified system handles parameter updates automatically
+            pass
+            
+            self.update_status(f"✅ Cập nhật {emotion_name}: {parameter}={value}")
+            
+        except Exception as e:
+            self.update_status(f"❌ Lỗi cập nhật {emotion_name}: {str(e)}")
+    
+    def preview_emotion(self, emotion_name: str):
+        """Preview emotion với âm thanh thật - sử dụng real-time parameters từ UI"""
+        try:
+            # Get REAL-TIME parameters từ UI spinboxes, không phải từ unified system
+            parameters = {}
+            
+            # Find row và lấy current values từ spinboxes
+            for row in range(self.emotions_table.rowCount()):
+                name_item = self.emotions_table.item(row, 0)
+                if name_item and name_item.text() == emotion_name:
+                    # Get real-time values từ UI widgets
+                    exag_spinbox = self.emotions_table.cellWidget(row, 3)
+                    cfg_spinbox = self.emotions_table.cellWidget(row, 4)
+                    temp_spinbox = self.emotions_table.cellWidget(row, 5)
+                    speed_spinbox = self.emotions_table.cellWidget(row, 6)
+                    
+                    parameters = {
+                        'exaggeration': exag_spinbox.value() if exag_spinbox else 1.0,
+                        'cfg_weight': cfg_spinbox.value() if cfg_spinbox else 0.6,
+                        'temperature': temp_spinbox.value() if temp_spinbox else 0.8,
+                        'speed': speed_spinbox.value() if speed_spinbox else 1.0
+                    }
+                    
+                    # Get preview text being used
+                    preview_text = AudioPreviewThread.EMOTION_PROMPTS.get(
+                        emotion_name.lower(), 
+                        f"This is a preview of the {emotion_name} emotion with custom parameters."
+                    )
+                    
+                    print(f"\n🎵 PREVIEW {emotion_name} với REAL-TIME parameters:")
+                    print(f"   🎯 Exaggeration: {parameters['exaggeration']:.2f} (từ UI)")
+                    print(f"   ⚖️ CFG Weight: {parameters['cfg_weight']:.2f} (từ UI)")
+                    print(f"   🌡️ Temperature: {parameters['temperature']:.2f} (từ UI)")
+                    print(f"   ⚡ Speed: {parameters['speed']:.1f} (từ UI)")
+                    print(f"   📝 Text: \"{preview_text[:50]}...\" ({len(preview_text)} chars)")
+                    break
+            
+            # Fallback nếu không tìm thấy row
+            if not parameters:
+                emotion = self.unified_emotion_system.get_all_emotions()[emotion_name]
+                parameters = {
+                    'exaggeration': emotion.exaggeration,
+                    'cfg_weight': emotion.cfg_weight,
+                    'temperature': emotion.temperature,
+                    'speed': emotion.speed
+                }
+            print(f"\n⚠️ FALLBACK: Sử dụng default parameters cho {emotion_name}")
+            
+            # Find preview button từ wrapper widget
+            preview_btn = None
+            for row in range(self.emotions_table.rowCount()):
+                name_item = self.emotions_table.item(row, 0)
+                if name_item and name_item.text() == emotion_name:
+                    preview_widget = self.emotions_table.cellWidget(row, 8)  # Cập nhật từ 7 → 8
+                    if preview_widget:
+                        # Lấy preview button từ layout
+                        layout = preview_widget.layout()
+                        if layout and layout.count() > 1:
+                            preview_btn = layout.itemAt(1).widget()  # Button ở vị trí giữa
+                    break
+            
+            if preview_btn:
+                # Update button state
+                preview_btn.setText("⏳")
+                preview_btn.setEnabled(False)
+                preview_btn.setStyleSheet("""
+                    QPushButton {
+                        background-color: white;
+                        color: #F59E0B;
+                        border: 1px solid #F59E0B;
+                        border-radius: 6px;
+                        font-size: 14px;
+                        font-weight: bold;
+                    }
+                """)
+                
+                # Start preview thread
+                self.preview_threads[emotion_name] = AudioPreviewThread(emotion_name, parameters)
+                thread = self.preview_threads[emotion_name]
+                
+                thread.preview_completed.connect(lambda name, path, success: self.on_preview_completed(name, path, success))
+                thread.preview_error.connect(lambda name, error: self.on_preview_error(name, error))
+                
+                thread.start()
+                
+                self.update_status(f"🎵 Đang tạo preview cho {emotion_name}...")
+            
+        except Exception as e:
+            self.update_status(f"❌ Lỗi preview {emotion_name}: {str(e)}")
+    
+    def on_preview_completed(self, emotion_name: str, audio_path: str, is_real: bool):
+        """Xử lý khi preview hoàn thành"""
+        try:
+            # Reset UI - lấy preview button từ wrapper widget
+            for row in range(self.emotions_table.rowCount()):
+                name_item = self.emotions_table.item(row, 0)
+                if name_item and name_item.text() == emotion_name:
+                    preview_widget = self.emotions_table.cellWidget(row, 8)
+                    if preview_widget:
+                        # Lấy preview button từ layout
+                        layout = preview_widget.layout()
+                        if layout and layout.count() > 1:
+                            preview_btn = layout.itemAt(1).widget()  # Button ở vị trí giữa
+                    if preview_btn:
+                        preview_btn.setText("🎵")
+                        preview_btn.setEnabled(True)
+                        preview_btn.setStyleSheet("""
+                            QPushButton {
+                                        background-color: white;
+                                        color: #6366F1;
+                                        border: 1px solid #6366F1;
+                                border-radius: 6px;
+                                font-size: 14px;
+                                font-weight: bold;
+                            }
+                            QPushButton:hover {
+                                        background-color: #F0F0FF;
+                                        border-color: #4F46E5;
+                            }
+                        """)
+                    break
+            
+            # Play audio nếu có
+            if is_real and os.path.exists(audio_path):
+                # Mở file audio với default player
+                import subprocess
+                import platform
+                
+                try:
+                    system = platform.system()
+                    if system == "Windows":
+                        os.startfile(audio_path)
+                    elif system == "Darwin":  # macOS
+                        subprocess.run(["open", audio_path])
+                    else:  # Linux
+                        subprocess.run(["xdg-open", audio_path])
+                    
+                    self.update_status(f"🎵 Preview {emotion_name} hoàn thành - đang phát âm thanh")
+                except Exception as e:
+                    self.update_status(f"❌ Không thể phát audio: {str(e)}")
+                    
+            else:
+                # Simulated preview với REAL-TIME parameters từ UI
+                # Get current UI values
+                current_params = {}
+                emotion_details = self.unified_emotion_system.get_all_emotions()[emotion_name]
+                
+                for row in range(self.emotions_table.rowCount()):
+                    name_item = self.emotions_table.item(row, 0)
+                    if name_item and name_item.text() == emotion_name:
+                        exag_spinbox = self.emotions_table.cellWidget(row, 3)
+                        cfg_spinbox = self.emotions_table.cellWidget(row, 4)
+                        temp_spinbox = self.emotions_table.cellWidget(row, 5)
+                        speed_spinbox = self.emotions_table.cellWidget(row, 6)
+                        
+                        current_params = {
+                            'exaggeration': exag_spinbox.value() if exag_spinbox else emotion_details.exaggeration,
+                            'cfg_weight': cfg_spinbox.value() if cfg_spinbox else emotion_details.cfg_weight,
+                            'temperature': temp_spinbox.value() if temp_spinbox else emotion_details.temperature,
+                            'speed': speed_spinbox.value() if speed_spinbox else emotion_details.speed
+                        }
+                        break
+                
+                # Use current UI values hoặc fallback
+                if not current_params:
+                    current_params = {
+                        'exaggeration': emotion_details.exaggeration,
+                        'cfg_weight': emotion_details.cfg_weight,
+                        'temperature': emotion_details.temperature,
+                        'speed': emotion_details.speed
+                    }
+                
+                QMessageBox.information(
+                    self,
+                    f"🎵 Preview Simulation: {emotion_name}",
+                    f"Preview simulation với REAL-TIME parameters!\n\n"
+                    f"🎭 Emotion: {emotion_name}\n"
+                    f"📝 Description: {emotion_details.get('description', 'No description')}\n"
+                    f"🏷️ Category: {emotion_details.get('category', 'unknown')}\n\n"
+                    f"🎯 Exaggeration: {current_params['exaggeration']:.2f} (real-time)\n"
+                    f"⚖️ CFG Weight: {current_params['cfg_weight']:.2f} (real-time)\n"
+                    f"🌡️ Temperature: {current_params['temperature']:.2f} (real-time)\n"
+                    f"⚡ Speed: {current_params['speed']:.1f} (real-time)\n\n"
+                    f"💡 Parameters được lấy từ UI spinboxes hiện tại!"
+                )
+                
+                self.update_status(f"✅ Preview simulation {emotion_name} hoàn thành")
+            
+            # Cleanup thread
+            if emotion_name in self.preview_threads:
+                del self.preview_threads[emotion_name]
+                
+        except Exception as e:
+            self.update_status(f"❌ Lỗi xử lý preview {emotion_name}: {str(e)}")
+    
+    def on_preview_error(self, emotion_name: str, error: str):
+        """Handle preview error"""
+        try:
+            # Clear thread tracking
+            if emotion_name in self.preview_threads:
+                self.preview_threads[emotion_name] = None
+            
+            # Re-enable all preview buttons
+            for row in range(self.emotions_table.rowCount()):
+                name_item = self.emotions_table.item(row, 0)
+                if name_item:
+                    current_emotion = name_item.text()
+                    preview_widget = self.emotions_table.cellWidget(row, 8)
+                    if preview_widget and hasattr(preview_widget, 'findChild'):
+                        preview_btn = preview_widget.findChild(QPushButton)
+                        if preview_btn:
+                            preview_btn.setEnabled(True)
+                            preview_btn.setText("🎵")
+            
+            # Show error message
+            error_msg = f"❌ Preview lỗi cho {emotion_name}: {error}"
+            self.update_status(error_msg)
+            print(f"🚨 PREVIEW ERROR: {error_msg}")
+            
+        except Exception as e:
+            print(f"Error handling preview error: {e}")
+
+    def preview_inner_voice(self, inner_voice_type: str):
+        """SIMPLIFIED: Preview inner voice effect với parameters hiện tại"""
+        try:
+            print(f"🟡 [SIMPLE] preview_inner_voice called with type={inner_voice_type}")
+            
+            # Check if already running
+            if inner_voice_type in self.inner_voice_preview_threads and self.inner_voice_preview_threads[inner_voice_type]:
+                if self.inner_voice_preview_threads[inner_voice_type].isRunning():
+                    self.update_status(f"⏳ Inner voice {inner_voice_type} đang được tạo...")
+                    return
+            
+            # Get current parameters từ UI
+            if inner_voice_type not in self.inner_voice_type_widgets:
+                self.update_status(f"❌ Không tìm thấy widget cho {inner_voice_type}")
+                return
+                
+            widgets = self.inner_voice_type_widgets[inner_voice_type]
+            
+            parameters = {
+                "delay": widgets["delay"].value(),
+                "decay": widgets["decay"].value(), 
+                "gain": widgets["gain"].value()
+            }
+            
+            # Disable preview button
+            if "preview" in widgets:
+                widgets["preview"].setEnabled(False)
+                widgets["preview"].setText("🔄 Generating...")
+            
+            # Start SIMPLIFIED preview thread
+            thread = InnerVoicePreviewThread(inner_voice_type, parameters)
+            thread.preview_completed.connect(self.on_inner_voice_preview_completed)
+            thread.preview_error.connect(self.on_inner_voice_preview_error)
+            
+            self.inner_voice_preview_threads[inner_voice_type] = thread
+            thread.start()
+            
+            self.update_status(f"🎵 [SIMPLE] Đang tạo preview inner voice {inner_voice_type}...")
+            
+        except Exception as e:
+            self.update_status(f"❌ Lỗi preview inner voice: {str(e)}")
+            print(f"Error in preview_inner_voice: {e}")
+
+    def on_inner_voice_preview_completed(self, inner_voice_type: str, audio_path: str, success: bool):
+        """Handle inner voice preview completion"""
+        try:
+            # Clear thread tracking
+            if inner_voice_type in self.inner_voice_preview_threads:
+                self.inner_voice_preview_threads[inner_voice_type] = None
+            
+            # Re-enable preview button
+            if inner_voice_type in self.inner_voice_type_widgets:
+                widgets = self.inner_voice_type_widgets[inner_voice_type]
+                if "preview" in widgets:
+                    widgets["preview"].setEnabled(True)
+                    widgets["preview"].setText("🎵 Preview")
+            
+            if success:
+                # Play audio nếu thành công
+                self.update_status(f"✅ Inner voice {inner_voice_type} preview hoàn thành!")
+                self.play_audio_file(audio_path)
+                print(f"🎵 INNER VOICE PREVIEW: {inner_voice_type} - {audio_path}")
+            else:
+                self.update_status(f"⚠️ Inner voice {inner_voice_type} preview simulation mode")
+                print(f"🎭 INNER VOICE SIMULATION: {inner_voice_type}")
+                
+        except Exception as e:
+            print(f"Error handling inner voice preview completion: {e}")
+
+    def on_inner_voice_preview_error(self, inner_voice_type: str, error: str):
+        """Handle inner voice preview error"""
+        try:
+            # Clear thread tracking
+            if inner_voice_type in self.inner_voice_preview_threads:
+                self.inner_voice_preview_threads[inner_voice_type] = None
+            
+            # Re-enable preview button
+            if inner_voice_type in self.inner_voice_type_widgets:
+                widgets = self.inner_voice_type_widgets[inner_voice_type]
+                if "preview" in widgets:
+                    widgets["preview"].setEnabled(True)
+                    widgets["preview"].setText("🎵 Preview")
+            
+            error_msg = f"❌ Inner voice {inner_voice_type} preview lỗi: {error}"
+            self.update_status(error_msg)
+            print(f"🚨 INNER VOICE PREVIEW ERROR: {error_msg}")
+            
+        except Exception as e:
+            print(f"Error handling inner voice preview error: {e}")
+
+    def play_audio_file(self, audio_path: str):
+        """Play audio file cross-platform"""
+        try:
+            if not os.path.exists(audio_path):
+                print(f"⚠️ Audio file not found: {audio_path}")
+                return
+            
+            import subprocess
+            import platform
+            
+            system = platform.system()
+            if system == "Windows":
+                os.startfile(audio_path)
+            elif system == "Darwin":  # macOS
+                subprocess.run(["open", audio_path])
+            else:  # Linux
+                subprocess.run(["xdg-open", audio_path])
+            
+            print(f"🔊 Playing audio: {audio_path}")
+            
+        except Exception as e:
+            print(f"❌ Error playing audio {audio_path}: {e}")
+            self.update_status(f"❌ Không thể phát audio: {str(e)}")
+    
+    def add_custom_emotion(self):
+        """Thêm emotion tùy chỉnh mới"""
+        dialog = QDialog(self)
+        dialog.setWindowTitle("➕ Thêm Emotion Mới")
+        dialog.setModal(True)
+        dialog.resize(400, 350)
+        
+        layout = QVBoxLayout(dialog)
+        
+        # Form inputs
+        form_layout = QFormLayout()
+        
+        name_input = QLineEdit()
+        name_input.setPlaceholderText("tên_emotion_mới")
+        form_layout.addRow("🎭 Tên Emotion:", name_input)
+        
+        desc_input = QLineEdit()
+        desc_input.setPlaceholderText("Mô tả emotion này...")
+        form_layout.addRow("📝 Mô tả:", desc_input)
+        
+        category_combo = QComboBox()
+        category_combo.addItems(["neutral", "positive", "negative", "dramatic", "special"])
+        form_layout.addRow("🏷️ Category:", category_combo)
+        
+        exag_spinbox = QDoubleSpinBox()
+        exag_spinbox.setRange(0.0, 2.5)
+        exag_spinbox.setSingleStep(0.1)
+        exag_spinbox.setValue(1.0)
+        form_layout.addRow("🎯 Exaggeration:", exag_spinbox)
+        
+        cfg_spinbox = QDoubleSpinBox()
+        cfg_spinbox.setRange(0.0, 1.0)
+        cfg_spinbox.setSingleStep(0.05)
+        cfg_spinbox.setValue(0.5)
+        form_layout.addRow("⚖️ CFG Weight:", cfg_spinbox)
+        
+        temp_spinbox = QDoubleSpinBox()
+        temp_spinbox.setRange(0.1, 1.5)
+        temp_spinbox.setSingleStep(0.1)
+        temp_spinbox.setValue(0.7)
+        form_layout.addRow("🌡️ Temperature:", temp_spinbox)
+        
+        speed_spinbox = QDoubleSpinBox()
+        speed_spinbox.setRange(0.5, 2.0)
+        speed_spinbox.setSingleStep(0.1)
+        speed_spinbox.setValue(1.0)
+        form_layout.addRow("⚡ Speed:", speed_spinbox)
+        
+        layout.addLayout(form_layout)
+        
+        # Buttons
+        buttons_layout = QHBoxLayout()
+        create_btn = QPushButton("✅ Tạo Emotion")
+        create_btn.setStyleSheet("""
+            QPushButton {
+                background-color: white;
+                color: #28CD41;
+                border: 1px solid #28CD41;
+                padding: 8px 15px;
+                border-radius: 6px;
+                font-weight: bold;
+            }
+        """)
+        
+        cancel_btn = QPushButton("❌ Hủy")
+        cancel_btn.setStyleSheet("""
+            QPushButton {
+                background-color: white;
+                color: #FF3B30;
+                border: 1px solid #FF3B30;
+                padding: 8px 15px;
+                border-radius: 6px;
+                font-weight: bold;
+            }
+        """)
+        
+        buttons_layout.addWidget(cancel_btn)
+        buttons_layout.addWidget(create_btn)
+        layout.addLayout(buttons_layout)
+        
+        def create_emotion():
+            name = name_input.text().strip()
+            description = desc_input.text().strip()
+            
+            if not name:
+                QMessageBox.warning(dialog, "Thiếu thông tin", "Vui lòng nhập tên emotion!")
+                return
+            
+            if name.lower() in self.unified_emotion_system.get_all_emotions():
+                QMessageBox.warning(dialog, "Trùng tên", f"Emotion '{name}' đã tồn tại!")
+                return
+            
+            try:
+                # Validate name format
+                if not name.replace('_', '').isalnum():
+                    QMessageBox.warning(dialog, "Tên không hợp lệ", 
+                                      "Tên emotion chỉ được chứa chữ cái, số và dấu gạch dưới (_)")
+                    return
+                
+                # Add custom emotion với default expert-compliant parameters
+                success = self.unified_emotion_system.add_custom_emotion(
+                    name=name,
+                    description=description or f"Custom emotion: {name}",
+                    category="neutral",
+                    temperature=0.8,   # Expert compliant defaults
+                    exaggeration=1.0,
+                    cfg_weight=0.6,
+                    speed=1.0,
+                    aliases=[]
+                )
+                
+                if success:
+                    # Reload UI table to show new emotion
+                    self.load_emotions_to_table()
+                    self.update_statistics()
+                    print(f"\n🎭 CUSTOM EMOTION ADDED:")
+                    print(f"   📝 Name: {name}")
+                    print(f"   📖 Description: {description or f'Custom emotion: {name}'}")
+                    print(f"   📊 Parameters: T=0.8, E=1.0, C=0.6, S=1.0 (Expert Compliant)")
+                    # Success dialog
+                    QMessageBox.information(
+                        dialog,
+                        "Thành Công!",
+                        f"✅ Đã thêm custom emotion thành công!\n\n"
+                        f"📝 Tên: {name}\n"
+                        f"📖 Mô tả: {description or f'Custom emotion: {name}'}\n"
+                        f"🏷️ Category: neutral\n"
+                        f"📊 Parameters: Expert-compliant defaults\n\n"
+                        f"💡 Emotion đã được thêm vào bảng và bạn có thể tuỉnh chỉnh parameters!"
+                    )
+                    self.update_status(f"✅ Đã thêm custom emotion: {name}")
+                    dialog.accept()
+                else:
+                    QMessageBox.critical(dialog, "Lỗi", "Không thể thêm emotion. Vui lòng thử lại.")
+                
+            except Exception as e:
+                QMessageBox.critical(dialog, "Lỗi", f"Không thể tạo emotion:\n{str(e)}")
+        
+        create_btn.clicked.connect(create_emotion)
+        cancel_btn.clicked.connect(dialog.reject)
+        
+        dialog.exec()
+    
+    def delete_emotion(self, emotion_name: str):
+        """Xóa custom emotion"""
+        reply = QMessageBox.question(
+            self,
+            "Xác nhận xóa",
+            f"Bạn có chắc muốn xóa emotion '{emotion_name}'?\n\nHành động này không thể hoàn tác.",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No
+        )
+        
+        if reply == QMessageBox.Yes:
+            try:
+                if self.unified_emotion_system.delete_custom_emotion(emotion_name):
+                    self.load_emotions_to_table()  # Reload table
+                    self.update_status(f"✅ Đã xóa emotion '{emotion_name}'")
+                else:
+                    self.update_status(f"❌ Không thể xóa emotion '{emotion_name}'")
+            except Exception as e:
+                self.update_status(f"❌ Lỗi xóa emotion: {str(e)}")
+    
+    def filter_emotions(self):
+        """Lọc emotions theo category và custom"""
+        category_filter = self.category_filter.currentText()
+        show_custom_only = self.show_custom_only.isChecked()
+        
+        for row in range(self.emotions_table.rowCount()):
+            name_item = self.emotions_table.item(row, 0)
+            if name_item:
+                emotion_name = name_item.text()
+                emotion = self.unified_emotion_system.get_all_emotions().get(emotion_name)
+                
+                if emotion:
+                    # Category filter - sửa lại để đúng cấu trúc
+                    emotion_category = emotion.get('category', 'neutral')
+                    category_match = (category_filter == "Tất cả" or emotion_category == category_filter)
+                    
+                    # Custom filter - kiểm tra xem có phải custom emotion không
+                    is_custom = self.unified_emotion_system.is_custom_emotion(emotion_name)
+                    custom_match = (not show_custom_only or is_custom)
+                    
+                    # Show/hide row
+                    show_row = category_match and custom_match
+                    self.emotions_table.setRowHidden(row, not show_row)
+    
+    def sort_emotions_by_category(self):
+        """Sort emotions theo category trong bảng"""
+        try:
+            # Lấy tất cả emotions và sort theo category
+            all_emotions = self.unified_emotion_system.get_all_emotions()
+            
+            # Define category order
+            category_order = ["neutral", "positive", "negative", "dramatic", "authoritative", 
+                            "special", "surprise", "desperate", "nervous", "mysterious", 
+                            "urgent", "sarcastic", "confused", "innocent"]
+            
+            # Sort emotions theo category order
+            sorted_emotions = []
+            for category in category_order:
+                # Get emotions for this category
+                category_emotions = []
+                for emotion_name, emotion in all_emotions.items():
+                    if emotion.get('category', 'neutral') == category:
+                        category_emotions.append((emotion_name, emotion))
+                
+                # Sort alphabetically within category
+                category_emotions.sort(key=lambda x: x[0])
+                sorted_emotions.extend(category_emotions)
+            
+            # Add any remaining emotions not in predefined categories
+            remaining_emotions = []
+            for emotion_name, emotion in all_emotions.items():
+                emotion_category = emotion.get('category', 'neutral')
+                if emotion_category not in category_order:
+                    remaining_emotions.append((emotion_name, emotion))
+            
+            remaining_emotions.sort(key=lambda x: x[0])
+            sorted_emotions.extend(remaining_emotions)
+            
+            # Clear và reload table với sorted emotions
+            self.emotions_table.setRowCount(0)
+            self.emotions_table.setRowCount(len(sorted_emotions))
+            
+            row = 0
+            for emotion_name, emotion in sorted_emotions:
+                # Column 0: Emotion Name
+                name_item = QTableWidgetItem(emotion_name)
+                name_item.setFont(QFont("Arial", 10, QFont.Normal))
+                is_custom = self.unified_emotion_system.is_custom_emotion(emotion_name)
+                
+                if is_custom:
+                    name_item.setBackground(QColor("#E8F5E8"))
+                    name_item.setForeground(QColor("#000000"))
+                else:
+                    name_item.setBackground(QColor("#E3F2FD"))
+                    name_item.setForeground(QColor("#000000"))
+                name_item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
+                self.emotions_table.setItem(row, 0, name_item)
+                
+                # Column 1: Description
+                desc_item = QTableWidgetItem(emotion.get('description', 'No description'))
+                desc_item.setFont(QFont("Arial", 9))
+                if not is_custom:
+                    desc_item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
+                self.emotions_table.setItem(row, 1, desc_item)
+                
+                # Column 2: Category
+                category_combo = QComboBox()
+                all_categories = self.unified_emotion_system.get_emotion_categories()
+                category_combo.addItems(all_categories)
+                category_combo.setCurrentText(emotion.get('category', 'neutral'))
+                category_combo.setMinimumHeight(30)
+                category_combo.setStyleSheet("""
+                    QComboBox {
+                        padding: 4px 8px;
+                        border: 1px solid #ccc;
+                        border-radius: 4px;
+                        font-size: 10px;
+                    }
+                    QComboBox::drop-down {
+                        width: 20px;
+                    }
+                """)
+                if not is_custom:
+                    category_combo.setEnabled(False)
+                else:
+                    category_combo.currentTextChanged.connect(
+                        lambda text, name=emotion_name: self.update_emotion_parameter(name, 'category', text)
+                    )
+                self.emotions_table.setCellWidget(row, 2, category_combo)
+                
+                # Column 3: Exaggeration
+                exag_spinbox = QDoubleSpinBox()
+                exag_spinbox.setRange(0.0, 2.5)
+                exag_spinbox.setSingleStep(0.1)
+                exag_spinbox.setDecimals(2)
+                exag_spinbox.setValue(emotion.get('exaggeration', 1.0))
+                exag_spinbox.setMinimumHeight(28)
+                exag_spinbox.setStyleSheet("font-size: 10px; padding: 2px;")
+                exag_spinbox.valueChanged.connect(
+                    lambda value, name=emotion_name: self.update_emotion_parameter(name, 'exaggeration', value)
+                )
+                self.emotions_table.setCellWidget(row, 3, exag_spinbox)
+                
+                # Column 4: CFG Weight
+                cfg_spinbox = QDoubleSpinBox()
+                cfg_spinbox.setRange(0.0, 1.0)
+                cfg_spinbox.setSingleStep(0.05)
+                cfg_spinbox.setDecimals(2)
+                cfg_spinbox.setValue(emotion.get('cfg_weight', 0.6))
+                cfg_spinbox.setMinimumHeight(28)
+                cfg_spinbox.setStyleSheet("font-size: 10px; padding: 2px;")
+                cfg_spinbox.valueChanged.connect(
+                    lambda value, name=emotion_name: self.update_emotion_parameter(name, 'cfg_weight', value)
+                )
+                self.emotions_table.setCellWidget(row, 4, cfg_spinbox)
+                
+                # Column 5: Temperature
+                temp_spinbox = QDoubleSpinBox()
+                temp_spinbox.setRange(0.1, 1.5)
+                temp_spinbox.setSingleStep(0.1)
+                temp_spinbox.setDecimals(2)
+                temp_spinbox.setValue(emotion.get('temperature', 0.8))
+                temp_spinbox.setMinimumHeight(28)
+                temp_spinbox.setStyleSheet("font-size: 10px; padding: 2px;")
+                temp_spinbox.valueChanged.connect(
+                    lambda value, name=emotion_name: self.update_emotion_parameter(name, 'temperature', value)
+                )
+                self.emotions_table.setCellWidget(row, 5, temp_spinbox)
+                
+                # Column 6: Speed
+                speed_spinbox = QDoubleSpinBox()
+                speed_spinbox.setRange(0.5, 2.0)
+                speed_spinbox.setSingleStep(0.1)
+                speed_spinbox.setDecimals(1)
+                speed_spinbox.setValue(emotion.get('speed', 1.0))
+                speed_spinbox.setMinimumHeight(28)
+                speed_spinbox.setStyleSheet("font-size: 10px; padding: 2px;")
+                speed_spinbox.valueChanged.connect(
+                    lambda value, name=emotion_name: self.update_emotion_parameter(name, 'speed', value)
+                )
+                self.emotions_table.setCellWidget(row, 6, speed_spinbox)
+                
+                # Column 7: Reset Button
+                reset_btn = QPushButton("🔄")
+                reset_btn.setFixedSize(30, 30)
+                reset_btn.setToolTip(f"Reset {emotion_name} về giá trị ban đầu")
+                reset_btn.setStyleSheet("""
+                    QPushButton {
+                        background-color: white;
+                        color: #FF6B35;
+                        border: 1px solid #FF6B35;
+                        border-radius: 4px;
+                        font-size: 12px;
+                        font-weight: bold;
+                    }
+                    QPushButton:hover {
+                        background-color: #FFF5F5;
+                        border-color: #E55A2B;
+                    }
+                    QPushButton:pressed {
+                        background-color: #FED7CC;
+                        border-color: #CC4C26;
+                    }
+                """)
+                reset_btn.clicked.connect(lambda checked, name=emotion_name: self.reset_emotion_to_default(name))
+                
+                reset_widget = QWidget()
+                reset_layout = QHBoxLayout(reset_widget)
+                reset_layout.setContentsMargins(0, 0, 0, 0)
+                reset_layout.addStretch()
+                reset_layout.addWidget(reset_btn)
+                reset_layout.addStretch()
+                self.emotions_table.setCellWidget(row, 7, reset_widget)
+                
+                # Column 8: Preview Button
+                preview_btn = QPushButton("🎵")
+                preview_btn.setFixedSize(35, 35)
+                preview_btn.setToolTip(f"Preview {emotion_name}")
+                preview_btn.setStyleSheet("""
+                    QPushButton {
+                        background-color: white;
+                        color: #6366F1;
+                        border: 1px solid #6366F1;
+                        border-radius: 6px;
+                        font-size: 14px;
+                        font-weight: bold;
+                    }
+                    QPushButton:hover {
+                        background-color: #F0F0FF;
+                        border-color: #4F46E5;
+                    }
+                    QPushButton:pressed {
+                        background-color: #E0E0FF;
+                        border-color: #3730A3;
+                    }
+                    QPushButton:disabled {
+                        background-color: #F8F9FA;
+                        color: #6B7280;
+                        border-color: #D1D5DB;
+                    }
+                """)
+                preview_btn.clicked.connect(lambda checked, name=emotion_name: self.preview_emotion(name))
+                
+                preview_widget = QWidget()
+                preview_layout = QHBoxLayout(preview_widget)
+                preview_layout.setContentsMargins(0, 0, 0, 0)
+                preview_layout.addStretch()
+                preview_layout.addWidget(preview_btn)
+                preview_layout.addStretch()
+                self.emotions_table.setCellWidget(row, 8, preview_widget)
+                
+                # Column 9: Actions - Fixed delete button for custom emotions
+                if is_custom:
+                    delete_btn = QPushButton("🗑")
+                    delete_btn.setFixedSize(30, 30)
+                    delete_btn.setToolTip(f"Xóa {emotion_name}")
+                    delete_btn.setStyleSheet("""
+                        QPushButton {
+                            background-color: white;
+                            color: #EF4444;
+                            border: 1px solid #EF4444;
+                            border-radius: 4px;
+                            font-size: 12px;
+                        }
+                        QPushButton:hover {
+                            background-color: #FEF2F2;
+                            border-color: #DC2626;
+                        }
+                        QPushButton:pressed {
+                            background-color: #FEE2E2;
+                            border-color: #B91C1C;
+                        }
+                    """)
+                    delete_btn.clicked.connect(lambda checked, name=emotion_name: self.delete_emotion(name))
+                    
+                    delete_widget = QWidget()
+                    delete_layout = QHBoxLayout(delete_widget)
+                    delete_layout.setContentsMargins(0, 0, 0, 0)
+                    delete_layout.addStretch()
+                    delete_layout.addWidget(delete_btn)
+                    delete_layout.addStretch()
+                    self.emotions_table.setCellWidget(row, 9, delete_widget)
+                else:
+                    locked_label = QLabel("🔒")
+                    locked_label.setAlignment(Qt.AlignCenter)
+                    locked_label.setToolTip("Emotion mặc định - không thể xóa")
+                    locked_label.setStyleSheet("color: #9CA3AF; font-size: 14px;")
+                    self.emotions_table.setCellWidget(row, 9, locked_label)
+                
+                row += 1
+            
+            self.update_statistics()
+            self.update_status(f"✅ Đã sort {len(sorted_emotions)} emotions theo category")
+            
+        except Exception as e:
+            self.update_status(f"❌ Lỗi sort emotions: {str(e)}")
+            logger.error(f"Sort emotions error: {e}")
+    
+    def populate_table_row(self, row: int, emotion_name: str, emotion: dict):
+        """Populate một row trong table với emotion data"""
+        # All emotions are editable in unified system
+        is_custom = self.unified_emotion_system.is_custom_emotion(emotion_name)
+        
+        # Column 0: Emotion Name
+        name_item = QTableWidgetItem(emotion_name)
+        name_item.setFont(QFont("Arial", 10, QFont.Normal))
+        if is_custom:
+            name_item.setBackground(QColor("#E8F5E8"))  # Light green for custom
+            name_item.setForeground(QColor("#000000"))
+        else:
+            name_item.setBackground(QColor("#E3F2FD"))  # Light blue for default
+            name_item.setForeground(QColor("#000000"))
+        name_item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
+        self.emotions_table.setItem(row, 0, name_item)
+        
+        # Column 1: Description
+        desc_item = QTableWidgetItem(emotion.get('description', 'No description'))
+        desc_item.setFont(QFont("Arial", 9))
+        if not is_custom:
+            desc_item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
+        self.emotions_table.setItem(row, 1, desc_item)
+        
+        # Column 2: Category
+        category_combo = QComboBox()
+        all_categories = self.unified_emotion_system.get_emotion_categories()
+        category_combo.addItems(all_categories)
+        category_combo.setCurrentText(emotion.get('category', 'neutral'))
+        category_combo.setMinimumHeight(30)
+        category_combo.setStyleSheet("""
+            QComboBox {
+                padding: 4px 8px;
+                border: 1px solid #ccc;
+                border-radius: 4px;
+                font-size: 10px;
+            }
+            QComboBox::drop-down {
+                width: 20px;
+            }
+        """)
+        if not is_custom:
+            category_combo.setEnabled(False)
+        else:
+            category_combo.currentTextChanged.connect(
+                lambda text, name=emotion_name: self.update_emotion_parameter(name, 'category', text)
+            )
+        self.emotions_table.setCellWidget(row, 2, category_combo)
+        
+        # Column 3: Exaggeration
+        exag_spinbox = QDoubleSpinBox()
+        exag_spinbox.setRange(0.0, 2.5)
+        exag_spinbox.setSingleStep(0.1)
+        exag_spinbox.setDecimals(2)
+        exag_spinbox.setValue(emotion.get('exaggeration', 1.0))
+        exag_spinbox.setMinimumHeight(28)
+        exag_spinbox.setStyleSheet("font-size: 10px; padding: 2px;")
+        exag_spinbox.valueChanged.connect(
+            lambda value, name=emotion_name: self.update_emotion_parameter(name, 'exaggeration', value)
+        )
+        self.emotions_table.setCellWidget(row, 3, exag_spinbox)
+        
+        # Column 4: CFG Weight
+        cfg_spinbox = QDoubleSpinBox()
+        cfg_spinbox.setRange(0.0, 1.0)
+        cfg_spinbox.setSingleStep(0.05)
+        cfg_spinbox.setDecimals(2)
+        cfg_spinbox.setValue(emotion.get('cfg_weight', 0.6))
+        cfg_spinbox.setMinimumHeight(28)
+        cfg_spinbox.setStyleSheet("font-size: 10px; padding: 2px;")
+        cfg_spinbox.valueChanged.connect(
+            lambda value, name=emotion_name: self.update_emotion_parameter(name, 'cfg_weight', value)
+        )
+        self.emotions_table.setCellWidget(row, 4, cfg_spinbox)
+        
+        # Column 5: Temperature
+        temp_spinbox = QDoubleSpinBox()
+        temp_spinbox.setRange(0.1, 1.5)
+        temp_spinbox.setSingleStep(0.1)
+        temp_spinbox.setDecimals(2)
+        temp_spinbox.setValue(emotion.get('temperature', 0.8))
+        temp_spinbox.setMinimumHeight(28)
+        temp_spinbox.setStyleSheet("font-size: 10px; padding: 2px;")
+        temp_spinbox.valueChanged.connect(
+            lambda value, name=emotion_name: self.update_emotion_parameter(name, 'temperature', value)
+        )
+        self.emotions_table.setCellWidget(row, 5, temp_spinbox)
+        
+        # Column 6: Speed
+        speed_spinbox = QDoubleSpinBox()
+        speed_spinbox.setRange(0.5, 2.0)
+        speed_spinbox.setSingleStep(0.1)
+        speed_spinbox.setDecimals(1)
+        speed_spinbox.setValue(emotion.get('speed', 1.0))
+        speed_spinbox.setMinimumHeight(28)
+        speed_spinbox.setStyleSheet("font-size: 10px; padding: 2px;")
+        speed_spinbox.valueChanged.connect(
+            lambda value, name=emotion_name: self.update_emotion_parameter(name, 'speed', value)
+        )
+        self.emotions_table.setCellWidget(row, 6, speed_spinbox)
+        
+        # Column 7: Reset Button
+        reset_btn = QPushButton("🔄")
+        reset_btn.setFixedSize(30, 30)
+        reset_btn.setToolTip(f"Reset {emotion_name} về giá trị ban đầu")
+        reset_btn.setStyleSheet("""
+            QPushButton {
+                background-color: white;
+                color: #FF6B35;
+                border: 1px solid #FF6B35;
+                border-radius: 4px;
+                font-size: 12px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #FFF5F5;
+                border-color: #E55A2B;
+            }
+            QPushButton:pressed {
+                background-color: #FED7CC;
+                border-color: #CC4C26;
+            }
+        """)
+        reset_btn.clicked.connect(lambda checked, name=emotion_name: self.reset_emotion_to_default(name))
+        
+        reset_widget = QWidget()
+        reset_layout = QHBoxLayout(reset_widget)
+        reset_layout.setContentsMargins(0, 0, 0, 0)
+        reset_layout.addStretch()
+        reset_layout.addWidget(reset_btn)
+        reset_layout.addStretch()
+        self.emotions_table.setCellWidget(row, 7, reset_widget)
+        
+        # Column 8: Preview Button
+        preview_btn = QPushButton("🎵")
+        preview_btn.setFixedSize(35, 35)
+        preview_btn.setToolTip(f"Preview {emotion_name}")
+        preview_btn.setStyleSheet("""
+            QPushButton {
+                background-color: white;
+                color: #6366F1;
+                border: 1px solid #6366F1;
+                border-radius: 6px;
+                font-size: 14px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #F0F0FF;
+                border-color: #4F46E5;
+            }
+            QPushButton:pressed {
+                background-color: #E0E0FF;
+                border-color: #3730A3;
+            }
+            QPushButton:disabled {
+                background-color: #F8F9FA;
+                color: #6B7280;
+                border-color: #D1D5DB;
+            }
+        """)
+        preview_btn.clicked.connect(lambda checked, name=emotion_name: self.preview_emotion(name))
+        
+        preview_widget = QWidget()
+        preview_layout = QHBoxLayout(preview_widget)
+        preview_layout.setContentsMargins(0, 0, 0, 0)
+        preview_layout.addStretch()
+        preview_layout.addWidget(preview_btn)
+        preview_layout.addStretch()
+        self.emotions_table.setCellWidget(row, 8, preview_widget)
+        
+        # Column 9: Actions
+        if is_custom:
+            delete_btn = QPushButton("🗑")
+            delete_btn.setFixedSize(30, 30)
+            delete_btn.setToolTip(f"Xóa {emotion_name}")
+            delete_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: white;
+                    color: #EF4444;
+                    border: 1px solid #EF4444;
+                    border-radius: 4px;
+                    font-size: 12px;
+                }
+                QPushButton:hover {
+                    background-color: #FEF2F2;
+                    border-color: #DC2626;
+                }
+                QPushButton:pressed {
+                    background-color: #FEE2E2;
+                    border-color: #B91C1C;
+                }
+            """)
+            delete_btn.clicked.connect(lambda checked, name=emotion_name: self.delete_emotion(name))
+            
+            delete_widget = QWidget()
+            delete_layout = QHBoxLayout(delete_widget)
+            delete_layout.setContentsMargins(0, 0, 0, 0)
+            delete_layout.addStretch()
+            delete_layout.addWidget(delete_btn)
+            delete_layout.addStretch()
+            self.emotions_table.setCellWidget(row, 9, delete_widget)
+        else:
+            locked_label = QLabel("🔒")
+            locked_label.setAlignment(Qt.AlignCenter)
+            locked_label.setToolTip("Emotion mặc định - không thể xóa")
+            locked_label.setStyleSheet("color: #9CA3AF; font-size: 14px;")
+            self.emotions_table.setCellWidget(row, 9, locked_label)
+    
+    def export_config(self):
+        """Export emotion configuration với current UI values"""
+        try:
+            file_path, _ = QFileDialog.getSaveFileName(
+                self, "Export Emotion Config",
+                f"emotion_config_{int(time.time())}.json",
+                "JSON Files (*.json)"
+            )
+            
+            if file_path:
+                # Collect current UI values cho export
+                export_data = {
+                    "export_info": {
+                        "timestamp": int(time.time()),
+                        "version": "unified_emotion_system_v1.0",
+                        "source": "Voice Studio Emotion Config Tab",
+                        "total_emotions": 0
+                    },
+                    "emotions": {}
+                }
+                
+                # Loop qua table để lấy current UI values
+                for row in range(self.emotions_table.rowCount()):
+                    name_item = self.emotions_table.item(row, 0)
+                    if name_item:
+                        emotion_name = name_item.text()
+                        
+                        # Get current values từ UI widgets
+                        exag_spinbox = self.emotions_table.cellWidget(row, 3)
+                        cfg_spinbox = self.emotions_table.cellWidget(row, 4)
+                        temp_spinbox = self.emotions_table.cellWidget(row, 5)
+                        speed_spinbox = self.emotions_table.cellWidget(row, 6)
+                        
+                        # Get description và category từ unified system
+                        emotion_details = self.unified_emotion_system.get_all_emotions().get(emotion_name)
+                        
+                        if emotion_details:
+                            export_data["emotions"][emotion_name] = {
+                                "description": emotion_details.get('description', 'No description'),
+                                "category": emotion_details.get('category', 'neutral'),
+                                "parameters": {
+                                    "exaggeration": exag_spinbox.value() if exag_spinbox else emotion_details.exaggeration,
+                                    "cfg_weight": cfg_spinbox.value() if cfg_spinbox else emotion_details.cfg_weight,
+                                    "temperature": temp_spinbox.value() if temp_spinbox else emotion_details.temperature,
+                                    "speed": speed_spinbox.value() if speed_spinbox else emotion_details.speed
+                                },
+                                "source": "unified_system"
+                            }
+                
+                export_data["export_info"]["total_emotions"] = len(export_data["emotions"])
+                
+                # === THÊM INNER VOICE CONFIG VÀO EXPORT ===
+                if hasattr(self, 'inner_voice_group'):
+                    export_data["inner_voice_config"] = {
+                        "enabled": self.inner_voice_group.isChecked(),
+                        "presets": {}
+                    }
+                    
+                    # Export thông số cho từng type
+                    for type_name in ["light", "deep", "dreamy"]:
+                        if type_name in self.inner_voice_type_widgets:
+                            widgets = self.inner_voice_type_widgets[type_name]
+                            export_data["inner_voice_config"]["presets"][type_name] = {
+                                "delay": widgets["delay"].value(),
+                                "decay": widgets["decay"].value(),
+                                "gain": widgets["gain"].value(),
+                                "filter": widgets["filter"].text()
+                            }
+                
+                # Write to file
+                import json
+                with open(file_path, 'w', encoding='utf-8') as f:
+                    json.dump(export_data, f, indent=2, ensure_ascii=False)
+                
+                print(f"\n📤 EXPORT COMPLETED:")
+                print(f"   📁 File: {file_path}")
+                print(f"   📊 Emotions: {export_data['export_info']['total_emotions']}")
+                
+                self.update_status(f"✅ Đã export {export_data['export_info']['total_emotions']} emotions: {os.path.basename(file_path)}")
+                
+                # Show success dialog
+                QMessageBox.information(
+                    self,
+                    "Export Thành Công",
+                    f"✅ Đã export thành công!\n\n"
+                    f"📁 File: {os.path.basename(file_path)}\n"
+                    f"📊 Emotions: {export_data['export_info']['total_emotions']}\n"
+                    f"💾 Size: {os.path.getsize(file_path):,} bytes\n\n"
+                    f"💡 File chứa current UI values của tất cả emotions!"
+                )
+                
+        except Exception as e:
+            self.update_status(f"❌ Lỗi export: {str(e)}")
+            QMessageBox.critical(self, "Lỗi Export", f"Không thể export emotion config:\n{str(e)}")
+    
+    def import_config(self):
+        """Import emotion configuration và apply vào UI"""
+        try:
+            file_path, _ = QFileDialog.getOpenFileName(
+                self, "Import Emotion Config", "",
+                "JSON Files (*.json)"
+            )
+            
+            if file_path:
+                # Read và validate file
+                import json
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    import_data = json.load(f)
+                
+                # Validate format
+                if "emotions" not in import_data:
+                    QMessageBox.warning(self, "Invalid Format", "File không có 'emotions' section!")
+                    return
+                
+                imported_emotions = import_data["emotions"]
+                total_import = len(imported_emotions)
+                
+                # Confirm import
+                reply = QMessageBox.question(
+                    self,
+                    "Confirm Import",
+                    f"📥 Import Emotion Configuration\n\n"
+                    f"📁 File: {os.path.basename(file_path)}\n"
+                    f"📊 Emotions to import: {total_import}\n\n"
+                    f"⚠️ Hành động này sẽ overwrite current UI values!\n"
+                    f"💡 Chỉ emotions có sẵn trong unified system sẽ được import.\n\n"
+                    f"Bạn có muốn tiếp tục?",
+                    QMessageBox.Yes | QMessageBox.No,
+                    QMessageBox.No
+                )
+                
+                if reply != QMessageBox.Yes:
+                    return
+                
+                # Process import với progress
+                success_count = 0
+                skip_count = 0
+                failed_count = 0
+                
+                print(f"\n📥 STARTING IMPORT từ {os.path.basename(file_path)}")
+                print("="*60)
+                
+                for emotion_name, emotion_config in imported_emotions.items():
+                    try:
+                        # Check nếu emotion tồn tại trong unified system
+                        if emotion_name not in self.unified_emotion_system.get_all_emotions():
+                            print(f"⏭️ SKIP: {emotion_name} (không có trong unified system)")
+                            skip_count += 1
+                            continue
+                        
+                        # Get parameters từ import file
+                        if "parameters" not in emotion_config:
+                            print(f"❌ FAILED: {emotion_name} (thiếu parameters)")
+                            failed_count += 1
+                            continue
+                            
+                        params = emotion_config["parameters"]
+                        
+                        # Find row trong table và update UI widgets
+                        for row in range(self.emotions_table.rowCount()):
+                            name_item = self.emotions_table.item(row, 0)
+                            if name_item and name_item.text() == emotion_name:
+                                # Update spinboxes với imported values
+                                exag_spinbox = self.emotions_table.cellWidget(row, 3)
+                                cfg_spinbox = self.emotions_table.cellWidget(row, 4)
+                                temp_spinbox = self.emotions_table.cellWidget(row, 5)
+                                speed_spinbox = self.emotions_table.cellWidget(row, 6)
+                                
+                                if exag_spinbox and "exaggeration" in params:
+                                    exag_spinbox.blockSignals(True)
+                                    exag_spinbox.setValue(params["exaggeration"])
+                                    exag_spinbox.blockSignals(False)
+                                
+                                if cfg_spinbox and "cfg_weight" in params:
+                                    cfg_spinbox.blockSignals(True)
+                                    cfg_spinbox.setValue(params["cfg_weight"])
+                                    cfg_spinbox.blockSignals(False)
+                                
+                                if temp_spinbox and "temperature" in params:
+                                    temp_spinbox.blockSignals(True)
+                                    temp_spinbox.setValue(params["temperature"])
+                                    temp_spinbox.blockSignals(False)
+                                
+                                if speed_spinbox and "speed" in params:
+                                    speed_spinbox.blockSignals(True)
+                                    speed_spinbox.setValue(params["speed"])
+                                    speed_spinbox.blockSignals(False)
+                                
+                                print(f"✅ IMPORTED: {emotion_name} - "
+                                      f"Exag={params.get('exaggeration', 'N/A'):.2f}, "
+                                      f"CFG={params.get('cfg_weight', 'N/A'):.2f}, "
+                                      f"Temp={params.get('temperature', 'N/A'):.2f}, "
+                                      f"Speed={params.get('speed', 'N/A'):.1f}")
+                                success_count += 1
+                                break
+                        
+                    except Exception as e:
+                        print(f"❌ FAILED: {emotion_name} - {str(e)}")
+                        failed_count += 1
+                
+                # Force UI refresh
+                self.emotions_table.viewport().update()
+                self.emotions_table.repaint()
+                self.update_statistics()
+                
+                # === IMPORT INNER VOICE CONFIG NẾU CÓ ===
+                inner_voice_imported = False
+                if "inner_voice_config" in import_data and hasattr(self, 'inner_voice_group'):
+                    try:
+                        inner_config = import_data["inner_voice_config"]
+                        
+                        # Apply enabled state
+                        if "enabled" in inner_config:
+                            self.inner_voice_group.setChecked(inner_config["enabled"])
+                            self.on_inner_voice_toggle()
+                        
+                        # Apply presets cho từng type
+                        if "presets" in inner_config:
+                            for type_name, preset in inner_config["presets"].items():
+                                if type_name in self.inner_voice_type_widgets:
+                                    widgets = self.inner_voice_type_widgets[type_name]
+                                    
+                                    if "delay" in preset and "delay" in widgets:
+                                        widgets["delay"].setValue(preset["delay"])
+                                    if "decay" in preset and "decay" in widgets:
+                                        widgets["decay"].setValue(preset["decay"])
+                                    if "gain" in preset and "gain" in widgets:
+                                        widgets["gain"].setValue(preset["gain"])
+                                    if "filter" in preset and "filter" in widgets:
+                                        widgets["filter"].setText(preset["filter"])
+                        
+                        inner_voice_imported = True
+                        print(f"✅ IMPORTED: Inner Voice Config - enabled={inner_config.get('enabled', False)}")
+                        
+                    except Exception as e:
+                        print(f"⚠️ WARNING: Không thể import inner voice config: {e}")
+                
+                print("="*60)
+                
+                print("="*60)
+                print(f"📥 IMPORT COMPLETED!")
+                print(f"✅ Successfully imported: {success_count}")
+                print(f"⏭️ Skipped (not found): {skip_count}")
+                print(f"❌ Failed: {failed_count}")
+                print(f"📊 Total processed: {success_count + skip_count + failed_count}/{total_import}")
+                if inner_voice_imported:
+                    print(f"🎭 Inner Voice config imported successfully!")
+                
+                # Update status và show results
+                self.update_status(f"✅ Import completed: {success_count} success, {skip_count} skipped, {failed_count} failed")
+                
+                # Show completion dialog
+                completion_msg = (
+                    f"📥 Import emotion configuration completed!\n\n"
+                    f"✅ Successfully imported: {success_count} emotions\n"
+                    f"⏭️ Skipped (not found): {skip_count} emotions\n"
+                    f"❌ Failed: {failed_count} emotions\n\n"
+                    f"📊 Total: {success_count + skip_count + failed_count}/{total_import}\n"
+                )
+                
+                if inner_voice_imported:
+                    completion_msg += f"\n🎭 Inner Voice config cũng đã được import!\n"
+                
+                completion_msg += f"\n💡 UI đã được cập nhật với imported values!"
+                
+                QMessageBox.information(self, "Import Hoàn Thành", completion_msg)
+                    
+        except Exception as e:
+            self.update_status(f"❌ Lỗi import: {str(e)}")
+            QMessageBox.critical(self, "Lỗi Import", f"Không thể import emotion config:\n{str(e)}")
+    
+    def update_statistics(self):
+        """Cập nhật thống kê emotions"""
+        try:
+            # Get statistics cho unified system
+            all_emotions = self.unified_emotion_system.get_all_emotions()
+            custom_emotions = self.unified_emotion_system.get_custom_emotions()
+            
+            stats = {
+                'total_emotions': len(all_emotions),
+                'default_emotions': len(all_emotions) - len(custom_emotions),
+                'custom_emotions': len(custom_emotions),
+                'total_presets': 0  # No presets in unified system
+            }
+            
+            stats_text = (
+                f"📊 Total: {stats['total_emotions']} | "
+                f"🎭 Built-in: {stats['default_emotions']} | "
+                f"✨ Custom: {stats['custom_emotions']} | "
+                f"📦 Presets: {stats['total_presets']}"
+            )
+            
+            self.stats_label.setText(stats_text)
+            
+        except Exception:
+            self.stats_label.setText("❌ Lỗi thống kê")
+    
+    def update_status(self, message: str):
+        """Cập nhật status message"""
+        self.status_label.setText(message)
+        QTimer.singleShot(3000, lambda: self.status_label.setText("✅ Sẵn sàng"))
+    
+    def connect_signals(self):
+        """Kết nối signals"""
+        # Filter signals already connected in setup_ui
+        pass 
+
+    def reset_emotion_to_default(self, emotion_name: str):
+        """Reset emotion về giá trị gốc của cảm xúc đó cụ thể"""
+        try:
+            # In unified system, all emotions can be reset to their original values
+            if emotion_name not in self.unified_emotion_system.get_all_emotions():
+                QMessageBox.warning(
+                    self, 
+                    "Không thể Reset", 
+                    f"Không tìm thấy emotion '{emotion_name}' trong hệ thống."
+                )
+                return
+            
+            # Get original emotion from unified system
+            original_emotion = self.unified_emotion_system.get_all_emotions()[emotion_name]
+            default_values = {
+                'exaggeration': original_emotion.get('exaggeration', 1.0),
+                'cfg_weight': original_emotion.get('cfg_weight', 0.6),
+                'temperature': original_emotion.get('temperature', 0.8),
+                'speed': original_emotion.get('speed', 1.0)
+            }
+            
+            # DEBUG: In giá trị gốc ra console
+            print(f"\n🔄 DEBUG RESET {emotion_name}:")
+            print(f"   📝 Original Description: {original_emotion.get('description', 'No description')}")
+            print(f"   🏷️ Original Category: {original_emotion.get('category', 'neutral')}")
+            print(f"   📊 Original Values:")
+            print(f"      🎯 Exaggeration: {default_values['exaggeration']:.2f}")
+            print(f"      ⚖️ CFG Weight: {default_values['cfg_weight']:.2f}")
+            print(f"      🌡️ Temperature: {default_values['temperature']:.2f}")
+            print(f"      ⚡ Speed: {default_values['speed']:.1f}")
+            
+            # Lấy giá trị hiện tại để so sánh
+            current_emotion = original_emotion  # In unified system, current = original
+            print(f"   📈 Current Values:")
+            print(f"      🎯 Exaggeration: {current_emotion.get('exaggeration', 1.0):.2f}")
+            print(f"      ⚖️ CFG Weight: {current_emotion.get('cfg_weight', 0.6):.2f}")
+            print(f"      🌡️ Temperature: {current_emotion.get('temperature', 0.8):.2f}")
+            print(f"      ⚡ Speed: {current_emotion.get('speed', 1.0):.1f}")
+            
+            # Confirm dialog với giá trị gốc cụ thể
+            dialog_text = (
+                f"Bạn có chắc chắn muốn reset '{emotion_name}' về giá trị gốc?\n\n"
+                f"📝 Emotion gốc: {original_emotion.get('description', 'No description')}\n"
+                f"🏷️ Category: {original_emotion.get('category', 'neutral')}\n\n"
+                f"📊 Giá trị gốc sẽ được áp dụng:\n"
+                f"🎯 Exaggeration: {default_values['exaggeration']:.2f}\n"
+                f"⚖️ CFG Weight: {default_values['cfg_weight']:.2f}\n"
+                f"🌡️ Temperature: {default_values['temperature']:.2f}\n"
+                f"⚡ Speed: {default_values['speed']:.1f}\n\n"
+                f"💡 Giá trị hiện tại:\n"
+                f"🎯 Exaggeration: {current_emotion.get('exaggeration', 1.0):.2f}\n"
+                f"⚖️ CFG Weight: {current_emotion.get('cfg_weight', 0.6):.2f}\n"
+                f"🌡️ Temperature: {current_emotion.get('temperature', 0.8):.2f}\n"
+                f"⚡ Speed: {current_emotion.get('speed', 1.0):.1f}"
+            )
+            
+            reply = QMessageBox.question(
+                self,
+                "Reset Emotion về Gốc",
+                dialog_text,
+                QMessageBox.Yes | QMessageBox.No,
+                QMessageBox.No
+            )
+            
+            if reply == QMessageBox.Yes:
+                # For unified system, reload table to reset values
+                # (The values are already in their default state)
+                
+                # 🎯 UPDATE UI trong table với blocking signals để tránh recursive calls
+                for row in range(self.emotions_table.rowCount()):
+                    name_item = self.emotions_table.item(row, 0)
+                    if name_item and name_item.text() == emotion_name:
+                        print(f"   🔄 Updating UI for row {row}")
+                        
+                        # Update spinboxes với giá trị gốc cụ thể - BLOCK SIGNALS
+                        exag_spinbox = self.emotions_table.cellWidget(row, 3)
+                        if exag_spinbox:
+                            exag_spinbox.blockSignals(True)
+                            exag_spinbox.setValue(default_values['exaggeration'])
+                            exag_spinbox.blockSignals(False)
+                            print(f"   ✅ Updated exaggeration: {default_values['exaggeration']:.2f}")
+                        
+                        cfg_spinbox = self.emotions_table.cellWidget(row, 4)
+                        if cfg_spinbox:
+                            cfg_spinbox.blockSignals(True)
+                            cfg_spinbox.setValue(default_values['cfg_weight'])
+                            cfg_spinbox.blockSignals(False)
+                            print(f"   ✅ Updated cfg_weight: {default_values['cfg_weight']:.2f}")
+                        
+                        temp_spinbox = self.emotions_table.cellWidget(row, 5)
+                        if temp_spinbox:
+                            temp_spinbox.blockSignals(True)
+                            temp_spinbox.setValue(default_values['temperature'])
+                            temp_spinbox.blockSignals(False)
+                            print(f"   ✅ Updated temperature: {default_values['temperature']:.2f}")
+                        
+                        speed_spinbox = self.emotions_table.cellWidget(row, 6)
+                        if speed_spinbox:
+                            speed_spinbox.blockSignals(True)
+                            speed_spinbox.setValue(default_values['speed'])
+                            speed_spinbox.blockSignals(False)
+                            print(f"   ✅ Updated speed: {default_values['speed']:.1f}")
+                        
+                        # Force table refresh và update statistics
+                        self.emotions_table.viewport().update()
+                        self.emotions_table.repaint()
+                        self.update_statistics()  # Update emotion count statistics
+                        
+                        print(f"   🎉 UI update completed for {emotion_name}")
+                        break
+                
+                self.update_status(f"✅ Reset {emotion_name} về giá trị gốc: Exag={default_values['exaggeration']:.2f}, CFG={default_values['cfg_weight']:.2f}")
+                
+                # 🔄 ALTERNATIVE: Reload entire table to ensure consistency
+                # Uncomment this line if individual widget updates don't work properly
+                # self.load_emotions_to_table()
+                
+        except Exception as e:
+            self.update_status(f"❌ Lỗi reset {emotion_name}: {str(e)}")
+            QMessageBox.warning(self, "Lỗi Reset", f"Không thể reset {emotion_name} về giá trị gốc:\n{str(e)}") 
+
+    def reset_all_emotions_to_default(self):
+        """Reset tất cả emotions về giá trị gốc"""
+        try:
+            all_emotions = self.unified_emotion_system.get_all_emotions()
+            total_emotions = len(all_emotions)
+            
+            # Confirm dialog với thông tin chi tiết
+            dialog_text = (
+                f"⚠️ RESET TẤT CẢ EMOTIONS\n\n"
+                f"Bạn có chắc chắn muốn reset TẤT CẢ {total_emotions} emotions "
+                f"về giá trị gốc không?\n\n"
+                f"🔄 Hành động này sẽ:\n"
+                f"• Reset tất cả parameters về expert-recommended values\n"
+                f"• Phục hồi 100% compliance với expert recommendations\n"
+                f"• Khôi phục toàn bộ hệ thống emotion về trạng thái tối ưu\n\n"
+                f"💡 Tất cả thay đổi hiện tại sẽ bị mất!\n"
+                f"📊 Unified System sẽ được phục hồi hoàn toàn"
+            )
+            
+            reply = QMessageBox.question(
+                self,
+                "Reset All Emotions",
+                dialog_text,
+                QMessageBox.Yes | QMessageBox.No,
+                QMessageBox.No
+            )
+            
+            if reply == QMessageBox.Yes:
+                # Show progress dialog
+                progress = QProgressDialog(
+                    "Đang reset tất cả emotions...", 
+                    "Hủy", 0, total_emotions, self
+                )
+                progress.setWindowTitle("Reset All Progress")
+                progress.setWindowModality(Qt.WindowModal)
+                progress.show()
+                
+                reset_count = 0
+                failed_count = 0
+                
+                print(f"\n🔄 STARTING RESET ALL {total_emotions} EMOTIONS")
+                print("="*60)
+                
+                # Process tất cả emotions
+                for idx, (emotion_name, emotion) in enumerate(all_emotions.items()):
+                    progress.setValue(idx)
+                    progress.setLabelText(f"Reset: {emotion_name}")
+                    
+                    if progress.wasCanceled():
+                        break
+                    
+                    try:
+                        # Get original values
+                        default_values = {
+                            'exaggeration': emotion.get('exaggeration', 1.0),
+                            'cfg_weight': emotion.get('cfg_weight', 0.6),
+                            'temperature': emotion.get('temperature', 0.8),
+                            'speed': emotion.get('speed', 1.0)
+                        }
+                        
+                        print(f"🎭 {emotion_name}: Exag={default_values['exaggeration']:.2f}, "
+                              f"CFG={default_values['cfg_weight']:.2f}, "
+                              f"Temp={default_values['temperature']:.2f}, "
+                              f"Speed={default_values['speed']:.1f}")
+                        
+                        # Update UI for this emotion
+                        for row in range(self.emotions_table.rowCount()):
+                            name_item = self.emotions_table.item(row, 0)
+                            if name_item and name_item.text() == emotion_name:
+                                # Update all spinboxes với blocking signals
+                                exag_spinbox = self.emotions_table.cellWidget(row, 3)
+                                if exag_spinbox:
+                                    exag_spinbox.blockSignals(True)
+                                    exag_spinbox.setValue(default_values['exaggeration'])
+                                    exag_spinbox.blockSignals(False)
+                                
+                                cfg_spinbox = self.emotions_table.cellWidget(row, 4)
+                                if cfg_spinbox:
+                                    cfg_spinbox.blockSignals(True)
+                                    cfg_spinbox.setValue(default_values['cfg_weight'])
+                                    cfg_spinbox.blockSignals(False)
+                                
+                                temp_spinbox = self.emotions_table.cellWidget(row, 5)
+                                if temp_spinbox:
+                                    temp_spinbox.blockSignals(True)
+                                    temp_spinbox.setValue(default_values['temperature'])
+                                    temp_spinbox.blockSignals(False)
+                                
+                                speed_spinbox = self.emotions_table.cellWidget(row, 6)
+                                if speed_spinbox:
+                                    speed_spinbox.blockSignals(True)
+                                    speed_spinbox.setValue(default_values['speed'])
+                                    speed_spinbox.blockSignals(False)
+                                
+                                break
+                        
+                        reset_count += 1
+                        
+                    except Exception as e:
+                        print(f"❌ Failed to reset {emotion_name}: {str(e)}")
+                        failed_count += 1
+                    
+                    # Small delay để UI responsive
+                    QApplication.processEvents()
+                
+                progress.setValue(total_emotions)
+                progress.close()
+                
+                # Force table refresh
+                self.emotions_table.viewport().update()
+                self.emotions_table.repaint()
+                self.update_statistics()
+                
+                print("="*60)
+                print(f"🎉 RESET ALL COMPLETED!")
+                print(f"✅ Successfully reset: {reset_count} emotions")
+                print(f"❌ Failed: {failed_count} emotions")
+                print(f"📊 Total processed: {reset_count + failed_count}/{total_emotions}")
+                
+                # Success message
+                if failed_count == 0:
+                    self.update_status(f"🎉 Reset ALL {reset_count} emotions thành công! 100% Expert Compliance!")
+                    QMessageBox.information(
+                        self, 
+                        "Reset All Hoàn Thành", 
+                        f"✅ Đã reset thành công {reset_count} emotions!\n\n"
+                        f"🎯 Tất cả emotions giờ đã 100% expert compliance:\n"
+                        f"• Temperature: 0.7-1.0 ✅\n"
+                        f"• Exaggeration: 0.8-1.2 ✅\n"
+                        f"• CFG Weight: 0.5-0.7 ✅\n"
+                        f"• Speed: 0.8-1.3 ✅\n\n"
+                        f"🔄 Unified Emotion System restored!"
+                    )
+                else:
+                    self.update_status(f"⚠️ Reset ALL: {reset_count} thành công, {failed_count} thất bại")
+                    QMessageBox.warning(
+                        self, 
+                        "Reset All Hoàn Thành Một Phần", 
+                        f"✅ Thành công: {reset_count} emotions\n"
+                        f"❌ Thất bại: {failed_count} emotions\n\n"
+                        f"Vui lòng kiểm tra console để biết chi tiết."
+                    )
+            
+        except Exception as e:
+            print(f"❌ CRITICAL ERROR in reset_all_emotions_to_default: {str(e)}")
+            self.update_status(f"❌ Lỗi reset all: {str(e)}")
+            QMessageBox.critical(
+                self, 
+                "Lỗi Reset All", 
+                f"Không thể reset tất cả emotions:\n{str(e)}\n\n"
+                f"Vui lòng thử lại hoặc reset từng emotion riêng lẻ."
+            ) 
+
+    def on_inner_voice_toggle(self):
+        # Enable/disable các spinbox theo trạng thái bật/tắt
+        enabled = self.inner_voice_group.isChecked()
+        for w in self.inner_voice_type_widgets.values():
+            for key in ["delay", "decay", "gain", "filter", "preview", "reset", "group"]:
+                if key in w:
+                    w[key].setEnabled(enabled)
+
+    def reset_inner_voice_type(self, type_name: str):
+        # Reset về thông số ORIGINAL (từ file hoặc user's settings)
+        if type_name in self.inner_voice_original_values and type_name in self.inner_voice_type_widgets:
+            original_vals = self.inner_voice_original_values[type_name]
+            widgets = self.inner_voice_type_widgets[type_name]
+            
+            print(f"🔄 RESETTING {type_name} to ORIGINAL values:")
+            print(f"   delay: {original_vals['delay']}")
+            print(f"   decay: {original_vals['decay']}")
+            print(f"   gain: {original_vals['gain']}")
+            print(f"   filter: '{original_vals['filter']}'")
+            
+            # Temporarily block signals để tránh trigger auto-save
+            widgets["delay"].blockSignals(True)
+            widgets["decay"].blockSignals(True)
+            widgets["gain"].blockSignals(True)
+            widgets["filter"].blockSignals(True)
+            
+            widgets["delay"].setValue(original_vals["delay"])
+            widgets["decay"].setValue(original_vals["decay"])
+            widgets["gain"].setValue(original_vals["gain"])
+            widgets["filter"].setText(original_vals["filter"])
+            
+            # Unblock signals
+            widgets["delay"].blockSignals(False)
+            widgets["decay"].blockSignals(False)
+            widgets["gain"].blockSignals(False)
+            widgets["filter"].blockSignals(False)
+            
+            print(f"✅ Reset completed for {type_name}")
+            
+            # Cập nhật InnerVoiceProcessor với thông số mới
+            self.update_inner_voice_processor_preset(type_name)
+            
+            # Save config sau khi reset
+            self.save_inner_voice_config_to_file()
+        else:
+            print(f"❌ Cannot reset {type_name}: No original values or widgets not found")
+    
+    def update_inner_voice_processor_preset(self, type_name: str):
+        """Cập nhật preset InnerVoiceProcessor với thông số từ UI"""
+        try:
+            if type_name in self.inner_voice_type_widgets:
+                widgets = self.inner_voice_type_widgets[type_name]
+                
+                # Thu thập thông số từ UI
+                delay = widgets["delay"].value()
+                decay = widgets["decay"].value()
+                gain = widgets["gain"].value()
+                
+                # Auto-generate filter string từ current values
+                auto_filter = self.generate_filter_string(type_name, delay, decay, gain)
+                
+                # Cập nhật filter text field để sync với values
+                widgets["filter"].setText(auto_filter)
+                
+                custom_preset = {
+                    "delay": delay,
+                    "decay": decay, 
+                    "gain": gain,
+                    "filter": auto_filter
+                }
+                
+                # Import và cập nhật InnerVoiceProcessor
+                from core.inner_voice_processor import InnerVoiceProcessor
+                processor = InnerVoiceProcessor()
+                processor.set_custom_preset(type_name, custom_preset)
+                
+                print(f"🎭 Updated InnerVoiceProcessor preset for {type_name}: {custom_preset}")
+                
+        except Exception as e:
+            print(f"⚠️ Warning: Không thể cập nhật InnerVoiceProcessor preset: {e}")
+    
+    def generate_filter_string(self, type_name: str, delay: float, decay: float, gain: float) -> str:
+        """Generate FFmpeg filter string từ UI parameters"""
+        
+        # Base aecho filter cho tất cả types
+        base_filter = f"aecho={gain}:{decay}:{delay}:{decay}"
+        
+        # Type-specific enhancements
+        if type_name == "light":
+            # Light: simple echo
+            return base_filter
+            
+        elif type_name == "deep":
+            # Deep: dual echo với lowpass
+            return f"{base_filter}|0.3,lowpass=f=3000"
+            
+        elif type_name == "dreamy":
+            # Dreamy: volume + echo + lowpass
+            return f"volume=0.8,{base_filter},lowpass=f=3000"
+            
+        else:
+            # Fallback
+            return base_filter
+    
+    def save_inner_voice_config_to_file(self):
+        """Lưu cấu hình inner voice vào unified_emotions.json"""
+        try:
+            config_path = "configs/emotions/unified_emotions.json"
+            
+            print(f"🔍 DEBUGGING SAVE: Starting save to {config_path}")
+            
+            # Đọc config hiện tại
+            import json
+            if os.path.exists(config_path):
+                with open(config_path, 'r', encoding='utf-8') as f:
+                    config = json.load(f)
+                print(f"✅ Successfully read existing config file")
+            else:
+                config = {}
+                print(f"⚠️ Config file doesn't exist, creating new one")
+            
+            # Cập nhật inner voice config
+            if hasattr(self, 'inner_voice_group') and hasattr(self, 'inner_voice_type_widgets'):
+                print(f"🎭 Inner Voice enabled: {self.inner_voice_group.isChecked()}")
+                
+                config["inner_voice_config"] = {
+                    "enabled": self.inner_voice_group.isChecked(),
+                    "description": "Inner voice (thoại nội tâm) system configuration",
+                    "presets": {}
+                }
+                
+                # Lưu thông số từ UI
+                for type_name in ["light", "deep", "dreamy"]:
+                    if type_name in self.inner_voice_type_widgets:
+                        widgets = self.inner_voice_type_widgets[type_name]
+                        current_values = {
+                            "delay": widgets["delay"].value(),
+                            "decay": widgets["decay"].value(),
+                            "gain": widgets["gain"].value(),
+                            "filter": widgets["filter"].text(),
+                            "description": f"Preset {type_name} - cài đặt từ UI"
+                        }
+                        config["inner_voice_config"]["presets"][type_name] = current_values
+                        
+                        print(f"📊 {type_name}: delay={current_values['delay']}, decay={current_values['decay']}, gain={current_values['gain']}, filter='{current_values['filter']}'")
+                
+                # Ghi lại file với error handling
+                try:
+                    with open(config_path, 'w', encoding='utf-8') as f:
+                        json.dump(config, f, indent=2, ensure_ascii=False)
+                    
+                    # Verify write
+                    with open(config_path, 'r', encoding='utf-8') as f:
+                        verify_config = json.load(f)
+                    
+                    if "inner_voice_config" in verify_config:
+                        print(f"✅ SAVE VERIFIED: File updated successfully")
+                        
+                        # Show current file values for debugging
+                        saved_presets = verify_config["inner_voice_config"]["presets"]
+                        for type_name, preset in saved_presets.items():
+                            print(f"   📝 Saved {type_name}: delay={preset['delay']}, filter='{preset['filter']}'")
+                    else:
+                        print(f"❌ SAVE FAILED: inner_voice_config not found in saved file")
+                        
+                except Exception as write_error:
+                    print(f"❌ FILE WRITE ERROR: {write_error}")
+                    raise write_error
+                
+                print(f"💾 SAVE COMPLETED: {config_path}")
+                
+            else:
+                print(f"❌ SAVE FAILED: Missing inner_voice_group or inner_voice_type_widgets")
+                
+        except Exception as e:
+            print(f"❌ CRITICAL SAVE ERROR: {e}")
+            import traceback
+            traceback.print_exc()
+    
+    def load_inner_voice_config_from_file(self):
+        """Load cấu hình inner voice từ unified_emotions.json khi khởi tạo"""
+        try:
+            config_path = "configs/emotions/unified_emotions.json"
+            
+            if os.path.exists(config_path):
+                import json
+                with open(config_path, 'r', encoding='utf-8') as f:
+                    config = json.load(f)
+                
+                if "inner_voice_config" in config and hasattr(self, 'inner_voice_group'):
+                    inner_config = config["inner_voice_config"]
+                    
+                    # Apply enabled state
+                    if "enabled" in inner_config:
+                        self.inner_voice_group.setChecked(inner_config["enabled"])
+                        self.on_inner_voice_toggle()
+                    
+                    # Apply presets và lưu original values
+                    if "presets" in inner_config:
+                        for type_name, preset in inner_config["presets"].items():
+                            if type_name in self.inner_voice_type_widgets:
+                                widgets = self.inner_voice_type_widgets[type_name]
+                                
+                                # Lưu original values để reset về sau này
+                                self.inner_voice_original_values[type_name] = {
+                                    "delay": preset.get("delay", 500),
+                                    "decay": preset.get("decay", 0.3),
+                                    "gain": preset.get("gain", 0.5),
+                                    "filter": preset.get("filter", "aecho=0.6:0.5:500:0.3")
+                                }
+                                
+                                # Apply values to UI
+                                widgets["delay"].setValue(preset.get("delay", 500))
+                                widgets["decay"].setValue(preset.get("decay", 0.3))
+                                widgets["gain"].setValue(preset.get("gain", 0.5))
+                                widgets["filter"].setText(preset.get("filter", "aecho=0.6:0.5:500:0.3"))
+                                
+                                print(f"📥 Loaded {type_name}: delay={preset.get('delay')}, filter='{preset.get('filter')}'")
+                    
+                    print(f"✅ Loaded inner voice config from {config_path}")
+                else:
+                    # Nếu không có config, set default original values
+                    self.set_default_original_values()
+                    
+            else:
+                # Nếu file không tồn tại, set defaults
+                self.set_default_original_values()
+                    
+        except Exception as e:
+            print(f"⚠️ Warning: Không thể load inner voice config: {e}")
+            self.set_default_original_values()
+    
+    def set_default_original_values(self):
+        """Set default original values khi không có config file"""
+        # Generate filter strings theo values mới
+        light_filter = self.generate_filter_string("light", 50, 0.3, 0.5)
+        deep_filter = self.generate_filter_string("deep", 150, 0.6, 0.7)
+        dreamy_filter = self.generate_filter_string("dreamy", 300, 0.8, 0.6)
+        
+        self.inner_voice_original_values = {
+            "light": {"delay": 50, "decay": 0.3, "gain": 0.5, "filter": light_filter},
+            "deep": {"delay": 150, "decay": 0.6, "gain": 0.7, "filter": deep_filter},
+            "dreamy": {"delay": 300, "decay": 0.8, "gain": 0.6, "filter": dreamy_filter}
+        }
+        
+        print("📋 Set default original values for Inner Voice:")
+        for type_name, values in self.inner_voice_original_values.items():
+            print(f"   🎛️ {type_name}: delay={values['delay']}, filter='{values['filter']}'")
+        print("📋 Set default original values for Inner Voice")
+    
+    def connect_inner_voice_signals(self):
+        """Kết nối signals cho inner voice widgets để auto-save"""
+        try:
+            if hasattr(self, 'inner_voice_group') and hasattr(self, 'inner_voice_type_widgets'):
+                # Kết nối signal cho checkbox chính
+                self.inner_voice_group.toggled.connect(self.save_inner_voice_config_to_file)
+                
+                # Kết nối signals cho từng type widget
+                for type_name, widgets in self.inner_voice_type_widgets.items():
+                    # Kết nối spinbox value changes
+                    if "delay" in widgets:
+                        widgets["delay"].valueChanged.connect(lambda v, t=type_name: self.on_inner_voice_param_changed(t))
+                    if "decay" in widgets:
+                        widgets["decay"].valueChanged.connect(lambda v, t=type_name: self.on_inner_voice_param_changed(t))
+                    if "gain" in widgets:
+                        widgets["gain"].valueChanged.connect(lambda v, t=type_name: self.on_inner_voice_param_changed(t))
+                    if "filter" in widgets:
+                        widgets["filter"].textChanged.connect(lambda v, t=type_name: self.on_inner_voice_param_changed(t))
+                
+                print("🔗 Connected inner voice signals for auto-save")
+                
+        except Exception as e:
+            print(f"⚠️ Warning: Không thể connect inner voice signals: {e}")
+    
+    def on_inner_voice_param_changed(self, type_name: str):
+        """Xử lý khi user thay đổi thông số inner voice"""
+        try:
+            # Cập nhật processor với preset mới
+            self.update_inner_voice_processor_preset(type_name)
+            
+            # Auto-save config
+            self.save_inner_voice_config_to_file()
+            
+        except Exception as e:
+            print(f"⚠️ Warning: Lỗi xử lý param change cho {type_name}: {e}")
+    

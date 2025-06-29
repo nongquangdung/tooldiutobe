@@ -1,0 +1,312 @@
+from PySide6.QtWidgets import *
+from PySide6.QtCore import *
+from PySide6.QtGui import *
+from .styles import (
+    BUTTON_STYLE, LABEL_STYLE, STATUS_LABEL_STYLE, HIGHLIGHTED_LABEL_STYLE,
+    GUIDE_TEXT_STYLE, SCRIPT_INFO_STYLE, CHARACTER_LABEL_STYLE,
+    GENERATED_INFO_STYLE, IMPORTED_FILE_STYLE
+)
+
+class VideoGenerationThread(QThread):
+    progress_updated = Signal(int, str)
+    finished = Signal(dict)
+    
+    def __init__(self, prompt, project_name, effects, use_custom_images=False, custom_images_folder=None,
+                 voice_name="vi-VN-Standard-A", project_folder=None):
+        super().__init__()
+        self.prompt = prompt
+        self.project_name = project_name
+        self.effects = effects
+        self.use_custom_images = use_custom_images
+        self.custom_images_folder = custom_images_folder
+        self.voice_name = voice_name
+        self.project_folder = project_folder
+
+    def run(self):
+        try:
+            # Existing run implementation
+            pass
+        except Exception as e:
+            print(f"Error in video generation: {e}")
+
+class AdvancedMainWindow(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Voice Studio")
+        self.resize(1200, 800)
+
+        # Create central widget and main layout
+        central_widget = QWidget()
+        self.setCentralWidget(central_widget)
+        main_layout = QVBoxLayout(central_widget)
+
+        # Create tab widget
+        self.tab_widget = QTabWidget()
+        main_layout.addWidget(self.tab_widget)
+
+        # Create tabs
+        self.create_voice_studio_tab()
+        self.create_video_tab()
+        self.create_emotion_config_tab()
+        self.create_license_tab()
+
+        # Create status bar
+        self.create_status_bar()
+
+        # Setup platform-specific styles
+        if platform.system() == "Darwin":
+            self.setup_macos_style()
+
+    def create_voice_studio_tab(self):
+        # Create tab widget and layout
+        voice_studio_tab = QWidget()
+        layout = QVBoxLayout()
+        layout.setSpacing(16)
+        voice_studio_tab.setLayout(layout)
+        self.tab_widget.addTab(voice_studio_tab, "🎙️ Voice Studio")
+
+        # Group 1: Data Source
+        import_group = QGroupBox("📥 Import Data")
+        import_layout = QVBoxLayout()
+        import_layout.setSpacing(12)
+
+        # Template selection
+        template_group = QGroupBox("Template Mode")
+        template_layout = QVBoxLayout()
+
+        # Mode selection
+        mode_layout = QHBoxLayout()
+        mode_layout.addWidget(QLabel("Mode:"))
+        self.template_mode_combo = QComboBox()
+        self.template_mode_combo.addItems(["RAPID", "STANDARD", "DETAILED"])
+        self.template_mode_combo.currentTextChanged.connect(self.update_token_preview)
+        mode_layout.addWidget(self.template_mode_combo)
+        mode_layout.addStretch()
+        template_layout.addLayout(mode_layout)
+
+        # Token preview
+        token_layout = QHBoxLayout()
+        token_layout.addWidget(QLabel("Estimated tokens:"))
+        self.token_preview_label = QLabel("~500")
+        self.token_preview_label.setStyleSheet(STATUS_LABEL_STYLE)
+        token_layout.addWidget(self.token_preview_label)
+        token_layout.addStretch()
+        template_layout.addLayout(token_layout)
+
+        # AI Request Form Button
+        self.generate_ai_request_btn = QPushButton("📋 Tạo Request Form cho AI")
+        self.generate_ai_request_btn.setStyleSheet(BUTTON_STYLE)
+        self.generate_ai_request_btn.clicked.connect(self.generate_ai_request_form)
+        self.generate_ai_request_btn.setToolTip("Tạo template form theo mode đã chọn để request AI tạo JSON script")
+        template_layout.addWidget(self.generate_ai_request_btn)
+
+        template_group.setLayout(template_layout)
+        import_layout.addWidget(template_group)
+
+        # File import controls
+        file_layout = QHBoxLayout()
+        self.import_file_btn = QPushButton("📁 Chọn file JSON")
+        self.import_file_btn.clicked.connect(self.import_script_file)
+        self.import_file_btn.setStyleSheet(BUTTON_STYLE)
+
+        # Multi-file import button
+        self.import_multi_files_btn = QPushButton("📂 Import nhiều file JSON")
+        self.import_multi_files_btn.clicked.connect(self.import_multiple_script_files)
+        self.import_multi_files_btn.setVisible(False)
+        self.import_multi_files_btn.setStyleSheet(BUTTON_STYLE)
+
+        self.load_generated_btn = QPushButton("🔄 Load từ tab Tạo Video")
+        self.load_generated_btn.clicked.connect(self.load_generated_script_data)
+        self.load_generated_btn.setVisible(False)
+        self.load_generated_btn.setStyleSheet(BUTTON_STYLE)
+
+        file_layout.addWidget(self.import_file_btn)
+        file_layout.addWidget(self.import_multi_files_btn)
+        file_layout.addWidget(self.load_generated_btn)
+        file_layout.addStretch()
+
+        import_layout.addLayout(file_layout)
+
+        # File status
+        file_status_layout = QHBoxLayout()
+        file_status_layout.addWidget(QLabel("Imported file:"))
+        self.imported_file_label = QLabel("Chưa import file nào")
+        self.imported_file_label.setStyleSheet(IMPORTED_FILE_STYLE)
+        file_status_layout.addWidget(self.imported_file_label)
+        file_status_layout.addStretch()
+        import_layout.addLayout(file_status_layout)
+
+        # Generated data section
+        self.generated_data_widget = QWidget()
+        generated_layout = QVBoxLayout()
+        generated_layout.setContentsMargins(0, 0, 0, 0)
+
+        generated_info = QLabel("🔄 Sử dụng script data đã được tạo từ tab 'Tạo Video'")
+        generated_info.setStyleSheet(GENERATED_INFO_STYLE)
+        generated_layout.addWidget(generated_info)
+
+        self.use_generated_btn = QPushButton("🔄 Load Data từ tab Tạo Video")
+        self.use_generated_btn.clicked.connect(self.load_generated_script_data)
+        self.use_generated_btn.setStyleSheet(BUTTON_STYLE)
+        generated_layout.addWidget(self.use_generated_btn)
+
+        self.generated_data_widget.setLayout(generated_layout)
+        self.generated_data_widget.setVisible(False)
+        import_layout.addWidget(self.generated_data_widget)
+
+        # Manual input section
+        self.manual_input_widget = QWidget()
+        manual_layout = QVBoxLayout()
+        manual_layout.setContentsMargins(0, 0, 0, 0)
+
+        manual_layout.addWidget(QLabel("✏️ Nhập JSON script:"))
+        self.manual_script_input = QTextEdit()
+        self.manual_script_input.setPlaceholderText("Paste JSON script vào đây...")
+        self.manual_script_input.setMaximumHeight(120)
+        manual_layout.addWidget(self.manual_script_input)
+
+        self.parse_manual_btn = QPushButton("✅ Parse JSON")
+        self.parse_manual_btn.clicked.connect(self.parse_manual_script)
+        self.parse_manual_btn.setStyleSheet(BUTTON_STYLE)
+        manual_layout.addWidget(self.parse_manual_btn)
+
+        self.manual_input_widget.setLayout(manual_layout)
+        self.manual_input_widget.setVisible(False)
+        import_layout.addWidget(self.manual_input_widget)
+
+        import_group.setLayout(import_layout)
+        layout.addWidget(import_group)
+
+        # Template Usage Guide
+        guide_group = QGroupBox("💡 Hướng dẫn sử dụng Template Modes")
+        guide_layout = QVBoxLayout()
+
+        guide_text = QLabel("""
+<b>🏃‍♂️ RAPID Mode:</b> Cho stories đơn giản, tập trung vào nội dung. Tiết kiệm token tối đa.<br/>
+<b>📝 STANDARD Mode:</b> Cân bằng giữa format và content. Phù hợp cho hầu hết trường hợp.<br/>
+<b>📚 DETAILED Mode:</b> Cho stories phức tạp với nhiều tính năng cinematic và advanced settings.
+        """)
+        guide_text.setWordWrap(True)
+        guide_text.setStyleSheet(GUIDE_TEXT_STYLE)
+        guide_layout.addWidget(guide_text)
+
+        guide_group.setLayout(guide_layout)
+        layout.addWidget(guide_group)
+
+        # Script Overview
+        overview_group = QGroupBox("📋 Script Overview")
+        overview_layout = QVBoxLayout()
+        overview_layout.setSpacing(8)
+
+        # Script info
+        self.script_info_label = QLabel("Chưa load script data")
+        self.script_info_label.setStyleSheet(SCRIPT_INFO_STYLE)
+        overview_layout.addWidget(self.script_info_label)
+
+        # Characters list
+        characters_layout = QHBoxLayout()
+        characters_layout.addWidget(QLabel("Nhân vật:"))
+        self.characters_label = QLabel("Chưa có data")
+        self.characters_label.setStyleSheet(CHARACTER_LABEL_STYLE)
+        characters_layout.addWidget(self.characters_label)
+        characters_layout.addStretch()
+        overview_layout.addLayout(characters_layout)
+
+        # Segments count
+        segments_layout = QHBoxLayout()
+        segments_layout.addWidget(QLabel("Số segments:"))
+        self.segments_count_label = QLabel("0")
+        self.segments_count_label.setStyleSheet(CHARACTER_LABEL_STYLE)
+        segments_layout.addWidget(self.segments_count_label)
+        segments_layout.addStretch()
+        overview_layout.addLayout(segments_layout)
+
+        overview_group.setLayout(overview_layout)
+        layout.addWidget(overview_group)
+
+        # Manual Text Input
+        self.manual_text_group = QGroupBox("✏️ Nhập text thủ công")
+        manual_text_layout = QVBoxLayout()
+
+        # Text input
+        self.manual_text_input = QTextEdit()
+        self.manual_text_input.setPlaceholderText("Nhập text cần tạo voice...")
+        self.manual_text_input.setMaximumHeight(100)
+        manual_text_layout.addWidget(self.manual_text_input)
+
+        # Voice settings
+        settings_layout = QHBoxLayout()
+
+        # Voice selection
+        voice_layout = QVBoxLayout()
+        voice_label = QLabel("Voice:")
+        voice_layout.addWidget(voice_label)
+        self.manual_voice_combo = QComboBox()
+        self.manual_voice_combo.addItems(["Narrator"])  # Default voice
+        voice_layout.addWidget(self.manual_voice_combo)
+        settings_layout.addLayout(voice_layout)
+
+        # Emotion selection
+        emotion_layout = QVBoxLayout()
+        emotion_label = QLabel("Emotion:")
+        emotion_layout.addWidget(emotion_label)
+        self.manual_emotion_combo = QComboBox()
+        self.manual_emotion_combo.addItems(["Neutral", "Happy", "Sad", "Angry", "Excited"])  # Basic emotions
+        emotion_layout.addWidget(self.manual_emotion_combo)
+        settings_layout.addLayout(emotion_layout)
+
+        # Inner voice settings
+        inner_voice_layout = QVBoxLayout()
+        self.manual_inner_voice_check = QCheckBox("Inner Voice")
+        inner_voice_layout.addWidget(self.manual_inner_voice_check)
+        self.manual_inner_voice_type = QComboBox()
+        self.manual_inner_voice_type.addItems(["Light", "Deep", "Dreamy"])
+        self.manual_inner_voice_type.setEnabled(False)  # Disabled by default
+        inner_voice_layout.addWidget(self.manual_inner_voice_type)
+        settings_layout.addLayout(inner_voice_layout)
+
+        # Connect inner voice checkbox
+        self.manual_inner_voice_check.stateChanged.connect(
+            lambda state: self.manual_inner_voice_type.setEnabled(state == Qt.Checked)
+        )
+
+        manual_text_layout.addLayout(settings_layout)
+
+        # Preview and Generate buttons
+        buttons_layout = QHBoxLayout()
+        preview_btn = QPushButton("🔊 Preview")
+        preview_btn.clicked.connect(self.preview_manual_text)
+        preview_btn.setStyleSheet(BUTTON_STYLE)
+        generate_btn = QPushButton("💾 Generate")
+        generate_btn.clicked.connect(self.generate_manual_text)
+        generate_btn.setStyleSheet(BUTTON_STYLE)
+        buttons_layout.addWidget(preview_btn)
+        buttons_layout.addWidget(generate_btn)
+        manual_text_layout.addLayout(buttons_layout)
+
+        self.manual_text_group.setLayout(manual_text_layout)
+        layout.addWidget(self.manual_text_group)
+
+    def create_video_tab(self):
+        # Implementation of video tab
+        pass
+
+    def create_emotion_config_tab(self):
+        # Implementation of emotion config tab
+        pass
+
+    def create_license_tab(self):
+        # Implementation of license tab
+        pass
+
+    def create_status_bar(self):
+        # Implementation of status bar
+        pass
+
+    def update_api_status_indicator(self):
+        # Implementation of API status update
+        pass
+
+    def setup_macos_style(self):
+        # Implementation of macOS style setup
+        pass 
