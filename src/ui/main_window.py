@@ -114,7 +114,7 @@ class ModernMainWindow(QMainWindow):
         # Central widget with modern layout
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
-        
+
         # Platform-optimized spacing
         if self.platform == "Darwin":
             spacing = get_modern_spacing()
