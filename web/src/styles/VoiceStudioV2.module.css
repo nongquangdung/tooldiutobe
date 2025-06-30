@@ -917,4 +917,194 @@ body {
   .voiceSelection {
     flex-direction: column;
   }
+}
+
+/* Inner Voice Settings */
+.innerVoiceSettings {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.settingRow {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.checkboxLabel input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+/* Minimalist JSON Mode Styling */
+.dialogueCardMinimal {
+  padding: 6px 0;
+  margin-bottom: 8px;
+  transition: all 0.2s ease;
+  border-bottom: 1px dashed var(--border);
+}
+
+.dialogueHeaderMinimal {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.characterLabel {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--accent);
+}
+
+.dialogueTextMinimal {
+  width: 100%;
+  padding: 4px 0;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 14px;
+  line-height: 1.5;
+  resize: vertical;
+  outline: none;
+  min-height: 40px;
+  transition: all 0.2s ease;
+}
+
+.dialogueTextMinimal::placeholder {
+  color: var(--text-muted);
+  opacity: 0.6;
+}
+
+.dialogueTextMinimal:focus {
+  background: transparent;
+}
+
+/* Update segment card for minimal JSON mode */
+.segmentCard {
+  background: var(--surface);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+  border: 1px solid var(--border);
+}
+
+/* iOS Switch Style */
+.iosSwitch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+  margin: 0 8px;
+}
+.iosSwitch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.iosSlider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: #ccc;
+  border-radius: 24px;
+  transition: .4s;
+}
+.iosSwitch input:checked + .iosSlider {
+  background: #4cd964;
+}
+.iosSlider:before {
+  position: absolute;
+  content: "";
+  height: 20px;
+  width: 20px;
+  left: 2px;
+  bottom: 2px;
+  background: white;
+  border-radius: 50%;
+  transition: .4s;
+}
+.iosSwitch input:checked + .iosSlider:before {
+  transform: translateX(20px);
+}
+
+.switchRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.switchActive {
+  color: var(--accent);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.cloneUploadRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 8px 0;
+}
+.uploadBtn {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 16px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.uploadBtn:hover {
+  background: #2fae5a;
+}
+.fileName {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.characterSettingsPanel {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.iosSwitchRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.textInputJson {
+  width: 100%;
+  min-height: 60px;
+  max-height: 40vh;
+  padding: 10px;
+  font-size: 15px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-primary);
+  resize: vertical;
+  overflow-y: auto;
+  transition: border 0.2s;
+}
+.textInputJson:focus {
+  border-color: var(--accent);
+  outline: none;
 } 

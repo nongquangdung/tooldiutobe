@@ -98,7 +98,7 @@ const MagicIcon = () => (
 interface Dialogue {
   speaker: string;
   text: string;
-  emotion: string;
+  emotion?: string;
   inner_voice?: boolean;
   inner_voice_type?: 'light' | 'deep' | 'dreamy';
 }
@@ -189,10 +189,19 @@ const VoiceStudioV2: React.FC = () => {
     speed: 1.0,
     singleEmotion: 'neutral', // For single speaker mode
     autoAssignVoices: true, // AI auto-assign voices based on gender/name
+    innerVoice: {
+      enabled: false,
+      type: 'light' as 'light' | 'deep' | 'dreamy',
+      volume: 0.3
+    }
   });
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // 1. Thêm state cho mode chọn giọng (voiceSelectMode: 'default' | 'clone') và file clone
+  const [voiceSelectMode, setVoiceSelectMode] = useState<'default' | 'clone'>('default');
+  const [cloneFile, setCloneFile] = useState<File | null>(null);
 
   useEffect(() => {
     if (isDarkTheme) {
@@ -261,6 +270,15 @@ const VoiceStudioV2: React.FC = () => {
             }));
           }
           
+          // Remove emotion data from dialogues in JSON mode
+          jsonData.segments = jsonData.segments.map(segment => ({
+            ...segment,
+            dialogues: segment.dialogues.map(dialogue => ({
+              speaker: dialogue.speaker,
+              text: dialogue.text
+            }))
+          }));
+          
           setProjectData(jsonData);
           setTextInput(''); // Clear single text input when loading multi-character
         } catch (error) {
@@ -291,8 +309,7 @@ const VoiceStudioV2: React.FC = () => {
   const addDialogue = (segmentId: number) => {
     const newDialogue: Dialogue = {
       speaker: projectData.characters[0]?.id || 'narrator',
-      text: '',
-      emotion: 'neutral'
+      text: ''
     };
     
     setProjectData(prev => ({
@@ -589,21 +606,6 @@ const VoiceStudioV2: React.FC = () => {
                           <option value="female">Nữ</option>
                         </select>
                       </div>
-                      <div className={styles.voiceSelection}>
-                        <select
-                          value={character.voice || 'Alice'}
-                          onChange={(e) => updateCharacter(character.id, 'voice', e.target.value)}
-                          className={styles.voiceSelect}
-                          disabled={voiceSettings.autoAssignVoices}
-                        >
-                          {CHATTERBOX_VOICES.map(voice => (
-                            <option key={voice} value={voice}>{voice}</option>
-                          ))}
-                        </select>
-                        {voiceSettings.autoAssignVoices && (
-                          <span className={styles.autoLabel}>Auto</span>
-                        )}
-                      </div>
                     </div>
                   ))}
                 </div>
@@ -640,61 +642,15 @@ const VoiceStudioV2: React.FC = () => {
                       </div>
 
                       {segment.dialogues.map((dialogue, dialogueIndex) => (
-                        <div key={dialogueIndex} className={styles.dialogueCard}>
-                          <div className={styles.dialogueHeader}>
+                        <div key={dialogueIndex} className={styles.dialogueCardMinimal}>
+                          <div className={styles.dialogueHeaderMinimal}>
                             <span className={styles.dialogueNumber}>#{dialogueIndex + 1}</span>
-                            <select
-                              value={dialogue.speaker}
-                              onChange={(e) => updateDialogue(segment.id, dialogueIndex, 'speaker', e.target.value)}
-                              className={styles.speakerSelect}
-                            >
-                              {projectData.characters.map(character => (
-                                <option key={character.id} value={character.id}>{character.name}</option>
-                              ))}
-                            </select>
-                            <select
-                              value={dialogue.emotion}
-                              onChange={(e) => updateDialogue(segment.id, dialogueIndex, 'emotion', e.target.value)}
-                              className={styles.emotionSelect}
-                            >
-                              {EMOTIONS.map(emotion => (
-                                <option key={emotion} value={emotion}>{emotion}</option>
-                              ))}
-                            </select>
-                            
-                            <div className={styles.innerVoiceControls}>
-                              <label className={styles.checkboxLabel}>
-                                <input
-                                  type="checkbox"
-                                  checked={dialogue.inner_voice || false}
-                                  onChange={(e) => updateDialogue(segment.id, dialogueIndex, 'inner_voice', e.target.checked)}
-                                />
-                                Inner Voice
-                              </label>
-                              {dialogue.inner_voice && (
-                                <select
-                                  value={dialogue.inner_voice_type || 'light'}
-                                  onChange={(e) => updateDialogue(segment.id, dialogueIndex, 'inner_voice_type', e.target.value)}
-                                  className={styles.innerVoiceSelect}
-                                >
-                                  <option value="light">Light</option>
-                                  <option value="deep">Deep</option>
-                                  <option value="dreamy">Dreamy</option>
-                                </select>
-                              )}
-                            </div>
-
-                            {segment.dialogues.length > 1 && (
-                              <button 
-                                className={styles.deleteBtn}
-                                onClick={() => deleteDialogue(segment.id, dialogueIndex)}
-                              >
-                                <TrashIcon />
-                              </button>
-                            )}
+                            <span className={styles.characterLabel}>{
+                              projectData.characters.find(c => c.id === dialogue.speaker)?.name || 'Narrator'
+                            }</span>
                           </div>
                           <textarea
-                            className={styles.dialogueText}
+                            className={styles.dialogueTextMinimal}
                             value={dialogue.text}
                             onChange={(e) => updateDialogue(segment.id, dialogueIndex, 'text', e.target.value)}
                             placeholder="Nhập nội dung dialogue..."
@@ -744,6 +700,125 @@ const VoiceStudioV2: React.FC = () => {
                 </div>
               </div>
 
+              {/* 2. Toggle chọn mode giọng đọc */}
+              <div className={styles.settingGroup}>
+                <label className={styles.settingLabel}>Chế độ chọn giọng</label>
+                <div className={styles.switchRow}>
+                  <span className={voiceSelectMode === 'default' ? styles.switchActive : ''}
+                    onClick={() => setVoiceSelectMode('default')}>Chọn giọng có sẵn</span>
+                  <div className={styles.iosSwitch}>
+                    <input type="checkbox" checked={voiceSelectMode === 'clone'} onChange={e => setVoiceSelectMode(e.target.checked ? 'clone' : 'default')} />
+                    <span className={styles.iosSlider}></span>
+                  </div>
+                  <span className={voiceSelectMode === 'clone' ? styles.switchActive : ''}
+                    onClick={() => setVoiceSelectMode('clone')}>Clone giọng</span>
+                </div>
+                {voiceSelectMode === 'clone' && (
+                  <div className={styles.cloneUploadRow}>
+                    <input type="file" accept="audio/*" style={{display:'none'}} id="clone-upload" onChange={e => setCloneFile(e.target.files?.[0] || null)} />
+                    <label htmlFor="clone-upload" className={styles.uploadBtn}>Đính kèm tệp audio</label>
+                    {cloneFile && <span className={styles.fileName}>{cloneFile.name}</span>}
+                  </div>
+                )}
+                {voiceSelectMode === 'default' && (
+                  <select 
+                    className={styles.settingControl}
+                    value={projectData.characters[0]?.voice || 'Alice'}
+                    onChange={(e) => {
+                      const updatedCharacters = [...projectData.characters];
+                      if (updatedCharacters[0]) {
+                        updatedCharacters[0] = {...updatedCharacters[0], voice: e.target.value};
+                        setProjectData({...projectData, characters: updatedCharacters});
+                      }
+                    }}
+                  >
+                    {CHATTERBOX_VOICES.map(voice => (
+                      <option key={voice} value={voice}>{voice}</option>
+                    ))}
+                  </select>
+                )}
+              </div>
+
+              {/* 1. Quản lý nhân vật chỉ hiển thị khi isMultiCharacter (mode JSON) */}
+              {isMultiCharacter && (
+                <div className={styles.settingGroup}>
+                  <label className={styles.settingLabel}>Quản lý nhân vật (JSON mode)</label>
+                  <div className={styles.characterSettingsPanel}>
+                    <button 
+                      className={styles.autoBtn}
+                      onClick={() => setVoiceSettings({...voiceSettings, autoAssignVoices: !voiceSettings.autoAssignVoices})}
+                      title="Auto-assign voices"
+                    >
+                      <MagicIcon /> {voiceSettings.autoAssignVoices ? 'Auto ON' : 'Auto OFF'}
+                    </button>
+                    <button className={styles.addBtn} onClick={addCharacter}>
+                      <PlusIcon /> Thêm nhân vật
+                    </button>
+                  </div>
+                  {projectData.characters.map((character) => (
+                    <div key={character.id} className={styles.characterCard}>
+                      <div className={styles.characterHeader}>
+                        <input
+                          className={styles.characterName}
+                          value={character.name}
+                          onChange={(e) => updateCharacter(character.id, 'name', e.target.value)}
+                          placeholder="Tên nhân vật"
+                        />
+                        <select
+                          value={character.gender}
+                          onChange={(e) => updateCharacter(character.id, 'gender', e.target.value)}
+                          className={styles.genderSelect}
+                        >
+                          <option value="neutral">Neutral</option>
+                          <option value="male">Nam</option>
+                          <option value="female">Nữ</option>
+                        </select>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* 3. Inner Voice xuống cuối, dạng iOS switch */}
+              <div className={styles.settingGroup}>
+                <label className={styles.settingLabel}>Inner Voice</label>
+                <div className={styles.iosSwitchRow}>
+                  <span>Tắt</span>
+                  <div className={styles.iosSwitch}>
+                    <input
+                      type="checkbox"
+                      checked={voiceSettings.innerVoice.enabled}
+                      onChange={(e) => setVoiceSettings({
+                        ...voiceSettings, 
+                        innerVoice: {...voiceSettings.innerVoice, enabled: e.target.checked}
+                      })}
+                    />
+                    <span className={styles.iosSlider}></span>
+                  </div>
+                  <span>Bật</span>
+                </div>
+                {voiceSettings.innerVoice.enabled && (
+                  <div className={styles.settingRow}>
+                    <label className={styles.settingLabel}>Loại Inner Voice</label>
+                    <select
+                      className={styles.settingControl}
+                      value={voiceSettings.innerVoice.type}
+                      onChange={(e) => setVoiceSettings({
+                        ...voiceSettings, 
+                        innerVoice: {
+                          ...voiceSettings.innerVoice, 
+                          type: e.target.value as 'light' | 'deep' | 'dreamy'
+                        }
+                      })}
+                    >
+                      <option value="light">Light</option>
+                      <option value="deep">Deep</option>
+                      <option value="dreamy">Dreamy</option>
+                    </select>
+                  </div>
+                )}
+              </div>
+
               {/* Single character emotion (only for single mode) */}
               {!isMultiCharacter && (
                 <div className={styles.settingGroup}>
@@ -757,6 +832,35 @@ const VoiceStudioV2: React.FC = () => {
                       <option key={emotion} value={emotion}>{emotion}</option>
                     ))}
                   </select>
+                </div>
+              )}
+
+              {/* JSON Mode Voice Settings */}
+              {isMultiCharacter && (
+                <div className={styles.settingGroup}>
+                  <label className={styles.settingLabel}>JSON Mode Voice Settings</label>
+                  <div className={styles.settingRow}>
+                    <label className={styles.checkboxLabel}>
+                      <input
+                        type="checkbox"
+                        checked={voiceSettings.autoAssignVoices}
+                        onChange={(e) => setVoiceSettings({...voiceSettings, autoAssignVoices: e.target.checked})}
+                      />
+                      Auto-assign voices by gender
+                    </label>
+                  </div>
+                  <div className={styles.settingRow}>
+                    <label className={styles.settingLabel}>Default Emotion</label>
+                    <select 
+                      className={styles.settingControl}
+                      value={voiceSettings.singleEmotion}
+                      onChange={(e) => setVoiceSettings({...voiceSettings, singleEmotion: e.target.value})}
+                    >
+                      {EMOTIONS.map(emotion => (
+                        <option key={emotion} value={emotion}>{emotion}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               )}
 
@@ -818,17 +922,6 @@ const VoiceStudioV2: React.FC = () => {
                   />
                   <span className={styles.sliderValue}>{voiceSettings.speed.toFixed(1)}x</span>
                 </div>
-              </div>
-
-              <div className={styles.settingGroup}>
-                <label className={styles.checkboxLabel}>
-                  <input
-                    type="checkbox"
-                    checked={voiceSettings.autoAssignVoices}
-                    onChange={(e) => setVoiceSettings({...voiceSettings, autoAssignVoices: e.target.checked})}
-                  />
-                  Auto-assign voices by gender
-                </label>
               </div>
             </div>
           </div>
