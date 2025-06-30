@@ -1,0 +1,88 @@
+{
+  "segments": [
+    {
+      "id": 1,
+      "dialogues": [
+        {
+          "speaker": "narrator",
+          "text": "As the last train passed by, Lan stood at the edge of the platform, clutching an old letter in her hand.",
+          "emotion": "dramatic"
+        },
+        {
+          "speaker": "character1",
+          "text": "Every time I come here, I think of that day. The way you left, without a word... Do you even remember what you promised me?",
+          "emotion": "sad"
+        },
+        {
+          "speaker": "character1",
+          "text": "It's been five years. Five long years of waiting, wondering, hoping for a sign. Just one sign that you still care.",
+          "emotion": "melancholic",
+          "inner_voice": true,
+          "inner_voice_type": "deep"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "dialogues": [
+        {
+          "speaker": "character2",
+          "text": "Lan, I didn't forget. I couldn't come back… not until I made things right. I know I hurt you. I thought staying away would protect you.",
+          "emotion": "serious"
+        },
+        {
+          "speaker": "character1",
+          "text": "You should've trusted me. I didn't need protection—I needed the truth.",
+          "emotion": "determined"
+        },
+        {
+          "speaker": "character1",
+          "text": "Didn't you realize that silence hurts more than any truth could?",
+          "emotion": "frustrated",
+          "inner_voice": true,
+          "inner_voice_type": "dreamy"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "dialogues": [
+        {
+          "speaker": "character2",
+          "text": "You're right. I was a coward. But I'm here now. And if you'll let me… I want to rebuild everything I broke. With you.",
+          "emotion": "pleading"
+        },
+        {
+          "speaker": "character1",
+          "text": "I've waited so long to hear those words. Just… don't make me wait again.",
+          "emotion": "gentle"
+        },
+        {
+          "speaker": "narrator",
+          "text": "The platform lights flickered as they stood face to face—no trains, no noise, just two hearts trying to find their rhythm again.",
+          "emotion": "soft"
+        }
+      ]
+    }
+  ],
+  "characters": [
+    {
+      "id": "narrator",
+      "name": "Narrator",
+      "gender": "neutral",
+      "voice": "Alice"
+    },
+    {
+      "id": "character1",
+      "name": "Lan",
+      "gender": "female",
+      "voice": "Emily"
+    },
+    {
+      "id": "character2",
+      "name": "Minh",
+      "gender": "male",
+      "voice": "David"
+    }
+  ]
+} 
