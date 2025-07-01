@@ -63,8 +63,14 @@ class ChatterboxVoicesManager:
         """Setup predefined voices từ thư mục voices/ directory"""
         try:
             if not self.voices_directory.exists():
-                logger.warning(f"Voices directory not found: {self.voices_directory}")
-                return
+                # 🔎 Try fallback to project-root voices directory
+                alt_dir = Path(__file__).resolve().parent.parent.parent / "voices"
+                if alt_dir.exists():
+                    logger.info(f"Voices directory fallback found at: {alt_dir}")
+                    self.voices_directory = alt_dir
+                else:
+                    logger.warning(f"Voices directory not found: {self.voices_directory} or fallback {alt_dir}")
+                    return
             
             # Gender classification based on common name patterns
             # Này dựa trên analysis các voices có sẵn từ Chatterbox

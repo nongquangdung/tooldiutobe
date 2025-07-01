@@ -1,0 +1,51 @@
+{
+  "summary": {
+    "temperature": {
+      "compliance_rate": 100.0,
+      "compliant": 37,
+      "total": 37,
+      "violations": 0
+    },
+    "exaggeration": {
+      "compliance_rate": 100.0,
+      "compliant": 37,
+      "total": 37,
+      "violations": 0
+    },
+    "cfg_weight": {
+      "compliance_rate": 100.0,
+      "compliant": 37,
+      "total": 37,
+      "violations": 0
+    },
+    "speed": {
+      "compliance_rate": 100.0,
+      "compliant": 37,
+      "total": 37,
+      "violations": 0
+    }
+  },
+  "details": {
+    "temperature": {
+      "compliant": 37,
+      "total": 37,
+      "violations": []
+    },
+    "exaggeration": {
+      "compliant": 37,
+      "total": 37,
+      "violations": []
+    },
+    "cfg_weight": {
+      "compliant": 37,
+      "total": 37,
+      "violations": []
+    },
+    "speed": {
+      "compliant": 37,
+      "total": 37,
+      "violations": []
+    }
+  },
+  "total_emotions": 37
+}
