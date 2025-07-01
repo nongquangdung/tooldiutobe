@@ -203,6 +203,35 @@ const VoiceStudioV2: React.FC = () => {
   const [voiceSelectMode, setVoiceSelectMode] = useState<'default' | 'clone'>('default');
   const [cloneFile, setCloneFile] = useState<File | null>(null);
 
+  const [innerVoiceEnabled, setInnerVoiceEnabled] = useState(false);
+  const [selectedLanguage, setSelectedLanguage] = useState('en');
+
+  const POPULAR_LANGUAGES = [
+    { code: 'en', name: 'English' },
+    { code: 'es', name: 'Español' },
+    { code: 'fr', name: 'Français' },
+    { code: 'de', name: 'Deutsch' },
+    { code: 'it', name: 'Italiano' },
+    { code: 'pt', name: 'Português' },
+    { code: 'ru', name: 'Русский' },
+    { code: 'ja', name: '日本語' },
+    { code: 'ko', name: '한국어' },
+    { code: 'zh', name: '中文' },
+    { code: 'ar', name: 'العربية' },
+    { code: 'hi', name: 'हिन्दी' },
+    { code: 'th', name: 'ไทย' },
+    { code: 'vi', name: 'Tiếng Việt' },
+    { code: 'nl', name: 'Nederlands' },
+    { code: 'sv', name: 'Svenska' },
+    { code: 'da', name: 'Dansk' },
+    { code: 'no', name: 'Norsk' },
+    { code: 'fi', name: 'Suomi' },
+    { code: 'pl', name: 'Polski' }
+  ];
+
+  // Ref tới phần tử Audio để điều khiển play / pause / seek
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
   useEffect(() => {
     if (isDarkTheme) {
       document.body.classList.add('dark-theme');
@@ -395,27 +424,49 @@ const VoiceStudioV2: React.FC = () => {
   };
 
   const handleGenerate = async () => {
-    const hasText = projectData.segments.some(segment => 
-      segment.dialogues.some(dialogue => dialogue.text.trim())
-    );
-    
+    if (isGenerating) return;
+
+    // Kiểm tra nội dung
+    const hasText = textInput.trim().length > 0 || projectData.segments.some(s => s.dialogues.some(d => d.text.trim()));
     if (!hasText) {
       alert('Vui lòng nhập nội dung để tạo giọng nói');
       return;
     }
 
     setIsGenerating(true);
-    
+
     try {
-      // Simulate ChatterboxTTS API call
-      console.log('Generating audio with ChatterboxTTS:', {
-        projectData,
-        voiceSettings
-      });
-      
-      // Here would be the actual API call to ChatterboxTTS
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
+      // Gọi trực tiếp ChatterboxTTS backend
+      const { generateVoiceREST } = await import('../api/voice-api');
+      const buffer: ArrayBuffer = await generateVoiceREST(textInput, {
+        exaggeration: voiceSettings.exaggeration,
+        cfg: voiceSettings.cfg,
+        temperature: voiceSettings.temperature,
+        speed: voiceSettings.speed
+      } as any);
+
+      // Phát audio
+      const blob = new Blob([buffer], { type: 'audio/wav' });
+      const url = URL.createObjectURL(blob);
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+      const audio = new Audio(url);
+      audioRef.current = audio;
+      audio.play();
+      setIsPlaying(true);
+
+      // Cập nhật progress bar
+      audio.ontimeupdate = () => {
+        if (audio.duration) {
+          setProgress((audio.currentTime / audio.duration) * 100);
+        }
+      };
+
+      audio.onended = () => {
+        setIsPlaying(false);
+        setProgress(0);
+      };
     } catch (error) {
       alert('Tạo thất bại: ' + (error as Error).message);
     } finally {
@@ -424,6 +475,13 @@ const VoiceStudioV2: React.FC = () => {
   };
 
   const togglePlay = () => {
+    if (!audioRef.current) return;
+
+    if (isPlaying) {
+      audioRef.current.pause();
+    } else {
+      audioRef.current.play();
+    }
     setIsPlaying(!isPlaying);
   };
 
@@ -432,6 +490,9 @@ const VoiceStudioV2: React.FC = () => {
     const x = event.clientX - rect.left;
     const percent = x / rect.width;
     setProgress(percent * 100);
+    if (audioRef.current && audioRef.current.duration) {
+      audioRef.current.currentTime = audioRef.current.duration * percent;
+    }
   };
 
   const formatTime = (seconds: number) => {
@@ -460,6 +521,17 @@ const VoiceStudioV2: React.FC = () => {
   const totalDialogues = projectData.segments.reduce((total, segment) => 
     total + segment.dialogues.length, 0
   );
+
+  const toggleInnerVoice = () => {
+    setInnerVoiceEnabled(!innerVoiceEnabled);
+    setVoiceSettings({
+      ...voiceSettings,
+      innerVoice: {
+        ...voiceSettings.innerVoice,
+        enabled: !innerVoiceEnabled
+      }
+    });
+  };
 
   return (
     <div className={styles.appContainer}>
@@ -570,96 +642,58 @@ const VoiceStudioV2: React.FC = () => {
             ) : (
               /* Multi Character Mode */
               <div className={styles.multiCharacterContainer}>
-                {/* Characters Section */}
-                <div className={styles.characterSection}>
-                  <div className={styles.sectionHeader}>
-                    <h3>Nhân vật ({projectData.characters.length})</h3>
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <button 
-                        className={styles.autoBtn}
-                        onClick={() => setVoiceSettings({...voiceSettings, autoAssignVoices: !voiceSettings.autoAssignVoices})}
-                        title="Auto-assign voices"
-                      >
-                        <MagicIcon /> {voiceSettings.autoAssignVoices ? 'Auto ON' : 'Auto OFF'}
-                      </button>
-                      <button className={styles.addBtn} onClick={addCharacter}>
-                        <PlusIcon /> Thêm nhân vật
+                <div className={styles.segmentScrollArea}>
+                  <div className={styles.segmentSection}>
+                    {/* Segments Section */}
+                    <div className={styles.sectionHeader}>
+                      <h3>Segments ({projectData.segments.length}) - {totalDialogues} dialogues</h3>
+                      <button className={styles.addBtn} onClick={addSegment}>
+                        <PlusIcon /> Thêm segment
                       </button>
                     </div>
-                  </div>
-                  {projectData.characters.map((character) => (
-                    <div key={character.id} className={styles.characterCard}>
-                      <div className={styles.characterHeader}>
-                        <input
-                          className={styles.characterName}
-                          value={character.name}
-                          onChange={(e) => updateCharacter(character.id, 'name', e.target.value)}
-                          placeholder="Tên nhân vật"
-                        />
-                        <select
-                          value={character.gender}
-                          onChange={(e) => updateCharacter(character.id, 'gender', e.target.value)}
-                          className={styles.genderSelect}
-                        >
-                          <option value="neutral">Neutral</option>
-                          <option value="male">Nam</option>
-                          <option value="female">Nữ</option>
-                        </select>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Segments Section */}
-                <div className={styles.segmentSection}>
-                  <div className={styles.sectionHeader}>
-                    <h3>Segments ({projectData.segments.length}) - {totalDialogues} dialogues</h3>
-                    <button className={styles.addBtn} onClick={addSegment}>
-                      <PlusIcon /> Thêm segment
-                    </button>
-                  </div>
-                  
-                  {projectData.segments.map((segment) => (
-                    <div key={segment.id} className={styles.segmentCard}>
-                      <div className={styles.segmentHeader}>
-                        <span className={styles.segmentNumber}>Segment #{segment.id}</span>
-                        <div style={{ display: 'flex', gap: '8px' }}>
-                          <button 
-                            className={styles.addDialogueBtn}
-                            onClick={() => addDialogue(segment.id)}
-                          >
-                            <PlusIcon /> Dialogue
-                          </button>
-                          {projectData.segments.length > 1 && (
+                    
+                    {projectData.segments.map((segment) => (
+                      <div key={segment.id} className={styles.segmentCard}>
+                        <div className={styles.segmentHeader}>
+                          <span className={styles.segmentNumber}>Segment #{segment.id}</span>
+                          <div style={{ display: 'flex', gap: '8px' }}>
                             <button 
-                              className={styles.deleteBtn} 
-                              onClick={() => deleteSegment(segment.id)}
+                              className={styles.addDialogueBtn}
+                              onClick={() => addDialogue(segment.id)}
                             >
-                              <TrashIcon />
+                              <PlusIcon /> Dialogue
                             </button>
-                          )}
-                        </div>
-                      </div>
-
-                      {segment.dialogues.map((dialogue, dialogueIndex) => (
-                        <div key={dialogueIndex} className={styles.dialogueCardMinimal}>
-                          <div className={styles.dialogueHeaderMinimal}>
-                            <span className={styles.dialogueNumber}>#{dialogueIndex + 1}</span>
-                            <span className={styles.characterLabel}>{
-                              projectData.characters.find(c => c.id === dialogue.speaker)?.name || 'Narrator'
-                            }</span>
+                            {projectData.segments.length > 1 && (
+                              <button 
+                                className={styles.deleteBtn} 
+                                onClick={() => deleteSegment(segment.id)}
+                              >
+                                <TrashIcon />
+                              </button>
+                            )}
                           </div>
-                          <textarea
-                            className={styles.dialogueTextMinimal}
-                            value={dialogue.text}
-                            onChange={(e) => updateDialogue(segment.id, dialogueIndex, 'text', e.target.value)}
-                            placeholder="Nhập nội dung dialogue..."
-                            rows={2}
-                          />
                         </div>
-                      ))}
-                    </div>
-                  ))}
+
+                        {segment.dialogues.map((dialogue, dialogueIndex) => (
+                          <div key={dialogueIndex} className={styles.dialogueCardMinimal}>
+                            <div className={styles.dialogueHeaderMinimal}>
+                              <span className={styles.dialogueNumber}>#{dialogueIndex + 1}</span>
+                              <span className={styles.characterLabel}>{
+                                projectData.characters.find(c => c.id === dialogue.speaker)?.name || 'Narrator'
+                              }</span>
+                            </div>
+                            <textarea
+                              className={styles.dialogueTextMinimal}
+                              value={dialogue.text}
+                              onChange={(e) => updateDialogue(segment.id, dialogueIndex, 'text', e.target.value)}
+                              placeholder="Nhập nội dung dialogue..."
+                              rows={2}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
                 <div className={styles.multiCharacterFooter}>
@@ -700,129 +734,82 @@ const VoiceStudioV2: React.FC = () => {
                 </div>
               </div>
 
-              {/* 2. Toggle chọn mode giọng đọc */}
+              {/* Mode Clone */}
               <div className={styles.settingGroup}>
-                <label className={styles.settingLabel}>Chế độ chọn giọng</label>
-                <div className={styles.switchRow}>
-                  <span className={voiceSelectMode === 'default' ? styles.switchActive : ''}
-                    onClick={() => setVoiceSelectMode('default')}>Chọn giọng có sẵn</span>
+                <div className={styles.iosSwitchRow}>
+                  <span className={styles.settingLabel}>Mode Clone</span>
                   <div className={styles.iosSwitch}>
                     <input type="checkbox" checked={voiceSelectMode === 'clone'} onChange={e => setVoiceSelectMode(e.target.checked ? 'clone' : 'default')} />
                     <span className={styles.iosSlider}></span>
                   </div>
-                  <span className={voiceSelectMode === 'clone' ? styles.switchActive : ''}
-                    onClick={() => setVoiceSelectMode('clone')}>Clone giọng</span>
                 </div>
                 {voiceSelectMode === 'clone' && (
                   <div className={styles.cloneUploadRow}>
                     <input type="file" accept="audio/*" style={{display:'none'}} id="clone-upload" onChange={e => setCloneFile(e.target.files?.[0] || null)} />
-                    <label htmlFor="clone-upload" className={styles.uploadBtn}>Đính kèm tệp audio</label>
+                    <label htmlFor="clone-upload" className={styles.uploadIconBtn} title="Tải lên tệp audio">
+                      <UploadIcon />
+                    </label>
                     {cloneFile && <span className={styles.fileName}>{cloneFile.name}</span>}
                   </div>
                 )}
                 {voiceSelectMode === 'default' && (
-                  <select 
-                    className={styles.settingControl}
-                    value={projectData.characters[0]?.voice || 'Alice'}
-                    onChange={(e) => {
-                      const updatedCharacters = [...projectData.characters];
-                      if (updatedCharacters[0]) {
-                        updatedCharacters[0] = {...updatedCharacters[0], voice: e.target.value};
-                        setProjectData({...projectData, characters: updatedCharacters});
-                      }
-                    }}
-                  >
-                    {CHATTERBOX_VOICES.map(voice => (
-                      <option key={voice} value={voice}>{voice}</option>
-                    ))}
-                  </select>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    {/* Upload icon removed as per request */}
+                  </div>
                 )}
               </div>
 
-              {/* 1. Quản lý nhân vật chỉ hiển thị khi isMultiCharacter (mode JSON) */}
-              {isMultiCharacter && (
-                <div className={styles.settingGroup}>
-                  <label className={styles.settingLabel}>Quản lý nhân vật (JSON mode)</label>
-                  <div className={styles.characterSettingsPanel}>
-                    <button 
-                      className={styles.autoBtn}
-                      onClick={() => setVoiceSettings({...voiceSettings, autoAssignVoices: !voiceSettings.autoAssignVoices})}
-                      title="Auto-assign voices"
-                    >
-                      <MagicIcon /> {voiceSettings.autoAssignVoices ? 'Auto ON' : 'Auto OFF'}
-                    </button>
-                    <button className={styles.addBtn} onClick={addCharacter}>
-                      <PlusIcon /> Thêm nhân vật
-                    </button>
-                  </div>
-                  {projectData.characters.map((character) => (
-                    <div key={character.id} className={styles.characterCard}>
-                      <div className={styles.characterHeader}>
-                        <input
-                          className={styles.characterName}
-                          value={character.name}
-                          onChange={(e) => updateCharacter(character.id, 'name', e.target.value)}
-                          placeholder="Tên nhân vật"
-                        />
-                        <select
-                          value={character.gender}
-                          onChange={(e) => updateCharacter(character.id, 'gender', e.target.value)}
-                          className={styles.genderSelect}
-                        >
-                          <option value="neutral">Neutral</option>
-                          <option value="male">Nam</option>
-                          <option value="female">Nữ</option>
-                        </select>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* 3. Inner Voice xuống cuối, dạng iOS switch */}
+              {/* Language Selection */}
               <div className={styles.settingGroup}>
-                <label className={styles.settingLabel}>Inner Voice</label>
+                <div className={styles.settingRow}>
+                  <span className={styles.settingLabel}>Choose Language</span>
+                  <select
+                    className={styles.settingControl}
+                    value={selectedLanguage}
+                    onChange={(e) => setSelectedLanguage(e.target.value)}
+                  >
+                    {POPULAR_LANGUAGES.map(lang => (
+                      <option key={lang.code} value={lang.code}>{lang.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Inner Voice */}
+              <div className={styles.settingGroup}>
                 <div className={styles.iosSwitchRow}>
-                  <span>Tắt</span>
+                  <span className={styles.settingLabel}>Inner Voice</span>
                   <div className={styles.iosSwitch}>
                     <input
                       type="checkbox"
-                      checked={voiceSettings.innerVoice.enabled}
-                      onChange={(e) => setVoiceSettings({
-                        ...voiceSettings, 
-                        innerVoice: {...voiceSettings.innerVoice, enabled: e.target.checked}
-                      })}
+                      checked={innerVoiceEnabled}
+                      onChange={toggleInnerVoice}
                     />
-                    <span className={styles.iosSlider}></span>
                   </div>
-                  <span>Bật</span>
                 </div>
-                {voiceSettings.innerVoice.enabled && (
-                  <div className={styles.settingRow}>
-                    <label className={styles.settingLabel}>Loại Inner Voice</label>
-                    <select
-                      className={styles.settingControl}
-                      value={voiceSettings.innerVoice.type}
-                      onChange={(e) => setVoiceSettings({
-                        ...voiceSettings, 
-                        innerVoice: {
-                          ...voiceSettings.innerVoice, 
-                          type: e.target.value as 'light' | 'deep' | 'dreamy'
-                        }
-                      })}
-                    >
-                      <option value="light">Light</option>
-                      <option value="deep">Deep</option>
-                      <option value="dreamy">Dreamy</option>
-                    </select>
-                  </div>
-                )}
               </div>
 
-              {/* Single character emotion (only for single mode) */}
+              {/* Auto Emotion */}
+              {isMultiCharacter && (
+                <div className={styles.settingGroup}>
+                  <div className={styles.iosSwitchRow}>
+                    <span className={styles.settingLabel}>Auto Emotion</span>
+                    <div className={styles.iosSwitch}>
+                      <input
+                        type="checkbox"
+                        checked={voiceSettings.autoAssignVoices}
+                        onChange={e => setVoiceSettings({...voiceSettings, autoAssignVoices: e.target.checked})}
+                      />
+                      <span className={styles.iosSlider}></span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Default Emotion chỉ hiển thị khi không phải JSON mode */}
               {!isMultiCharacter && (
                 <div className={styles.settingGroup}>
-                  <label className={styles.settingLabel}>Emotion (Single Mode)</label>
+                  <label className={styles.settingLabel}>Default Emotion</label>
                   <select 
                     className={styles.settingControl}
                     value={voiceSettings.singleEmotion}
@@ -835,94 +822,101 @@ const VoiceStudioV2: React.FC = () => {
                 </div>
               )}
 
-              {/* JSON Mode Voice Settings */}
-              {isMultiCharacter && (
-                <div className={styles.settingGroup}>
-                  <label className={styles.settingLabel}>JSON Mode Voice Settings</label>
-                  <div className={styles.settingRow}>
-                    <label className={styles.checkboxLabel}>
-                      <input
-                        type="checkbox"
-                        checked={voiceSettings.autoAssignVoices}
-                        onChange={(e) => setVoiceSettings({...voiceSettings, autoAssignVoices: e.target.checked})}
+              {/* Các slider chỉ hiển thị khi không phải JSON mode */}
+              {!isMultiCharacter && (
+                <>
+                  <div className={styles.settingGroup}>
+                    <label className={styles.settingLabel}>Temperature</label>
+                    <div className={styles.sliderControl}>
+                      <input 
+                        type="range" 
+                        min="0.1" 
+                        max="1.0" 
+                        step="0.1" 
+                        value={voiceSettings.temperature}
+                        onChange={(e) => setVoiceSettings({...voiceSettings, temperature: parseFloat(e.target.value)})}
                       />
-                      Auto-assign voices by gender
-                    </label>
+                      <span className={styles.sliderValue}>{voiceSettings.temperature.toFixed(1)}</span>
+                    </div>
                   </div>
-                  <div className={styles.settingRow}>
-                    <label className={styles.settingLabel}>Default Emotion</label>
-                    <select 
-                      className={styles.settingControl}
-                      value={voiceSettings.singleEmotion}
-                      onChange={(e) => setVoiceSettings({...voiceSettings, singleEmotion: e.target.value})}
-                    >
-                      {EMOTIONS.map(emotion => (
-                        <option key={emotion} value={emotion}>{emotion}</option>
-                      ))}
-                    </select>
+                  <div className={styles.settingGroup}>
+                    <label className={styles.settingLabel}>CFG Scale</label>
+                    <div className={styles.sliderControl}>
+                      <input 
+                        type="range" 
+                        min="1.0" 
+                        max="5.0" 
+                        step="0.5" 
+                        value={voiceSettings.cfg}
+                        onChange={(e) => setVoiceSettings({...voiceSettings, cfg: parseFloat(e.target.value)})}
+                      />
+                      <span className={styles.sliderValue}>{voiceSettings.cfg.toFixed(1)}</span>
+                    </div>
                   </div>
-                </div>
+                  <div className={styles.settingGroup}>
+                    <label className={styles.settingLabel}>Exaggeration</label>
+                    <div className={styles.sliderControl}>
+                      <input 
+                        type="range" 
+                        min="0.1" 
+                        max="2.0" 
+                        step="0.1" 
+                        value={voiceSettings.exaggeration}
+                        onChange={(e) => setVoiceSettings({...voiceSettings, exaggeration: parseFloat(e.target.value)})}
+                      />
+                      <span className={styles.sliderValue}>{voiceSettings.exaggeration.toFixed(1)}</span>
+                    </div>
+                  </div>
+                  <div className={styles.settingGroup}>
+                    <label className={styles.settingLabel}>Speed</label>
+                    <div className={styles.sliderControl}>
+                      <input 
+                        type="range" 
+                        min="0.5" 
+                        max="2.0" 
+                        step="0.1" 
+                        value={voiceSettings.speed}
+                        onChange={(e) => setVoiceSettings({...voiceSettings, speed: parseFloat(e.target.value)})}
+                      />
+                      <span className={styles.sliderValue}>{voiceSettings.speed.toFixed(1)}x</span>
+                    </div>
+                  </div>
+                </>
               )}
 
-              <div className={styles.settingGroup}>
-                <label className={styles.settingLabel}>Temperature</label>
-                <div className={styles.sliderControl}>
-                  <input 
-                    type="range" 
-                    min="0.1" 
-                    max="1.0" 
-                    step="0.1" 
-                    value={voiceSettings.temperature}
-                    onChange={(e) => setVoiceSettings({...voiceSettings, temperature: parseFloat(e.target.value)})}
-                  />
-                  <span className={styles.sliderValue}>{voiceSettings.temperature.toFixed(1)}</span>
+              {/* Character Voice Mapping - Hiện khi đã import JSON */}
+              {projectData.characters && projectData.characters.length > 0 && (
+                <div className={styles.settingGroup}>
+                  <div style={{fontWeight:600, marginBottom:8}}>
+                    Character configuration
+                  </div>
+                  <div style={{display:'flex', fontWeight:500, marginBottom:4}}>
+                    <div style={{flex:2}}></div>
+                    <div style={{flex:4}}></div>
+                  </div>
+                  {projectData.characters.map((char, idx) => (
+                    <div key={char.id} style={{display:'flex', alignItems:'center', marginBottom:6}}>
+                      <div style={{flex:2, opacity:0.8}}>{char.name}</div>
+                      <div style={{flex:4}}>
+                        <select
+                          className={styles.settingControl}
+                          value={char.voice || ''}
+                          onChange={e => {
+                            const updated = [...projectData.characters];
+                            updated[idx] = {...updated[idx], voice: e.target.value};
+                            setProjectData({...projectData, characters: updated});
+                          }}
+                        >
+                          <option value="">Chọn voice</option>
+                          {CHATTERBOX_VOICES.map(voice => (
+                            <option key={voice} value={voice}>{voice}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              </div>
-
-              <div className={styles.settingGroup}>
-                <label className={styles.settingLabel}>CFG Scale</label>
-                <div className={styles.sliderControl}>
-                  <input 
-                    type="range" 
-                    min="1.0" 
-                    max="5.0" 
-                    step="0.5" 
-                    value={voiceSettings.cfg}
-                    onChange={(e) => setVoiceSettings({...voiceSettings, cfg: parseFloat(e.target.value)})}
-                  />
-                  <span className={styles.sliderValue}>{voiceSettings.cfg.toFixed(1)}</span>
-                </div>
-              </div>
-
-              <div className={styles.settingGroup}>
-                <label className={styles.settingLabel}>Exaggeration</label>
-                <div className={styles.sliderControl}>
-                  <input 
-                    type="range" 
-                    min="0.1" 
-                    max="2.0" 
-                    step="0.1" 
-                    value={voiceSettings.exaggeration}
-                    onChange={(e) => setVoiceSettings({...voiceSettings, exaggeration: parseFloat(e.target.value)})}
-                  />
-                  <span className={styles.sliderValue}>{voiceSettings.exaggeration.toFixed(1)}</span>
-                </div>
-              </div>
-
-              <div className={styles.settingGroup}>
-                <label className={styles.settingLabel}>Speed</label>
-                <div className={styles.sliderControl}>
-                  <input 
-                    type="range" 
-                    min="0.5" 
-                    max="2.0" 
-                    step="0.1" 
-                    value={voiceSettings.speed}
-                    onChange={(e) => setVoiceSettings({...voiceSettings, speed: parseFloat(e.target.value)})}
-                  />
-                  <span className={styles.sliderValue}>{voiceSettings.speed.toFixed(1)}x</span>
-                </div>
-              </div>
+              )}
             </div>
           </div>
 

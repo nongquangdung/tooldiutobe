@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Box, Button, HStack, Textarea, useToast } from '@chakra-ui/react';
 import EmotionTable from '../components/EmotionTable';
-import LocalTts from '../lib/LocalTts';
 import { generateVoiceREST } from '../api/voice-api';
 
 const defaultEmotion = {
@@ -24,13 +23,7 @@ const VoiceStudio = () => {
     }
     setLoading(true);
     try {
-      let buffer: ArrayBuffer;
-      try {
-        buffer = await LocalTts.generate(text, emotion);
-      } catch (gpuErr) {
-        console.warn('WebGPU failed, falling back REST', gpuErr);
-        buffer = await generateVoiceREST(text, emotion);
-      }
+      const buffer: ArrayBuffer = await generateVoiceREST(text, emotion);
       const blob = new Blob([buffer], { type: 'audio/wav' });
       const url = URL.createObjectURL(blob);
       const audio = new Audio(url);
