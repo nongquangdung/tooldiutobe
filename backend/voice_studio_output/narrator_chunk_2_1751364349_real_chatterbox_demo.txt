@@ -1,0 +1,17 @@
+🎯 Chatterbox TTS Demo Mode
+==================================================
+📱 Device: CPU - Real Chatterbox
+🍎 Platform: Other
+==================================================
+📝 Text:  Then, if you’re lucky, a short break—and another sip.
+🗣️ Voice: Default
+🎭 Emotion: 1.0 (simulated)
+⚡ Speed: 1.0
+🎚️ CFG Weight: 1.0 (simulated)
+==================================================
+ℹ️ This is a demo file created because:
+
+🎯 To get real TTS on GPU:
+   1. Use Linux/Windows with NVIDIA GPU
+   2. Install: pip install chatterbox-tts torch[cuda]
+   3. Configure proper GPU drivers

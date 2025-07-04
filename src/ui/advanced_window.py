@@ -119,6 +119,7 @@ class AdvancedMainWindow(QMainWindow):
         self.create_video_tab()
         self.create_voice_studio_tab()
         self.create_emotion_config_tab()
+        self.create_tts_optimization_tab()
         self.create_license_tab()
         self.create_projects_tab()
         self.create_settings_tab()
@@ -883,6 +884,23 @@ class AdvancedMainWindow(QMainWindow):
             layout.addWidget(error_label)
             fallback_tab.setLayout(layout)
             self.tabs.addTab(fallback_tab, "🎭 Cấu hình Cảm xúc")
+
+    def create_tts_optimization_tab(self):
+        """Tạo tab TTS Optimization Settings"""
+        try:
+            from .tabs.tts_optimization_tab import TtsOptimizationTab
+            self.optimization_tab = TtsOptimizationTab()
+            self.optimization_tab.optimization_changed.connect(self.on_optimization_settings_changed)
+            self.tabs.addTab(self.optimization_tab, "🚀 TTS Tối ưu")
+        except Exception as e:
+            # Fallback nếu có lỗi
+            fallback_tab = QWidget()
+            layout = QVBoxLayout()
+            error_label = QLabel(f"⚠️ Lỗi load TTS Optimization tab: {str(e)}")
+            error_label.setWordWrap(True)
+            layout.addWidget(error_label)
+            fallback_tab.setLayout(layout)
+            self.tabs.addTab(fallback_tab, "🚀 TTS Tối ưu")
 
     def create_license_tab(self):
         """Tạo tab License Management"""
@@ -5662,3 +5680,24 @@ Create a {content_type.lower()} video script about "[TOPIC]" using the following
         else:
             self.inner_voice_json_guide.setText(
                 "<b>Thoại nội tâm đang tắt.</b> Không cần khai báo cờ <code>inner_voice</code> trong JSON.")
+    
+    def on_optimization_settings_changed(self, settings):
+        """Handle TTS optimization settings changes"""
+        try:
+            print(f"🚀 TTS Optimization settings changed: {settings}")
+            
+            # Apply settings to RealChatterboxProvider if available
+            try:
+                from ..tts.real_chatterbox_provider import RealChatterboxProvider
+                provider = RealChatterboxProvider.get_instance()
+                
+                # Update optimization settings
+                if hasattr(provider, 'optimized_provider') and provider.optimized_provider:
+                    provider.optimized_provider.current_settings.update(settings)
+                    print("✅ Applied optimization settings to provider")
+                    
+            except Exception as e:
+                print(f"⚠️ Could not apply settings to provider: {e}")
+                
+        except Exception as e:
+            print(f"❌ Error handling optimization settings change: {e}")

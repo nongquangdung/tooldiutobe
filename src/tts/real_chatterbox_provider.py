@@ -2,6 +2,7 @@
 Real Chatterbox TTS Provider
 Chế độ thật sử dụng chatterbox-tts package chính thức
 macOS Compatible - Auto fallback to demo mode
+OPTIMIZED VERSION: 2-4x faster với torch compilation & mixed precision
 """
 import os
 import tempfile
@@ -12,12 +13,41 @@ import traceback
 import threading
 import platform
 
+# Import optimized provider
+try:
+    from .optimized_chatterbox_provider import OptimizedChatterboxProvider
+    OPTIMIZED_PROVIDER_AVAILABLE = True
+    print("✅ OptimizedChatterboxProvider imported successfully")
+except ImportError as e:
+    OPTIMIZED_PROVIDER_AVAILABLE = False
+    print(f"⚠️ OptimizedChatterboxProvider not available: {e}")
+
 # Safe imports với fallbacks
 try:
     import torch
     import torchaudio  # Required by ChatterboxTTS
     TORCH_AVAILABLE = True
     print(f"✅ PyTorch {torch.__version__} & torchaudio available")
+    
+    # Kiểm tra CUDA chi tiết
+    if torch.cuda.is_available():
+        print(f"✅ CUDA available: {torch.version.cuda}")
+        print(f"✅ GPU count: {torch.cuda.device_count()}")
+        print(f"✅ GPU name: {torch.cuda.get_device_name(0)}")
+        print(f"✅ GPU memory: {torch.cuda.get_device_properties(0).total_memory // (1024**3)}GB")
+    else:
+        print(f"❌ CUDA not available. Checking for CUDA installation...")
+        print(f"   PyTorch built with CUDA: {torch.version.cuda is not None}")
+        print(f"   Checking CUDA driver issues...")
+        try:
+            # Thử chạy CUDA init để xem lỗi chi tiết
+            torch.cuda.init()
+        except Exception as cuda_err:
+            print(f"   CUDA initialization error: {cuda_err}")
+            print(f"   Possible solutions:")
+            print(f"   1. Install NVIDIA drivers: https://www.nvidia.com/Download/index.aspx")
+            print(f"   2. Ensure PyTorch CUDA version matches installed CUDA")
+            print(f"   3. Try: pip install torch==2.0.0+cu118 torchvision==0.15.1+cu118 torchaudio==2.0.1 --index-url https://download.pytorch.org/whl/cu118")
 except ImportError as e:
     TORCH_AVAILABLE = False
     print(f"⚠️ PyTorch/torchaudio not available: {e}")
@@ -134,12 +164,17 @@ class RealChatterboxProvider:
         self.chatterbox_model = None
         self.demo_mode = False
         
+        # NEW: Optimized provider for 2-4x faster generation
+        self.optimized_provider = None
+        self.use_optimization = True  # Can be disabled via env var
+        
         # Always initialize as available for macOS compatibility
         self.available = True
         
         try:
             self._detect_device()
             self._initialize_provider()
+            self._initialize_optimized_provider()
         except Exception as e:
             print(f"⚠️ Real Chatterbox TTS initialization failed: {e}")
             print("🎯 Falling back to demo mode...")
@@ -154,8 +189,119 @@ class RealChatterboxProvider:
         """Get singleton instance - thread-safe"""
         return cls()
     
+    def _initialize_optimized_provider(self):
+        """Initialize optimized provider for 2-4x faster generation"""
+        if not OPTIMIZED_PROVIDER_AVAILABLE:
+            print("⚠️ Optimized provider not available, using standard provider")
+            return
+        
+        # Check if optimization is disabled
+        if os.getenv("DISABLE_OPTIMIZATION", "").lower() in ("true", "1", "yes"):
+            print("🔄 Optimization disabled via DISABLE_OPTIMIZATION env var")
+            self.use_optimization = False
+            return
+        
+        # Only use optimization on CUDA devices for best results
+        if self.device != "cuda":
+            print(f"⚠️ Optimization works best on CUDA, current device: {self.device}")
+            print("   Using standard provider for compatibility")
+            self.use_optimization = False
+            return
+        
+        try:
+            print("🚀 Initializing OptimizedChatterboxProvider...")
+            
+            # Try to load settings from UI first, fall back to env vars
+            optimization_settings = self._load_optimization_settings()
+            
+            dtype = optimization_settings.get("dtype", "float16")
+            use_compilation = optimization_settings.get("compilation", True)
+            cpu_offload = optimization_settings.get("cpu_offload", False)
+            
+            self.optimized_provider = OptimizedChatterboxProvider(
+                device=self.device,
+                dtype=dtype,
+                use_compilation=use_compilation,
+                cpu_offload=cpu_offload
+            )
+            
+            print("✅ OptimizedChatterboxProvider initialized successfully!")
+            print(f"   🎯 Optimization enabled: dtype={dtype}, compilation={use_compilation}")
+            
+        except Exception as e:
+            print(f"❌ Failed to initialize OptimizedChatterboxProvider: {e}")
+            self.optimized_provider = None
+            self.use_optimization = False
+    
+    def _load_optimization_settings(self):
+        """Load optimization settings from UI config file or environment variables"""
+        settings = {
+            "dtype": "float16",
+            "compilation": True,
+            "cpu_offload": False,
+            "lazy_load": True,
+            "chunked_processing": True,
+            "chunk_size": 200,
+            "voice_cache": True,
+            "cache_size": 10
+        }
+        
+        try:
+            # Try to load from UI settings file first
+            import json
+            settings_file = os.path.join(os.getcwd(), "configs", "tts_optimization.json")
+            if os.path.exists(settings_file):
+                with open(settings_file, 'r') as f:
+                    ui_settings = json.load(f)
+                    settings.update(ui_settings)
+                    print(f"✅ Loaded UI optimization settings: {settings}")
+                    return settings
+        except Exception as e:
+            print(f"⚠️ Could not load UI settings: {e}")
+        
+        # Fallback to environment variables
+        try:
+            env_settings = {
+                "dtype": os.getenv("CHATTERBOX_DTYPE", "float16"),
+                "compilation": os.getenv("CHATTERBOX_COMPILATION", "true").lower() in ("true", "1", "yes"),
+                "cpu_offload": os.getenv("CHATTERBOX_CPU_OFFLOAD", "false").lower() in ("true", "1", "yes"),
+                "lazy_load": os.getenv("CHATTERBOX_LAZY_LOAD", "true").lower() in ("true", "1", "yes"),
+                "chunked_processing": os.getenv("CHATTERBOX_CHUNKED", "true").lower() in ("true", "1", "yes"),
+                "chunk_size": int(os.getenv("CHATTERBOX_CHUNK_SIZE", "200")),
+            }
+            settings.update({k: v for k, v in env_settings.items() if v is not None})
+            print(f"✅ Loaded environment optimization settings: {settings}")
+        except Exception as e:
+            print(f"⚠️ Error loading environment settings: {e}")
+        
+        return settings
+    
     def _detect_device(self):
-        """Auto-detect best available device"""
+        """Auto-detect best available device, with optional FORCE_DEVICE env override"""
+        # 1) Check override via env var
+        force_device = os.getenv("FORCE_DEVICE", "").lower().strip()
+        if force_device in {"cuda", "gpu"}:
+            if TORCH_AVAILABLE and torch.cuda.is_available():
+                self.device = "cuda"
+                gpu_name = torch.cuda.get_device_name(0)
+                self.device_name = f"GPU ({gpu_name}) - Real Chatterbox (FORCED)"
+                print(f"⚡ FORCE_DEVICE override detected -> {self.device_name}")
+                return
+            else:
+                print("⚠️ FORCE_DEVICE=cuda set nhưng không tìm thấy GPU khả dụng, bỏ qua override")
+        elif force_device == "mps" and TORCH_AVAILABLE and hasattr(torch.backends, 'mps'):
+            if torch.backends.mps.is_available():
+                self.device = "mps"
+                self.device_name = "Apple MPS - Real Chatterbox (FORCED)"
+                print(f"🍎 FORCE_DEVICE override -> {self.device_name}")
+                return
+        elif force_device == "cpu":
+            self.device = "cpu"
+            self.device_name = "CPU - Real Chatterbox (FORCED)"
+            print(f"💻 FORCE_DEVICE override -> {self.device_name}")
+            return
+
+        # 2) Auto detection như trước
         if not TORCH_AVAILABLE:
             self.device = "cpu"
             self.device_name = "CPU (Demo Mode - no PyTorch)"
@@ -253,8 +399,34 @@ class RealChatterboxProvider:
         return info
     
     def get_provider_status(self) -> Dict[str, Any]:
-        """Get provider status for compatibility with EnhancedVoiceGenerator"""
-        return self.get_device_info()
+        """Get comprehensive provider status với device info và optimization status"""
+        basic_status = {
+            'available': self.available,
+            'initialized': self.is_initialized,
+            'device': self.device,
+            'device_name': self.device_name,
+            'torch_available': TORCH_AVAILABLE,
+            'chatterbox_available': CHATTERBOX_AVAILABLE,
+            'provider_type': 'Real Chatterbox TTS (Official)',
+            'cuda_version': torch.version.cuda if TORCH_AVAILABLE else None,
+            **self.get_device_info()
+        }
+        
+        # Add optimization status
+        if self.optimized_provider:
+            opt_status = self.optimized_provider.get_status()
+            basic_status.update({
+                'optimization_enabled': True,
+                'optimization_details': opt_status,
+                'provider_type': 'Real Chatterbox TTS (Optimized 2-4x faster)'
+            })
+        else:
+            basic_status.update({
+                'optimization_enabled': False,
+                'optimization_reason': 'Not available or disabled'
+            })
+        
+        return basic_status
     
     def generate_voice(self, 
                       text: str, 

@@ -3,7 +3,14 @@ node_modules/
 *.log
 .env
 .env.local
-
+# Ignore all virtual environments
+.venv/
+venv/
+venv_gpu/
+venv_gpu
+venv
+.venv
+.venv_clean
 # Python virtual environments  
 chatterbox_env/
 __pycache__/

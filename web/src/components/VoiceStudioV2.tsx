@@ -120,6 +120,11 @@ interface ProjectData {
   characters: Character[];
 }
 
+interface VoiceStudioV2Props {
+  onOpenEmotionLibrary?: () => void;
+  onOpenVoiceLibrary?: () => void;
+}
+
 // ChatterboxTTS Available Voices (from the app)
 const CHATTERBOX_VOICES = [
   'Aaron', 'Abigail', 'Adrian', 'Alexander', 'Alice', 'Aria', 'Austin',
@@ -149,7 +154,7 @@ const EMOTIONS = [
   'neutral'
 ];
 
-const VoiceStudioV2: React.FC = () => {
+const VoiceStudioV2: React.FC<VoiceStudioV2Props> = ({ onOpenEmotionLibrary, onOpenVoiceLibrary }) => {
   const [textInput, setTextInput] = useState('');
   const [isPlaying, setIsPlaying] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -189,6 +194,7 @@ const VoiceStudioV2: React.FC = () => {
     speed: 1.0,
     singleEmotion: 'neutral', // For single speaker mode
     autoAssignVoices: true, // AI auto-assign voices based on gender/name
+    autoEmotion: true, // Auto map emotion per dialogue
     innerVoice: {
       enabled: false,
       type: 'light' as 'light' | 'deep' | 'dreamy',
@@ -231,6 +237,8 @@ const VoiceStudioV2: React.FC = () => {
 
   // Ref tới phần tử Audio để điều khiển play / pause / seek
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
+
 
   useEffect(() => {
     if (isDarkTheme) {
@@ -299,14 +307,7 @@ const VoiceStudioV2: React.FC = () => {
             }));
           }
           
-          // Remove emotion data from dialogues in JSON mode
-          jsonData.segments = jsonData.segments.map(segment => ({
-            ...segment,
-            dialogues: segment.dialogues.map(dialogue => ({
-              speaker: dialogue.speaker,
-              text: dialogue.text
-            }))
-          }));
+          // Keep emotion & inner_voice from script
           
           setProjectData(jsonData);
           setTextInput(''); // Clear single text input when loading multi-character
@@ -423,8 +424,28 @@ const VoiceStudioV2: React.FC = () => {
     }));
   };
 
+  // Hàm chia văn bản thành các chunk ~350 ký tự
+  function splitTextIntoChunks(text: string, maxLen = 350): string[] {
+    const sentences = text.match(/[^.!?\n]+[.!?\n]+|[^.!?\n]+$/g) || [];
+    const chunks: string[] = [];
+    let current = '';
+    for (const s of sentences) {
+      if ((current + s).length > maxLen && current.length > 0) {
+        chunks.push(current);
+        current = s;
+      } else {
+        current += s;
+      }
+    }
+    if (current.length > 0) chunks.push(current);
+    return chunks;
+  }
+
   const handleGenerate = async () => {
     if (isGenerating) return;
+
+    // BENCHMARK AFTER: Bắt đầu đo thời gian
+    console.time('tts_after');
 
     // Kiểm tra nội dung
     const hasText = textInput.trim().length > 0 || projectData.segments.some(s => s.dialogues.some(d => d.text.trim()));
@@ -434,39 +455,83 @@ const VoiceStudioV2: React.FC = () => {
     }
 
     setIsGenerating(true);
+    setProgress(0);
 
     try {
-      // Gọi trực tiếp ChatterboxTTS backend
       const { generateVoiceREST } = await import('../api/voice-api');
-      const buffer: ArrayBuffer = await generateVoiceREST(textInput, {
-        exaggeration: voiceSettings.exaggeration,
-        cfg: voiceSettings.cfg,
-        temperature: voiceSettings.temperature,
-        speed: voiceSettings.speed
-      } as any);
 
-      // Phát audio
-      const blob = new Blob([buffer], { type: 'audio/wav' });
-      const url = URL.createObjectURL(blob);
-      if (audioRef.current) {
-        audioRef.current.pause();
+      let payloads: Promise<ArrayBuffer>[] = [];
+
+      if (!isMultiCharacter) {
+        // Single narrator: chunk by text length
+      const narratorVoice = (projectData.characters[0]?.voice || 'Alice').toLowerCase();
+      const chunks = splitTextIntoChunks(textInput);
+
+        payloads = chunks.map(chunk => generateVoiceREST(chunk, {
+          exaggeration: voiceSettings.exaggeration,
+          cfg: voiceSettings.cfg,
+          temperature: voiceSettings.temperature,
+          speed: voiceSettings.speed,
+          emotion: voiceSettings.singleEmotion,
+          inner: innerVoiceEnabled
+        }, narratorVoice));
+      } else {
+        // Multi-character: iterate dialogues
+        projectData.segments.forEach(seg => {
+          seg.dialogues.forEach(dlg => {
+            const char = projectData.characters.find(c => c.id === dlg.speaker || c.name === dlg.speaker);
+            const voiceId = (char?.voice || autoAssignVoice(char || {id:'',name:'',gender:'neutral'} as any)).toLowerCase();
+            const emoName = (voiceSettings.autoEmotion && dlg.emotion) ? dlg.emotion || 'neutral' : voiceSettings.singleEmotion;
+            const inner = !!dlg.inner_voice;
+            payloads.push(generateVoiceREST(dlg.text, {
+              exaggeration: voiceSettings.exaggeration,
+              cfg: voiceSettings.cfg,
+              temperature: voiceSettings.temperature,
+              speed: voiceSettings.speed,
+              emotion: emoName,
+              inner
+            }, voiceId));
+          });
+        });
       }
-      const audio = new Audio(url);
-      audioRef.current = audio;
-      audio.play();
-      setIsPlaying(true);
 
-      // Cập nhật progress bar
-      audio.ontimeupdate = () => {
-        if (audio.duration) {
-          setProgress((audio.currentTime / audio.duration) * 100);
+      const total = payloads.length;
+      let completed = 0;
+      const buffers: ArrayBuffer[] = new Array(total);
+
+      await Promise.all(payloads.map((p, idx) => p.then(buf => {
+        buffers[idx] = buf;
+        completed++;
+        setProgress((completed / total) * 100);
+      })));
+
+      // Sequential playback of buffers
+      if (buffers.length > 0) {
+          console.timeEnd('tts_after');
+        // Release old
+        if (audioRef.current) {
+          audioRef.current.pause();
+          audioRef.current.src = "";
         }
-      };
 
-      audio.onended = () => {
-        setIsPlaying(false);
-        setProgress(0);
-      };
+        let currentIndex = 0;
+        const playNext = () => {
+          if (currentIndex >= buffers.length) {
+            setIsPlaying(false);
+            return;
+          }
+          const blob = new Blob([buffers[currentIndex]], { type: 'audio/wav' });
+          const url = URL.createObjectURL(blob);
+          const audio = new Audio(url);
+          audioRef.current = audio;
+          audio.play();
+          setIsPlaying(true);
+          currentIndex++;
+          audio.onended = playNext;
+        };
+        playNext();
+        }
+
     } catch (error) {
       alert('Tạo thất bại: ' + (error as Error).message);
     } finally {
@@ -533,6 +598,16 @@ const VoiceStudioV2: React.FC = () => {
     });
   };
 
+  // Add this function to handle voice selection from library
+  const handleSelectVoice = (voiceId: string) => {
+    // Tìm nhân vật đầu tiên hoặc nhân vật narrator
+    const defaultCharId = projectData.characters[0]?.id || 'narrator';
+    if (defaultCharId) {
+      // Cập nhật voice cho nhân vật này
+      updateCharacter(defaultCharId, 'voice', voiceId);
+    }
+  };
+
   return (
     <div className={styles.appContainer}>
       {/* Theme Toggle */}
@@ -579,6 +654,14 @@ const VoiceStudioV2: React.FC = () => {
               {feature.isPro && <span className={styles.proBadge}>PRO</span>}
             </div>
           ))}
+          {/* Emotion Library item */}
+          <div className={styles.menuItem} onClick={() => onOpenEmotionLibrary?.()}>
+            <span>Emotion Library</span>
+          </div>
+          {/* Voice Library item */}
+          <div className={styles.menuItem} onClick={() => onOpenVoiceLibrary?.()}>
+            <span>Voice Library</span>
+          </div>
         </div>
 
         {/* Upgrade Section */}
@@ -759,6 +842,21 @@ const VoiceStudioV2: React.FC = () => {
                 )}
               </div>
 
+              {/* Inner Voice Toggle - Luôn hiển thị ở Voice Config */}
+              <div className={styles.settingGroup}>
+                <div className={styles.iosSwitchRow}>
+                  <span className={styles.settingLabel}>Inner Voice</span>
+                  <div className={styles.iosSwitch}>
+                    <input
+                      type="checkbox"
+                      checked={innerVoiceEnabled}
+                      onChange={toggleInnerVoice}
+                    />
+                    <span className={styles.iosSlider}></span>
+                  </div>
+                </div>
+              </div>
+
               {/* Language Selection */}
               <div className={styles.settingGroup}>
                 <div className={styles.settingRow}>
@@ -775,20 +873,6 @@ const VoiceStudioV2: React.FC = () => {
                 </div>
               </div>
 
-              {/* Inner Voice */}
-              <div className={styles.settingGroup}>
-                <div className={styles.iosSwitchRow}>
-                  <span className={styles.settingLabel}>Inner Voice</span>
-                  <div className={styles.iosSwitch}>
-                    <input
-                      type="checkbox"
-                      checked={innerVoiceEnabled}
-                      onChange={toggleInnerVoice}
-                    />
-                  </div>
-                </div>
-              </div>
-
               {/* Auto Emotion */}
               {isMultiCharacter && (
                 <div className={styles.settingGroup}>
@@ -797,8 +881,8 @@ const VoiceStudioV2: React.FC = () => {
                     <div className={styles.iosSwitch}>
                       <input
                         type="checkbox"
-                        checked={voiceSettings.autoAssignVoices}
-                        onChange={e => setVoiceSettings({...voiceSettings, autoAssignVoices: e.target.checked})}
+                        checked={voiceSettings.autoEmotion}
+                        onChange={e => setVoiceSettings({...voiceSettings, autoEmotion: e.target.checked})}
                       />
                       <span className={styles.iosSlider}></span>
                     </div>
@@ -844,9 +928,9 @@ const VoiceStudioV2: React.FC = () => {
                     <div className={styles.sliderControl}>
                       <input 
                         type="range" 
-                        min="1.0" 
-                        max="5.0" 
-                        step="0.5" 
+                        min="0.1" 
+                        max="1.0" 
+                        step="0.1" 
                         value={voiceSettings.cfg}
                         onChange={(e) => setVoiceSettings({...voiceSettings, cfg: parseFloat(e.target.value)})}
                       />
@@ -955,6 +1039,8 @@ const VoiceStudioV2: React.FC = () => {
           </div>
         </div>
       </div>
+
+
     </div>
   );
 };

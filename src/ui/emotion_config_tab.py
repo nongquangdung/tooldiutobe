@@ -1258,8 +1258,30 @@ class EmotionConfigTab(QWidget):
                     try:
                         # Check nếu emotion tồn tại trong unified system
                         if emotion_name not in self.unified_emotion_system.get_all_emotions():
-                            print(f"⏭️ SKIP: {emotion_name} (không có trong unified system)")
-                            skip_count += 1
+                            # Thêm custom emotion nếu không có trong unified system
+                            description = emotion_config.get("description", "")
+                            category = emotion_config.get("category", "neutral")
+                            params = emotion_config.get("parameters", {})
+                            temp = params.get("temperature", 0.8)
+                            exag = params.get("exaggeration", 1.0)
+                            cfg = params.get("cfg_weight", 0.6)
+                            speed = params.get("speed", 1.0)
+                            try:
+                                self.unified_emotion_system.add_custom_emotion(
+                                    name=emotion_name,
+                                    description=description,
+                                    category=category,
+                                    temperature=temp,
+                                    exaggeration=exag,
+                                    cfg_weight=cfg,
+                                    speed=speed,
+                                    aliases=emotion_config.get("aliases", [])
+                                )
+                                print(f"➕ ADDED: {emotion_name} as custom emotion")
+                                success_count += 1
+                            except Exception as e:
+                                print(f"❌ FAILED ADD: {emotion_name} - {str(e)}")
+                                failed_count += 1
                             continue
                         
                         # Get parameters từ import file
@@ -1313,6 +1335,8 @@ class EmotionConfigTab(QWidget):
                         failed_count += 1
                 
                 # Force UI refresh
+                # Reload table to include newly added custom emotions
+                self.load_emotions_to_table()
                 self.emotions_table.viewport().update()
                 self.emotions_table.repaint()
                 self.update_statistics()

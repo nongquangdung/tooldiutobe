@@ -299,15 +299,16 @@ class EnhancedVoiceGenerator:
                 "character3": "character3"
             }
             
-            mapped_voice = voice_mapping.get(request.voice_id, "narrator")
+            mapped_voice = request.voice_id  # giữ nguyên voice được truyền từ phía trên
             
-            # Generate with Real Chatterbox
+            # Generate with Real Chatterbox có truyền voice_name
             result = self.real_chatterbox.generate_voice(
                 text=request.text,
                 save_path=request.output_path,
                 voice_sample_path=None,  # Use predefined voice
                 emotion_exaggeration=request.exaggeration,
                 speed=request.speed,
+                voice_name=mapped_voice,
                 cfg_weight=request.cfg_weight
             )
             success = result.get("success", False)

@@ -1,0 +1,19 @@
+🎯 Chatterbox TTS Demo Mode
+==================================================
+📱 Device: CPU - Real Chatterbox
+🍎 Platform: Other
+==================================================
+📝 Text: Some monasteries even brewed their own. And let me tell you—when the monk running the brewery also happens to be your boss? You learn to compliment the ale. Every time. Even if it tastes like boiled straw.
+
+But hey, at least no one's asking you to dig ditches. You're a scholar of sorts. A quiet guardian of words.
+🗣️ Voice: Default
+🎭 Emotion: 1.0 (simulated)
+⚡ Speed: 1.0
+🎚️ CFG Weight: 1.0 (simulated)
+==================================================
+ℹ️ This is a demo file created because:
+
+🎯 To get real TTS on GPU:
+   1. Use Linux/Windows with NVIDIA GPU
+   2. Install: pip install chatterbox-tts torch[cuda]
+   3. Configure proper GPU drivers

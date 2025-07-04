@@ -17,6 +17,8 @@ from src.tts.enhanced_voice_generator import (
     EnhancedVoiceGenerator,
     VoiceGenerationRequest,
 )
+from .emotion_api import router as emotion_router
+from .voice_api import router as voice_router
 
 
 app = FastAPI(title="Voice Studio API", version="0.2.0")
@@ -39,6 +41,8 @@ class AudioSpeechRequest(BaseModel):
     temperature: float = 0.8
     speed: float = 1.0
     voice_id: str | None = None
+    emotion: str | None = None
+    inner: bool = False
 
 
 # --- Generator instance ---
@@ -49,15 +53,37 @@ generator = EnhancedVoiceGenerator()
 async def generate_audio(req: AudioSpeechRequest):
     """Generate TTS audio via EnhancedVoiceGenerator and stream back as WAV."""
 
+    # Load emotion params if provided
+    from .emotion_api import _load_emotions
+
+    emotion_params = {}
+    if req.emotion:
+        emotions_dict = _load_emotions()
+        if req.emotion in emotions_dict:
+            emo_cfg = emotions_dict[req.emotion]
+            emotion_params = {
+                "exaggeration": emo_cfg.get("exaggeration", req.exaggeration),
+                "cfg_weight": emo_cfg.get("cfg_weight", req.cfg_weight),
+                "temperature": emo_cfg.get("temperature", req.temperature),
+                "speed": emo_cfg.get("speed", req.speed),
+            }
+        else:
+            emotion_params = {}
+
+    # Whisper detection
+    voice_id = req.voice_id or "alice"
+    if req.emotion and req.emotion.lower() == "whisper":
+        voice_id = "whisper-female" if "female" in voice_id else "whisper-male"
+
     voice_request = VoiceGenerationRequest(
         text=req.input,
         character_id="narrator",
-        voice_id=req.voice_id or "alice",
-        emotion="neutral",
-        speed=req.speed,
-        temperature=req.temperature,
-        exaggeration=req.exaggeration,
-        cfg_weight=req.cfg_weight,
+        voice_id=voice_id,
+        emotion=req.emotion or "neutral",
+        speed=emotion_params.get("speed", req.speed),
+        temperature=emotion_params.get("temperature", req.temperature),
+        exaggeration=emotion_params.get("exaggeration", req.exaggeration),
+        cfg_weight=emotion_params.get("cfg_weight", req.cfg_weight),
     )
 
     result = generator.generate_voice(voice_request)
@@ -82,3 +108,6 @@ async def generate_audio(req: AudioSpeechRequest):
 @app.get("/health")
 async def health_check():
     return {"status": "ok"} 
+
+app.include_router(emotion_router)
+app.include_router(voice_router) 

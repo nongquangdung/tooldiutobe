@@ -2,50 +2,82 @@
   "summary": {
     "temperature": {
       "compliance_rate": 100.0,
-      "compliant": 37,
-      "total": 37,
+      "compliant": 95,
+      "total": 95,
       "violations": 0
     },
     "exaggeration": {
-      "compliance_rate": 100.0,
-      "compliant": 37,
-      "total": 37,
-      "violations": 0
+      "compliance_rate": 97.9,
+      "compliant": 93,
+      "total": 95,
+      "violations": 2
     },
     "cfg_weight": {
-      "compliance_rate": 100.0,
-      "compliant": 37,
-      "total": 37,
-      "violations": 0
+      "compliance_rate": 95.8,
+      "compliant": 91,
+      "total": 95,
+      "violations": 4
     },
     "speed": {
       "compliance_rate": 100.0,
-      "compliant": 37,
-      "total": 37,
+      "compliant": 95,
+      "total": 95,
       "violations": 0
     }
   },
   "details": {
     "temperature": {
-      "compliant": 37,
-      "total": 37,
+      "compliant": 95,
+      "total": 95,
       "violations": []
     },
     "exaggeration": {
-      "compliant": 37,
-      "total": 37,
-      "violations": []
+      "compliant": 93,
+      "total": 95,
+      "violations": [
+        {
+          "emotion": "matter_of_fact",
+          "value": 0.6,
+          "recommended": "0.8-1.2"
+        },
+        {
+          "emotion": "informative",
+          "value": 0.6,
+          "recommended": "0.8-1.2"
+        }
+      ]
     },
     "cfg_weight": {
-      "compliant": 37,
-      "total": 37,
-      "violations": []
+      "compliant": 91,
+      "total": 95,
+      "violations": [
+        {
+          "emotion": "melancholic",
+          "value": 0.4,
+          "recommended": "0.5-0.7"
+        },
+        {
+          "emotion": "eerie",
+          "value": 0.4,
+          "recommended": "0.5-0.7"
+        },
+        {
+          "emotion": "embarrassed",
+          "value": 0.4,
+          "recommended": "0.5-0.7"
+        },
+        {
+          "emotion": "ethereal",
+          "value": 0.4,
+          "recommended": "0.5-0.7"
+        }
+      ]
     },
     "speed": {
-      "compliant": 37,
-      "total": 37,
+      "compliant": 95,
+      "total": 95,
       "violations": []
     }
   },
-  "total_emotions": 37
+  "total_emotions": 95
 }

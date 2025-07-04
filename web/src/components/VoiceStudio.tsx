@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { Box, Button, HStack, Textarea, useToast } from '@chakra-ui/react';
 import EmotionTable from '../components/EmotionTable';
-import { generateVoiceREST } from '../api/voice-api';
+import { generateVoiceREST, TtsParams } from '../api/voice-api';
 
-const defaultEmotion = {
+const defaultEmotion: TtsParams = {
   exaggeration: 1.0,
   cfg: 0.5,
   temperature: 0.8,
@@ -23,7 +23,7 @@ const VoiceStudio = () => {
     }
     setLoading(true);
     try {
-      const buffer: ArrayBuffer = await generateVoiceREST(text, emotion);
+      const buffer: ArrayBuffer = await generateVoiceREST(text, emotion as TtsParams, 'alice');
       const blob = new Blob([buffer], { type: 'audio/wav' });
       const url = URL.createObjectURL(blob);
       const audio = new Audio(url);
