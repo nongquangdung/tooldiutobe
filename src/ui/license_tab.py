@@ -50,7 +50,7 @@ class LicenseTab(QWidget):
         header_layout = QHBoxLayout()
         
         # Logo và title
-        title_label = QLabel(" Voice Studio License Manager")
+        title_label = QLabel("License Manager")
         title_label.setStyleSheet("""
             font-size: 20px; 
             font-weight: bold; 

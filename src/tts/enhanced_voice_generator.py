@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-🚀 ENHANCED VOICE GENERATOR
+[ROCKET] ENHANCED VOICE GENERATOR
 ===========================
 
 Enhanced TTS system integrating Chatterbox TTS Server với Real Chatterbox provider.
@@ -8,11 +8,18 @@ Combines 28 high-quality Chatterbox voices với existing Voice Studio capabilit
 """
 
 import os
+import sys
 import json
 import logging
 from typing import Dict, List, Optional, Any, Union
 from dataclasses import dataclass
 from pathlib import Path
+
+# Add src directory to Python path for proper imports
+current_dir = os.path.dirname(os.path.abspath(__file__))
+src_dir = os.path.dirname(current_dir)
+if src_dir not in sys.path:
+    sys.path.insert(0, src_dir)
 
 # Import existing providers
 from .real_chatterbox_provider import RealChatterboxProvider
@@ -52,7 +59,7 @@ class VoiceGenerationResult:
 
 class EnhancedVoiceGenerator:
     """
-    🎙️ ENHANCED VOICE GENERATOR
+    [MIC] ENHANCED VOICE GENERATOR
     
     Multi-provider TTS system combining:
     - Chatterbox TTS Server (28 premium voices)
@@ -89,6 +96,7 @@ class EnhancedVoiceGenerator:
                 "description": voice.description
             }
         
+<<<<<<< Updated upstream
         # Real Chatterbox voices (fallback)
         real_chatterbox_voices = ["narrator", "character1", "character2", "character3"]
         for voice_id in real_chatterbox_voices:
@@ -100,6 +108,32 @@ class EnhancedVoiceGenerator:
                     "name": voice_id.title(),
                     "description": f"Local {voice_id} voice"
                 }
+=======
+        # Real Chatterbox voices - Load từ ChatterboxVoicesManager (voices/ folder)
+        try:
+            # Import ChatterboxVoicesManager để load voices từ voices/ folder
+            from .chatterbox_voices_integration import ChatterboxVoicesManager
+            voices_manager = ChatterboxVoicesManager()
+            real_chatterbox_voices = voices_manager.get_available_voices()
+            
+            # Add voices từ voices/ folder
+            for voice_id, voice_obj in real_chatterbox_voices.items():
+                if voice_id not in self.voice_quality_map:
+                    self.voice_quality_map[voice_id] = {
+                        "provider": "real_chatterbox", 
+                        "quality": 8.0,  # High quality for local voices
+                        "gender": voice_obj.gender,
+                        "name": voice_obj.name,
+                        "description": "Local voice from voices/ folder",
+                        "file_path": voice_obj.file_path
+                    }
+            
+            print(f"[OK] Loaded {len(real_chatterbox_voices)} voices from voices/ folder for Real Chatterbox")
+            
+        except Exception as e:
+            print(f"[WARNING] Could not load voices from ChatterboxVoicesManager: {e}")
+            print("   [EMOJI] No fallback mock voices will be added. Voice list remains empty if loading failed.")
+>>>>>>> Stashed changes
     
     def get_available_voices(self) -> Dict[str, Dict[str, Any]]:
         """Get all available voices from all providers"""
@@ -274,6 +308,86 @@ class EnhancedVoiceGenerator:
                 generation_time=generation_time
             )
     
+<<<<<<< Updated upstream
+=======
+    def generate_voice_batch(self, requests: List[VoiceGenerationRequest]) -> List[VoiceGenerationResult]:
+        """
+        Generate a batch of voice audio files.
+        Currently optimized for the RealChatterboxProvider.
+        """
+        import time
+        start_time = time.time()
+        
+        if not requests:
+            return []
+
+        print(f"EnhancedVoiceGenerator: Received batch request for {len(requests)} segments.")
+        
+        # TODO: Implement provider routing for batches (e.g., group by provider).
+        # For now, we assume all will be processed by the most efficient batch provider.
+        
+        provider_to_use = "real_chatterbox" # Hardcoded for now
+        
+        try:
+            if provider_to_use == "real_chatterbox":
+                # Prepare the list of dicts for the provider's batch method
+                batch_for_provider = []
+                for req in requests:
+                    # Ensure output path is set
+                    if not req.output_path:
+                        # Use UUID to prevent filename collisions in batch
+                        req.output_path = f"./voice_studio_output/{req.character_id}_{int(time.time())}_{uuid.uuid4().hex[:6]}.wav"
+                    os.makedirs(os.path.dirname(req.output_path), exist_ok=True)
+                    
+                    batch_for_provider.append({
+                        "text": req.text,
+                        "save_path": req.output_path,
+                        "emotion": req.emotion,  # NEW: Include emotion
+                        "emotion_exaggeration": req.exaggeration,
+                        "speed": req.speed,
+                        "cfg_weight": req.cfg_weight,
+                        "voice_name": req.voice_id,
+                        "inner_voice": req.inner_voice,  # NEW: Include inner voice
+                        "inner_voice_type": req.inner_voice_type
+                    })
+
+                # Call the provider's batch generation method
+                provider_results = self.real_chatterbox.generate_voice_batch(batch_for_provider)
+
+                # Convert results back to VoiceGenerationResult objects
+                final_results = []
+                total_generation_time = time.time() - start_time
+                
+                for i, req in enumerate(requests):
+                    provider_res = provider_results[i]
+                    if provider_res.get("success"):
+                        final_results.append(VoiceGenerationResult(
+                            success=True,
+                            output_path=provider_res["audio_path"],
+                            voice_used=req.voice_id,
+                            provider_used=provider_to_use,
+                            generation_time=total_generation_time / len(requests), # Approximate time per segment
+                            metadata=provider_res
+                        ))
+                    else:
+                        final_results.append(VoiceGenerationResult(
+                            success=False,
+                            error_message=provider_res.get("error", "Unknown batch error"),
+                            provider_used=provider_to_use
+                        ))
+                return final_results
+            else:
+                # Fallback for other providers: generate one by one
+                print("Batch processing not implemented for this provider, generating sequentially.")
+                results = [self.generate_voice(req) for req in requests]
+                return results
+
+        except Exception as e:
+            print(f"[EMOJI] ERROR: Enhanced batch generation failed: {e}")
+            logger.error(traceback.format_exc())
+            return [VoiceGenerationResult(success=False, error_message=str(e)) for _ in requests]
+
+>>>>>>> Stashed changes
     def _generate_with_chatterbox(self, request: VoiceGenerationRequest) -> Dict[str, Any]:
         """Generate using Chatterbox TTS Server"""
         return self.chatterbox_manager.generate_audio_chatterbox(
@@ -299,7 +413,12 @@ class EnhancedVoiceGenerator:
                 "character3": "character3"
             }
             
+<<<<<<< Updated upstream
             mapped_voice = request.voice_id  # giữ nguyên voice được truyền từ phía trên
+=======
+            # Log voice assignment for debugging
+            print(f"   [EMOJI] Enhanced Voice Generator: Using voice_id='{voice_id}' for character '{request.character_id}'")
+>>>>>>> Stashed changes
             
             # Generate with Real Chatterbox có truyền voice_name
             result = self.real_chatterbox.generate_voice(
@@ -391,22 +510,22 @@ class EnhancedVoiceGenerator:
 # Demo function
 def demo_enhanced_voice_generator():
     """Demo enhanced voice generator capabilities"""
-    print("🚀 ENHANCED VOICE GENERATOR DEMO")
+    print("[ROCKET] ENHANCED VOICE GENERATOR DEMO")
     print("=" * 50)
     
     # Initialize generator
     generator = EnhancedVoiceGenerator()
     
     # Show provider status
-    print("\n📊 Provider Status:")
+    print("\n[STATS] Provider Status:")
     status = generator.get_provider_status()
     for provider, info in status.items():
-        availability = "✅ Online" if info["available"] else "❌ Offline"
+        availability = "[OK] Online" if info["available"] else "[EMOJI] Offline"
         print(f"   {provider}: {availability} | {info['voices_count']} voices | Quality: {info['quality_rating']}/10")
     
     # Show available voices
     all_voices = generator.get_available_voices()
-    print(f"\n🎙️ Total Available Voices: {len(all_voices)}")
+    print(f"\n[MIC] Total Available Voices: {len(all_voices)}")
     
     # Show by provider
     for provider in ["chatterbox", "real_chatterbox"]:
@@ -416,7 +535,7 @@ def demo_enhanced_voice_generator():
             print(f"      • {info['name']} ({voice_id}): Quality {info['quality']}/10")
     
     # Test voice recommendations
-    print(f"\n🎯 Smart Voice Recommendations:")
+    print(f"\n[TARGET] Smart Voice Recommendations:")
     test_characters = [
         ("narrator", None),
         ("hero", "male"), 
@@ -428,7 +547,7 @@ def demo_enhanced_voice_generator():
         voice_info = all_voices.get(best_voice, {})
         print(f"   {char_type.title()} ({gender or 'any'}): {voice_info.get('name', best_voice)} (Quality: {voice_info.get('quality', 'N/A')}/10)")
     
-    print(f"\n✅ Enhanced Voice Generator Demo Complete!")
+    print(f"\n[OK] Enhanced Voice Generator Demo Complete!")
 
 
 if __name__ == "__main__":

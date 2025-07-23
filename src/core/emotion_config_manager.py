@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-🎭 EMOTION CONFIGURATION MANAGER
+[THEATER] EMOTION CONFIGURATION MANAGER
 ================================
 
 Quản lý và điều chỉnh thông số cảm xúc cho Voice Studio.
@@ -50,7 +50,7 @@ class EmotionPreset:
 
 class EmotionConfigManager:
     """
-    🎭 EMOTION CONFIGURATION MANAGER
+    [THEATER] EMOTION CONFIGURATION MANAGER
     
     Quản lý toàn bộ emotion configurations:
     - Predefined emotions (25+ emotions)

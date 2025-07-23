@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-🎭 EMOTION CONFIGURATION TAB - TABLE FORMAT (IMPROVED)
+[THEATER] EMOTION CONFIGURATION TAB - TABLE FORMAT (IMPROVED)
 ====================================================
 
 Tab quản lý cảm xúc với format bảng được cải thiện về UI/UX.
@@ -40,7 +40,7 @@ try:
     PREVIEW_AVAILABLE = True
 except ImportError:
     PREVIEW_AVAILABLE = False
-    print("⚠️ TTS provider not available - preview will be simulated")
+    print("[WARNING] TTS provider not available - preview will be simulated")
 
 import logging
 logger = logging.getLogger(__name__)
@@ -190,7 +190,7 @@ class EmotionConfigTab(QWidget):
         header_layout.addStretch()
         
         # Action buttons
-        self.add_emotion_btn = QPushButton("➕ Thêm Emotion")
+        self.add_emotion_btn = QPushButton("[EMOJI] Thêm Emotion")
         self.add_emotion_btn.setStyleSheet("""
             QPushButton {
                 background-color: white;
@@ -208,7 +208,7 @@ class EmotionConfigTab(QWidget):
         self.add_emotion_btn.clicked.connect(self.add_custom_emotion)
         header_layout.addWidget(self.add_emotion_btn)
         
-        self.export_btn = QPushButton("📤 Export")
+        self.export_btn = QPushButton("[EMOJI] Export")
         self.export_btn.setStyleSheet("""
             QPushButton {
                 background-color: white;
@@ -226,7 +226,7 @@ class EmotionConfigTab(QWidget):
         self.export_btn.clicked.connect(self.export_config)
         header_layout.addWidget(self.export_btn)
         
-        self.import_btn = QPushButton("📥 Import")
+        self.import_btn = QPushButton("[EMOJI] Import")
         self.import_btn.setStyleSheet("""
             QPushButton {
                 background-color: white;
@@ -245,7 +245,7 @@ class EmotionConfigTab(QWidget):
         header_layout.addWidget(self.import_btn)
         
         # Reset All button - đặt trước spacer
-        self.reset_all_btn = QPushButton("🔄 Reset All")
+        self.reset_all_btn = QPushButton("[REFRESH] Reset All")
         self.reset_all_btn.setStyleSheet("""
             QPushButton {
                 background-color: white;
@@ -272,7 +272,7 @@ class EmotionConfigTab(QWidget):
         # Filter controls
         filter_layout = QHBoxLayout()
         
-        filter_layout.addWidget(QLabel("🔍 Lọc theo category:"))
+        filter_layout.addWidget(QLabel("[SEARCH] Lọc theo category:"))
         self.category_filter = QComboBox()
         self.category_filter.addItems(["Tất cả", "neutral", "positive", "negative", "dramatic", "special"])
         self.category_filter.currentTextChanged.connect(self.filter_emotions)
@@ -296,16 +296,16 @@ class EmotionConfigTab(QWidget):
         self.emotions_table.setColumnCount(10)  # Tăng thêm 1 cột cho reset
         
         headers = [
-            "🎭 Emotion Name",      # 0
-            "📝 Description",       # 1  
-            "🏷️ Category",         # 2
-            "🎯 Exaggeration",      # 3
-            "⚖️ CFG Weight",       # 4
-            "🌡️ Temperature",      # 5
-            "⚡ Speed",            # 6
-            "🔄 Reset",            # 7 - NEW reset column
-            "🎵 Preview",          # 8
-            "⚙️ Actions"          # 9
+            "[THEATER] Emotion Name",      # 0
+            "[EDIT] Description",       # 1  
+            "[EMOJI] Category",         # 2
+            "[TARGET] Exaggeration",      # 3
+            "[EMOJI] CFG Weight",       # 4
+            "[EMOJI] Temperature",      # 5
+            "[FAST] Speed",            # 6
+            "[REFRESH] Reset",            # 7 - NEW reset column
+            "[MUSIC] Preview",          # 8
+            "[CONFIG] Actions"          # 9
         ]
         
         self.emotions_table.setHorizontalHeaderLabels(headers)
@@ -361,7 +361,7 @@ class EmotionConfigTab(QWidget):
         layout.addWidget(self.emotions_table)
         
         # Status bar
-        self.status_label = QLabel("✅ Sẵn sàng")
+        self.status_label = QLabel("[OK] Sẵn sàng")
         self.status_label.setStyleSheet("""
             QLabel {
                 background-color: #f8f9fa;
@@ -396,6 +396,12 @@ class EmotionConfigTab(QWidget):
             group_layout.addWidget(QLabel("Filter:")); group_layout.addWidget(filter_edit)
             reset_btn = QPushButton("Reset mặc định"); reset_btn.clicked.connect(lambda _, t=type_name: self.reset_inner_voice_type(t))
             group_layout.addWidget(reset_btn)
+<<<<<<< Updated upstream
+=======
+            preview_btn = QPushButton("[MUSIC] Preview")
+            preview_btn.clicked.connect(lambda _, t=type_name: self.preview_inner_voice_type(t))
+            group_layout.addWidget(preview_btn)
+>>>>>>> Stashed changes
             group.setLayout(group_layout)
             inner_voice_layout.addWidget(group)
             self.inner_voice_type_widgets[type_name] = {
@@ -513,7 +519,7 @@ class EmotionConfigTab(QWidget):
             self.emotions_table.setCellWidget(row, 6, speed_spinbox)
             
             # Column 7: Reset Button - reset về giá trị ban đầu (Center aligned)
-            reset_btn = QPushButton("🔄")
+            reset_btn = QPushButton("[REFRESH]")
             reset_btn.setFixedSize(30, 30)  # Size gọn gàng
             reset_btn.setToolTip(f"Reset {emotion_name} về giá trị ban đầu")
             reset_btn.setStyleSheet("""
@@ -546,7 +552,7 @@ class EmotionConfigTab(QWidget):
             self.emotions_table.setCellWidget(row, 7, reset_widget)
             
             # Column 8: Preview Button - compact và gọn gàng (Center aligned)
-            preview_btn = QPushButton("🎵")
+            preview_btn = QPushButton("[MUSIC]")
             preview_btn.setFixedSize(35, 35)  # Size cố định gọn gàng
             preview_btn.setToolTip(f"Preview {emotion_name}")
             preview_btn.setStyleSheet("""
@@ -585,7 +591,7 @@ class EmotionConfigTab(QWidget):
             
             # Column 9: Actions - chỉ icon gọn gàng (Center aligned)
             if is_custom:
-                delete_btn = QPushButton("🗑")
+                delete_btn = QPushButton("[EMOJI]")
                 delete_btn.setFixedSize(30, 30)  # Size nhỏ gọn
                 delete_btn.setToolTip(f"Xóa {emotion_name}")
                 delete_btn.setStyleSheet("""
@@ -617,7 +623,7 @@ class EmotionConfigTab(QWidget):
                 self.emotions_table.setCellWidget(row, 9, delete_widget)  # Cập nhật index từ 8 → 9
             else:
                 # Default emotions: show locked icon (already centered)
-                locked_label = QLabel("🔒")
+                locked_label = QLabel("[EMOJI]")
                 locked_label.setAlignment(Qt.AlignCenter)
                 locked_label.setToolTip("Emotion mặc định - không thể xóa")
                 locked_label.setStyleSheet("color: #9CA3AF; font-size: 14px;")
@@ -635,10 +641,10 @@ class EmotionConfigTab(QWidget):
             # Unified system handles parameter updates automatically
             pass
             
-            self.update_status(f"✅ Cập nhật {emotion_name}: {parameter}={value}")
+            self.update_status(f"[OK] Cập nhật {emotion_name}: {parameter}={value}")
             
         except Exception as e:
-            self.update_status(f"❌ Lỗi cập nhật {emotion_name}: {str(e)}")
+            self.update_status(f"[EMOJI] Error cập nhật {emotion_name}: {str(e)}")
     
     def preview_emotion(self, emotion_name: str):
         """Preview emotion với âm thanh thật - sử dụng real-time parameters từ UI"""
@@ -669,12 +675,12 @@ class EmotionConfigTab(QWidget):
                         f"This is a preview of the {emotion_name} emotion with custom parameters."
                     )
                     
-                    print(f"\n🎵 PREVIEW {emotion_name} với REAL-TIME parameters:")
-                    print(f"   🎯 Exaggeration: {parameters['exaggeration']:.2f} (từ UI)")
-                    print(f"   ⚖️ CFG Weight: {parameters['cfg_weight']:.2f} (từ UI)")
-                    print(f"   🌡️ Temperature: {parameters['temperature']:.2f} (từ UI)")
-                    print(f"   ⚡ Speed: {parameters['speed']:.1f} (từ UI)")
-                    print(f"   📝 Text: \"{preview_text[:50]}...\" ({len(preview_text)} chars)")
+                    print(f"\n[MUSIC] PREVIEW {emotion_name} với REAL-TIME parameters:")
+                    print(f"   [TARGET] Exaggeration: {parameters['exaggeration']:.2f} (từ UI)")
+                    print(f"   [EMOJI] CFG Weight: {parameters['cfg_weight']:.2f} (từ UI)")
+                    print(f"   [EMOJI] Temperature: {parameters['temperature']:.2f} (từ UI)")
+                    print(f"   [FAST] Speed: {parameters['speed']:.1f} (từ UI)")
+                    print(f"   [EDIT] Text: \"{preview_text[:50]}...\" ({len(preview_text)} chars)")
                     break
             
             # Fallback nếu không tìm thấy row
@@ -686,7 +692,7 @@ class EmotionConfigTab(QWidget):
                     'temperature': emotion.temperature,
                     'speed': emotion.speed
                 }
-            print(f"\n⚠️ FALLBACK: Sử dụng default parameters cho {emotion_name}")
+            print(f"\n[WARNING] FALLBACK: Sử dụng default parameters cho {emotion_name}")
             
             # Find preview button từ wrapper widget
             preview_btn = None
@@ -725,10 +731,10 @@ class EmotionConfigTab(QWidget):
                 
                 thread.start()
                 
-                self.update_status(f"🎵 Đang tạo preview cho {emotion_name}...")
+                self.update_status(f"[MUSIC] Đang tạo preview cho {emotion_name}...")
             
         except Exception as e:
-            self.update_status(f"❌ Lỗi preview {emotion_name}: {str(e)}")
+            self.update_status(f"[EMOJI] Error preview {emotion_name}: {str(e)}")
     
     def on_preview_completed(self, emotion_name: str, audio_path: str, is_real: bool):
         """Xử lý khi preview hoàn thành"""
@@ -744,7 +750,7 @@ class EmotionConfigTab(QWidget):
                         if layout and layout.count() > 1:
                             preview_btn = layout.itemAt(1).widget()  # Button ở vị trí giữa
                     if preview_btn:
-                        preview_btn.setText("🎵")
+                        preview_btn.setText("[MUSIC]")
                         preview_btn.setEnabled(True)
                         preview_btn.setStyleSheet("""
                             QPushButton {
@@ -777,9 +783,9 @@ class EmotionConfigTab(QWidget):
                     else:  # Linux
                         subprocess.run(["xdg-open", audio_path])
                     
-                    self.update_status(f"🎵 Preview {emotion_name} hoàn thành - đang phát âm thanh")
+                    self.update_status(f"[MUSIC] Preview {emotion_name} hoàn thành - đang phát âm thanh")
                 except Exception as e:
-                    self.update_status(f"❌ Không thể phát audio: {str(e)}")
+                    self.update_status(f"[EMOJI] Không thể phát audio: {str(e)}")
                     
             else:
                 # Simulated preview với REAL-TIME parameters từ UI
@@ -814,26 +820,26 @@ class EmotionConfigTab(QWidget):
                 
                 QMessageBox.information(
                     self,
-                    f"🎵 Preview Simulation: {emotion_name}",
+                    f"[MUSIC] Preview Simulation: {emotion_name}",
                     f"Preview simulation với REAL-TIME parameters!\n\n"
-                    f"🎭 Emotion: {emotion_name}\n"
-                    f"📝 Description: {emotion_details.description}\n"
-                    f"🏷️ Category: {emotion_details.category}\n\n"
-                    f"🎯 Exaggeration: {current_params['exaggeration']:.2f} (real-time)\n"
-                    f"⚖️ CFG Weight: {current_params['cfg_weight']:.2f} (real-time)\n"
-                    f"🌡️ Temperature: {current_params['temperature']:.2f} (real-time)\n"
-                    f"⚡ Speed: {current_params['speed']:.1f} (real-time)\n\n"
-                    f"💡 Parameters được lấy từ UI spinboxes hiện tại!"
+                    f"[THEATER] Emotion: {emotion_name}\n"
+                    f"[EDIT] Description: {emotion_details.description}\n"
+                    f"[EMOJI] Category: {emotion_details.category}\n\n"
+                    f"[TARGET] Exaggeration: {current_params['exaggeration']:.2f} (real-time)\n"
+                    f"[EMOJI] CFG Weight: {current_params['cfg_weight']:.2f} (real-time)\n"
+                    f"[EMOJI] Temperature: {current_params['temperature']:.2f} (real-time)\n"
+                    f"[FAST] Speed: {current_params['speed']:.1f} (real-time)\n\n"
+                    f"[IDEA] Parameters được lấy từ UI spinboxes hiện tại!"
                 )
                 
-                self.update_status(f"✅ Preview simulation {emotion_name} hoàn thành")
+                self.update_status(f"[OK] Preview simulation {emotion_name} hoàn thành")
             
             # Cleanup thread
             if emotion_name in self.preview_threads:
                 del self.preview_threads[emotion_name]
                 
         except Exception as e:
-            self.update_status(f"❌ Lỗi xử lý preview {emotion_name}: {str(e)}")
+            self.update_status(f"[EMOJI] Error xử lý preview {emotion_name}: {str(e)}")
     
     def on_preview_error(self, emotion_name: str, error: str):
         """Xử lý lỗi preview"""
@@ -850,7 +856,7 @@ class EmotionConfigTab(QWidget):
                     break
             
             if preview_btn:
-                preview_btn.setText("🎵")
+                preview_btn.setText("[MUSIC]")
                 preview_btn.setEnabled(True)
                 preview_btn.setStyleSheet("""
                     QPushButton {
@@ -874,8 +880,8 @@ class EmotionConfigTab(QWidget):
         # Show error with fallback simulation
         reply = QMessageBox.question(
             self, 
-            "❌ Preview Error", 
-            f"Lỗi tạo preview thật cho {emotion_name}:\n{error}\n\nBạn có muốn xem preview simulation không?",
+            "[EMOJI] Preview Error", 
+            f"Error tạo preview thật cho {emotion_name}:\n{error}\n\nBạn có muốn xem preview simulation không?",
             QMessageBox.Yes | QMessageBox.No,
             QMessageBox.Yes
         )
@@ -913,23 +919,23 @@ class EmotionConfigTab(QWidget):
             
             QMessageBox.information(
                 self,
-                f"🎵 Preview Simulation: {emotion_name}",
+                f"[MUSIC] Preview Simulation: {emotion_name}",
                 f"Preview simulation cho {emotion_name} (fallback):\n\n"
-                f"🎭 Emotion: {emotion_name}\n"
-                f"📝 Description: {emotion_details.description}\n\n"
-                f"🎯 Exaggeration: {current_params['exaggeration']:.2f} (real-time)\n"
-                f"⚖️ CFG Weight: {current_params['cfg_weight']:.2f} (real-time)\n"
-                f"🌡️ Temperature: {current_params['temperature']:.2f} (real-time)\n"
-                f"⚡ Speed: {current_params['speed']:.1f} (real-time)\n\n"
-                f"💡 Sử dụng parameters từ UI spinboxes!"
+                f"[THEATER] Emotion: {emotion_name}\n"
+                f"[EDIT] Description: {emotion_details.description}\n\n"
+                f"[TARGET] Exaggeration: {current_params['exaggeration']:.2f} (real-time)\n"
+                f"[EMOJI] CFG Weight: {current_params['cfg_weight']:.2f} (real-time)\n"
+                f"[EMOJI] Temperature: {current_params['temperature']:.2f} (real-time)\n"
+                f"[FAST] Speed: {current_params['speed']:.1f} (real-time)\n\n"
+                f"[IDEA] Sử dụng parameters từ UI spinboxes!"
             )
         
-        self.update_status(f"❌ Preview {emotion_name} thất bại - hiển thị simulation")
+        self.update_status(f"[EMOJI] Preview {emotion_name} thất bại - hiển thị simulation")
     
     def add_custom_emotion(self):
         """Thêm emotion tùy chỉnh mới"""
         dialog = QDialog(self)
-        dialog.setWindowTitle("➕ Thêm Emotion Mới")
+        dialog.setWindowTitle("[EMOJI] Thêm Emotion Mới")
         dialog.setModal(True)
         dialog.resize(400, 350)
         
@@ -940,45 +946,45 @@ class EmotionConfigTab(QWidget):
         
         name_input = QLineEdit()
         name_input.setPlaceholderText("tên_emotion_mới")
-        form_layout.addRow("🎭 Tên Emotion:", name_input)
+        form_layout.addRow("[THEATER] Tên Emotion:", name_input)
         
         desc_input = QLineEdit()
         desc_input.setPlaceholderText("Mô tả emotion này...")
-        form_layout.addRow("📝 Mô tả:", desc_input)
+        form_layout.addRow("[EDIT] Mô tả:", desc_input)
         
         category_combo = QComboBox()
         category_combo.addItems(["neutral", "positive", "negative", "dramatic", "special"])
-        form_layout.addRow("🏷️ Category:", category_combo)
+        form_layout.addRow("[EMOJI] Category:", category_combo)
         
         exag_spinbox = QDoubleSpinBox()
         exag_spinbox.setRange(0.0, 2.5)
         exag_spinbox.setSingleStep(0.1)
         exag_spinbox.setValue(1.0)
-        form_layout.addRow("🎯 Exaggeration:", exag_spinbox)
+        form_layout.addRow("[TARGET] Exaggeration:", exag_spinbox)
         
         cfg_spinbox = QDoubleSpinBox()
         cfg_spinbox.setRange(0.0, 1.0)
         cfg_spinbox.setSingleStep(0.05)
         cfg_spinbox.setValue(0.5)
-        form_layout.addRow("⚖️ CFG Weight:", cfg_spinbox)
+        form_layout.addRow("[EMOJI] CFG Weight:", cfg_spinbox)
         
         temp_spinbox = QDoubleSpinBox()
         temp_spinbox.setRange(0.1, 1.5)
         temp_spinbox.setSingleStep(0.1)
         temp_spinbox.setValue(0.7)
-        form_layout.addRow("🌡️ Temperature:", temp_spinbox)
+        form_layout.addRow("[EMOJI] Temperature:", temp_spinbox)
         
         speed_spinbox = QDoubleSpinBox()
         speed_spinbox.setRange(0.5, 2.0)
         speed_spinbox.setSingleStep(0.1)
         speed_spinbox.setValue(1.0)
-        form_layout.addRow("⚡ Speed:", speed_spinbox)
+        form_layout.addRow("[FAST] Speed:", speed_spinbox)
         
         layout.addLayout(form_layout)
         
         # Buttons
         buttons_layout = QHBoxLayout()
-        create_btn = QPushButton("✅ Tạo Emotion")
+        create_btn = QPushButton("[OK] Tạo Emotion")
         create_btn.setStyleSheet("""
             QPushButton {
                 background-color: white;
@@ -990,7 +996,7 @@ class EmotionConfigTab(QWidget):
             }
         """)
         
-        cancel_btn = QPushButton("❌ Hủy")
+        cancel_btn = QPushButton("[EMOJI] Hủy")
         cancel_btn.setStyleSheet("""
             QPushButton {
                 background-color: white;
@@ -1041,28 +1047,28 @@ class EmotionConfigTab(QWidget):
                     # Reload UI table to show new emotion
                     self.load_emotions_to_table()
                     self.update_statistics()
-                    print(f"\n🎭 CUSTOM EMOTION ADDED:")
-                    print(f"   📝 Name: {name}")
-                    print(f"   📖 Description: {description or f'Custom emotion: {name}'}")
-                    print(f"   📊 Parameters: T=0.8, E=1.0, C=0.6, S=1.0 (Expert Compliant)")
+                    print(f"\n[THEATER] CUSTOM EMOTION ADDED:")
+                    print(f"   [EDIT] Name: {name}")
+                    print(f"   [BOOK] Description: {description or f'Custom emotion: {name}'}")
+                    print(f"   [STATS] Parameters: T=0.8, E=1.0, C=0.6, S=1.0 (Expert Compliant)")
                     # Success dialog
                     QMessageBox.information(
                         dialog,
                         "Thành Công!",
-                        f"✅ Đã thêm custom emotion thành công!\n\n"
-                        f"📝 Tên: {name}\n"
-                        f"📖 Mô tả: {description or f'Custom emotion: {name}'}\n"
-                        f"🏷️ Category: neutral\n"
-                        f"📊 Parameters: Expert-compliant defaults\n\n"
-                        f"💡 Emotion đã được thêm vào bảng và bạn có thể tuỉnh chỉnh parameters!"
+                        f"[OK] Đã thêm custom emotion thành công!\n\n"
+                        f"[EDIT] Tên: {name}\n"
+                        f"[BOOK] Mô tả: {description or f'Custom emotion: {name}'}\n"
+                        f"[EMOJI] Category: neutral\n"
+                        f"[STATS] Parameters: Expert-compliant defaults\n\n"
+                        f"[IDEA] Emotion đã được thêm vào bảng và bạn có thể tuỉnh chỉnh parameters!"
                     )
-                    self.update_status(f"✅ Đã thêm custom emotion: {name}")
+                    self.update_status(f"[OK] Đã thêm custom emotion: {name}")
                     dialog.accept()
                 else:
-                    QMessageBox.critical(dialog, "Lỗi", "Không thể thêm emotion. Vui lòng thử lại.")
+                    QMessageBox.critical(dialog, "Error", "Không thể thêm emotion. Vui lòng thử lại.")
                 
             except Exception as e:
-                QMessageBox.critical(dialog, "Lỗi", f"Không thể tạo emotion:\n{str(e)}")
+                QMessageBox.critical(dialog, "Error", f"Không thể tạo emotion:\n{str(e)}")
         
         create_btn.clicked.connect(create_emotion)
         cancel_btn.clicked.connect(dialog.reject)
@@ -1083,11 +1089,11 @@ class EmotionConfigTab(QWidget):
             try:
                 if self.unified_emotion_system.delete_custom_emotion(emotion_name):
                     self.load_emotions_to_table()  # Reload table
-                    self.update_status(f"✅ Đã xóa emotion '{emotion_name}'")
+                    self.update_status(f"[OK] Đã xóa emotion '{emotion_name}'")
                 else:
-                    self.update_status(f"❌ Không thể xóa emotion '{emotion_name}'")
+                    self.update_status(f"[EMOJI] Không thể xóa emotion '{emotion_name}'")
             except Exception as e:
-                self.update_status(f"❌ Lỗi xóa emotion: {str(e)}")
+                self.update_status(f"[EMOJI] Error xóa emotion: {str(e)}")
     
     def filter_emotions(self):
         """Lọc emotions theo category và custom"""
@@ -1186,26 +1192,26 @@ class EmotionConfigTab(QWidget):
                 with open(file_path, 'w', encoding='utf-8') as f:
                     json.dump(export_data, f, indent=2, ensure_ascii=False)
                 
-                print(f"\n📤 EXPORT COMPLETED:")
-                print(f"   📁 File: {file_path}")
-                print(f"   📊 Emotions: {export_data['export_info']['total_emotions']}")
+                print(f"\n[EMOJI] EXPORT COMPLETED:")
+                print(f"   [FOLDER] File: {file_path}")
+                print(f"   [STATS] Emotions: {export_data['export_info']['total_emotions']}")
                 
-                self.update_status(f"✅ Đã export {export_data['export_info']['total_emotions']} emotions: {os.path.basename(file_path)}")
+                self.update_status(f"[OK] Đã export {export_data['export_info']['total_emotions']} emotions: {os.path.basename(file_path)}")
                 
                 # Show success dialog
                 QMessageBox.information(
                     self,
                     "Export Thành Công",
-                    f"✅ Đã export thành công!\n\n"
-                    f"📁 File: {os.path.basename(file_path)}\n"
-                    f"📊 Emotions: {export_data['export_info']['total_emotions']}\n"
-                    f"💾 Size: {os.path.getsize(file_path):,} bytes\n\n"
-                    f"💡 File chứa current UI values của tất cả emotions!"
+                    f"[OK] Đã export thành công!\n\n"
+                    f"[FOLDER] File: {os.path.basename(file_path)}\n"
+                    f"[STATS] Emotions: {export_data['export_info']['total_emotions']}\n"
+                    f"[EMOJI] Size: {os.path.getsize(file_path):,} bytes\n\n"
+                    f"[IDEA] File chứa current UI values của tất cả emotions!"
                 )
                 
         except Exception as e:
-            self.update_status(f"❌ Lỗi export: {str(e)}")
-            QMessageBox.critical(self, "Lỗi Export", f"Không thể export emotion config:\n{str(e)}")
+            self.update_status(f"[EMOJI] Error export: {str(e)}")
+            QMessageBox.critical(self, "Error Export", f"Không thể export emotion config:\n{str(e)}")
     
     def import_config(self):
         """Import emotion configuration và apply vào UI"""
@@ -1233,11 +1239,11 @@ class EmotionConfigTab(QWidget):
                 reply = QMessageBox.question(
                     self,
                     "Confirm Import",
-                    f"📥 Import Emotion Configuration\n\n"
-                    f"📁 File: {os.path.basename(file_path)}\n"
-                    f"📊 Emotions to import: {total_import}\n\n"
-                    f"⚠️ Hành động này sẽ overwrite current UI values!\n"
-                    f"💡 Chỉ emotions có sẵn trong unified system sẽ được import.\n\n"
+                    f"[EMOJI] Import Emotion Configuration\n\n"
+                    f"[FOLDER] File: {os.path.basename(file_path)}\n"
+                    f"[STATS] Emotions to import: {total_import}\n\n"
+                    f"[WARNING] Hành động này sẽ overwrite current UI values!\n"
+                    f"[IDEA] Chỉ emotions có sẵn trong unified system sẽ được import.\n\n"
                     f"Bạn có muốn tiếp tục?",
                     QMessageBox.Yes | QMessageBox.No,
                     QMessageBox.No
@@ -1251,7 +1257,7 @@ class EmotionConfigTab(QWidget):
                 skip_count = 0
                 failed_count = 0
                 
-                print(f"\n📥 STARTING IMPORT từ {os.path.basename(file_path)}")
+                print(f"\n[EMOJI] STARTING IMPORT từ {os.path.basename(file_path)}")
                 print("="*60)
                 
                 for emotion_name, emotion_config in imported_emotions.items():
@@ -1286,7 +1292,7 @@ class EmotionConfigTab(QWidget):
                         
                         # Get parameters từ import file
                         if "parameters" not in emotion_config:
-                            print(f"❌ FAILED: {emotion_name} (thiếu parameters)")
+                            print(f"[EMOJI] FAILED: {emotion_name} (thiếu parameters)")
                             failed_count += 1
                             continue
                             
@@ -1322,7 +1328,7 @@ class EmotionConfigTab(QWidget):
                                     speed_spinbox.setValue(params["speed"])
                                     speed_spinbox.blockSignals(False)
                                 
-                                print(f"✅ IMPORTED: {emotion_name} - "
+                                print(f"[OK] IMPORTED: {emotion_name} - "
                                       f"Exag={params.get('exaggeration', 'N/A'):.2f}, "
                                       f"CFG={params.get('cfg_weight', 'N/A'):.2f}, "
                                       f"Temp={params.get('temperature', 'N/A'):.2f}, "
@@ -1331,7 +1337,7 @@ class EmotionConfigTab(QWidget):
                                 break
                         
                     except Exception as e:
-                        print(f"❌ FAILED: {emotion_name} - {str(e)}")
+                        print(f"[EMOJI] FAILED: {emotion_name} - {str(e)}")
                         failed_count += 1
                 
                 # Force UI refresh
@@ -1368,44 +1374,52 @@ class EmotionConfigTab(QWidget):
                                         widgets["filter"].setText(preset["filter"])
                         
                         inner_voice_imported = True
-                        print(f"✅ IMPORTED: Inner Voice Config - enabled={inner_config.get('enabled', False)}")
+                        print(f"[OK] IMPORTED: Inner Voice Config - enabled={inner_config.get('enabled', False)}")
                         
                     except Exception as e:
-                        print(f"⚠️ WARNING: Không thể import inner voice config: {e}")
+                        print(f"[WARNING] WARNING: Không thể import inner voice config: {e}")
                 
                 print("="*60)
                 
                 print("="*60)
-                print(f"📥 IMPORT COMPLETED!")
-                print(f"✅ Successfully imported: {success_count}")
-                print(f"⏭️ Skipped (not found): {skip_count}")
-                print(f"❌ Failed: {failed_count}")
-                print(f"📊 Total processed: {success_count + skip_count + failed_count}/{total_import}")
+                print(f"[EMOJI] IMPORT COMPLETED!")
+                print(f"[OK] Successfully imported: {success_count}")
+                print(f"⏭ Skipped (not found): {skip_count}")
+                print(f"[EMOJI] Failed: {failed_count}")
+                print(f"[STATS] Total processed: {success_count + skip_count + failed_count}/{total_import}")
                 if inner_voice_imported:
-                    print(f"🎭 Inner Voice config imported successfully!")
+                    print(f"[THEATER] Inner Voice config imported successfully!")
                 
                 # Update status và show results
-                self.update_status(f"✅ Import completed: {success_count} success, {skip_count} skipped, {failed_count} failed")
+                self.update_status(f"[OK] Import completed: {success_count} success, {skip_count} skipped, {failed_count} failed")
                 
                 # Show completion dialog
                 completion_msg = (
-                    f"📥 Import emotion configuration completed!\n\n"
-                    f"✅ Successfully imported: {success_count} emotions\n"
-                    f"⏭️ Skipped (not found): {skip_count} emotions\n"
-                    f"❌ Failed: {failed_count} emotions\n\n"
-                    f"📊 Total: {success_count + skip_count + failed_count}/{total_import}\n"
+                    f"[EMOJI] Import emotion configuration completed!\n\n"
+                    f"[OK] Successfully imported: {success_count} emotions\n"
+                    f"⏭ Skipped (not found): {skip_count} emotions\n"
+                    f"[EMOJI] Failed: {failed_count} emotions\n\n"
+                    f"[STATS] Total: {success_count + skip_count + failed_count}/{total_import}\n"
                 )
                 
                 if inner_voice_imported:
-                    completion_msg += f"\n🎭 Inner Voice config cũng đã được import!\n"
+                    completion_msg += f"\n[THEATER] Inner Voice config cũng đã được import!\n"
                 
+<<<<<<< Updated upstream
                 completion_msg += f"\n💡 UI đã được cập nhật với imported values!"
                 
+=======
+                completion_msg += f"\n[IDEA] UI đã được cập nhật với imported values!"
+
+                # Save imported emotions to disk so they persist on next app start
+                self.unified_emotion_system.save_unified_config()
+
+>>>>>>> Stashed changes
                 QMessageBox.information(self, "Import Hoàn Thành", completion_msg)
                     
         except Exception as e:
-            self.update_status(f"❌ Lỗi import: {str(e)}")
-            QMessageBox.critical(self, "Lỗi Import", f"Không thể import emotion config:\n{str(e)}")
+            self.update_status(f"[EMOJI] Error import: {str(e)}")
+            QMessageBox.critical(self, "Error Import", f"Không thể import emotion config:\n{str(e)}")
     
     def update_statistics(self):
         """Cập nhật thống kê emotions"""
@@ -1422,21 +1436,21 @@ class EmotionConfigTab(QWidget):
             }
             
             stats_text = (
-                f"📊 Total: {stats['total_emotions']} | "
-                f"🎭 Built-in: {stats['default_emotions']} | "
-                f"✨ Custom: {stats['custom_emotions']} | "
-                f"📦 Presets: {stats['total_presets']}"
+                f"[STATS] Total: {stats['total_emotions']} | "
+                f"[THEATER] Built-in: {stats['default_emotions']} | "
+                f"[SPARKLE] Custom: {stats['custom_emotions']} | "
+                f"[EMOJI] Presets: {stats['total_presets']}"
             )
             
             self.stats_label.setText(stats_text)
             
         except Exception:
-            self.stats_label.setText("❌ Lỗi thống kê")
+            self.stats_label.setText("[EMOJI] Error thống kê")
     
     def update_status(self, message: str):
         """Cập nhật status message"""
         self.status_label.setText(message)
-        QTimer.singleShot(3000, lambda: self.status_label.setText("✅ Sẵn sàng"))
+        QTimer.singleShot(3000, lambda: self.status_label.setText("[OK] Sẵn sàng"))
     
     def connect_signals(self):
         """Kết nối signals"""
@@ -1465,38 +1479,38 @@ class EmotionConfigTab(QWidget):
             }
             
             # DEBUG: In giá trị gốc ra console
-            print(f"\n🔄 DEBUG RESET {emotion_name}:")
-            print(f"   📝 Original Description: {original_emotion.description}")
-            print(f"   🏷️ Original Category: {original_emotion.category}")
-            print(f"   📊 Original Values:")
-            print(f"      🎯 Exaggeration: {default_values['exaggeration']:.2f}")
-            print(f"      ⚖️ CFG Weight: {default_values['cfg_weight']:.2f}")
-            print(f"      🌡️ Temperature: {default_values['temperature']:.2f}")
-            print(f"      ⚡ Speed: {default_values['speed']:.1f}")
+            print(f"\n[REFRESH] DEBUG RESET {emotion_name}:")
+            print(f"   [EDIT] Original Description: {original_emotion.description}")
+            print(f"   [EMOJI] Original Category: {original_emotion.category}")
+            print(f"   [STATS] Original Values:")
+            print(f"      [TARGET] Exaggeration: {default_values['exaggeration']:.2f}")
+            print(f"      [EMOJI] CFG Weight: {default_values['cfg_weight']:.2f}")
+            print(f"      [EMOJI] Temperature: {default_values['temperature']:.2f}")
+            print(f"      [FAST] Speed: {default_values['speed']:.1f}")
             
             # Lấy giá trị hiện tại để so sánh
             current_emotion = original_emotion  # In unified system, current = original
-            print(f"   📈 Current Values:")
-            print(f"      🎯 Exaggeration: {current_emotion.exaggeration:.2f}")
-            print(f"      ⚖️ CFG Weight: {current_emotion.cfg_weight:.2f}")
-            print(f"      🌡️ Temperature: {current_emotion.temperature:.2f}")
-            print(f"      ⚡ Speed: {current_emotion.speed:.1f}")
+            print(f"   [METRICS] Current Values:")
+            print(f"      [TARGET] Exaggeration: {current_emotion.exaggeration:.2f}")
+            print(f"      [EMOJI] CFG Weight: {current_emotion.cfg_weight:.2f}")
+            print(f"      [EMOJI] Temperature: {current_emotion.temperature:.2f}")
+            print(f"      [FAST] Speed: {current_emotion.speed:.1f}")
             
             # Confirm dialog với giá trị gốc cụ thể
             dialog_text = (
                 f"Bạn có chắc chắn muốn reset '{emotion_name}' về giá trị gốc?\n\n"
-                f"📝 Emotion gốc: {original_emotion.description}\n"
-                f"🏷️ Category: {original_emotion.category}\n\n"
-                f"📊 Giá trị gốc sẽ được áp dụng:\n"
-                f"🎯 Exaggeration: {default_values['exaggeration']:.2f}\n"
-                f"⚖️ CFG Weight: {default_values['cfg_weight']:.2f}\n"
-                f"🌡️ Temperature: {default_values['temperature']:.2f}\n"
-                f"⚡ Speed: {default_values['speed']:.1f}\n\n"
-                f"💡 Giá trị hiện tại:\n"
-                f"🎯 Exaggeration: {current_emotion.exaggeration:.2f}\n"
-                f"⚖️ CFG Weight: {current_emotion.cfg_weight:.2f}\n"
-                f"🌡️ Temperature: {current_emotion.temperature:.2f}\n"
-                f"⚡ Speed: {current_emotion.speed:.1f}"
+                f"[EDIT] Emotion gốc: {original_emotion.description}\n"
+                f"[EMOJI] Category: {original_emotion.category}\n\n"
+                f"[STATS] Giá trị gốc sẽ được áp dụng:\n"
+                f"[TARGET] Exaggeration: {default_values['exaggeration']:.2f}\n"
+                f"[EMOJI] CFG Weight: {default_values['cfg_weight']:.2f}\n"
+                f"[EMOJI] Temperature: {default_values['temperature']:.2f}\n"
+                f"[FAST] Speed: {default_values['speed']:.1f}\n\n"
+                f"[IDEA] Giá trị hiện tại:\n"
+                f"[TARGET] Exaggeration: {current_emotion.exaggeration:.2f}\n"
+                f"[EMOJI] CFG Weight: {current_emotion.cfg_weight:.2f}\n"
+                f"[EMOJI] Temperature: {current_emotion.temperature:.2f}\n"
+                f"[FAST] Speed: {current_emotion.speed:.1f}"
             )
             
             reply = QMessageBox.question(
@@ -1511,11 +1525,11 @@ class EmotionConfigTab(QWidget):
                 # For unified system, reload table to reset values
                 # (The values are already in their default state)
                 
-                # 🎯 UPDATE UI trong table với blocking signals để tránh recursive calls
+                # [TARGET] UPDATE UI trong table với blocking signals để tránh recursive calls
                 for row in range(self.emotions_table.rowCount()):
                     name_item = self.emotions_table.item(row, 0)
                     if name_item and name_item.text() == emotion_name:
-                        print(f"   🔄 Updating UI for row {row}")
+                        print(f"   [REFRESH] Updating UI for row {row}")
                         
                         # Update spinboxes với giá trị gốc cụ thể - BLOCK SIGNALS
                         exag_spinbox = self.emotions_table.cellWidget(row, 3)
@@ -1523,46 +1537,46 @@ class EmotionConfigTab(QWidget):
                             exag_spinbox.blockSignals(True)
                             exag_spinbox.setValue(default_values['exaggeration'])
                             exag_spinbox.blockSignals(False)
-                            print(f"   ✅ Updated exaggeration: {default_values['exaggeration']:.2f}")
+                            print(f"   [OK] Updated exaggeration: {default_values['exaggeration']:.2f}")
                         
                         cfg_spinbox = self.emotions_table.cellWidget(row, 4)
                         if cfg_spinbox:
                             cfg_spinbox.blockSignals(True)
                             cfg_spinbox.setValue(default_values['cfg_weight'])
                             cfg_spinbox.blockSignals(False)
-                            print(f"   ✅ Updated cfg_weight: {default_values['cfg_weight']:.2f}")
+                            print(f"   [OK] Updated cfg_weight: {default_values['cfg_weight']:.2f}")
                         
                         temp_spinbox = self.emotions_table.cellWidget(row, 5)
                         if temp_spinbox:
                             temp_spinbox.blockSignals(True)
                             temp_spinbox.setValue(default_values['temperature'])
                             temp_spinbox.blockSignals(False)
-                            print(f"   ✅ Updated temperature: {default_values['temperature']:.2f}")
+                            print(f"   [OK] Updated temperature: {default_values['temperature']:.2f}")
                         
                         speed_spinbox = self.emotions_table.cellWidget(row, 6)
                         if speed_spinbox:
                             speed_spinbox.blockSignals(True)
                             speed_spinbox.setValue(default_values['speed'])
                             speed_spinbox.blockSignals(False)
-                            print(f"   ✅ Updated speed: {default_values['speed']:.1f}")
+                            print(f"   [OK] Updated speed: {default_values['speed']:.1f}")
                         
                         # Force table refresh và update statistics
                         self.emotions_table.viewport().update()
                         self.emotions_table.repaint()
                         self.update_statistics()  # Update emotion count statistics
                         
-                        print(f"   🎉 UI update completed for {emotion_name}")
+                        print(f"   [SUCCESS] UI update completed for {emotion_name}")
                         break
                 
-                self.update_status(f"✅ Reset {emotion_name} về giá trị gốc: Exag={default_values['exaggeration']:.2f}, CFG={default_values['cfg_weight']:.2f}")
+                self.update_status(f"[OK] Reset {emotion_name} về giá trị gốc: Exag={default_values['exaggeration']:.2f}, CFG={default_values['cfg_weight']:.2f}")
                 
-                # 🔄 ALTERNATIVE: Reload entire table to ensure consistency
+                # [REFRESH] ALTERNATIVE: Reload entire table to ensure consistency
                 # Uncomment this line if individual widget updates don't work properly
                 # self.load_emotions_to_table()
                 
         except Exception as e:
-            self.update_status(f"❌ Lỗi reset {emotion_name}: {str(e)}")
-            QMessageBox.warning(self, "Lỗi Reset", f"Không thể reset {emotion_name} về giá trị gốc:\n{str(e)}") 
+            self.update_status(f"[EMOJI] Error reset {emotion_name}: {str(e)}")
+            QMessageBox.warning(self, "Error Reset", f"Không thể reset {emotion_name} về giá trị gốc:\n{str(e)}") 
 
     def reset_all_emotions_to_default(self):
         """Reset tất cả emotions về giá trị gốc"""
@@ -1572,15 +1586,15 @@ class EmotionConfigTab(QWidget):
             
             # Confirm dialog với thông tin chi tiết
             dialog_text = (
-                f"⚠️ RESET TẤT CẢ EMOTIONS\n\n"
+                f"[WARNING] RESET TẤT CẢ EMOTIONS\n\n"
                 f"Bạn có chắc chắn muốn reset TẤT CẢ {total_emotions} emotions "
                 f"về giá trị gốc không?\n\n"
-                f"🔄 Hành động này sẽ:\n"
+                f"[REFRESH] Hành động này sẽ:\n"
                 f"• Reset tất cả parameters về expert-recommended values\n"
                 f"• Phục hồi 100% compliance với expert recommendations\n"
                 f"• Khôi phục toàn bộ hệ thống emotion về trạng thái tối ưu\n\n"
-                f"💡 Tất cả thay đổi hiện tại sẽ bị mất!\n"
-                f"📊 Unified System sẽ được phục hồi hoàn toàn"
+                f"[IDEA] Tất cả thay đổi hiện tại sẽ bị mất!\n"
+                f"[STATS] Unified System sẽ được phục hồi hoàn toàn"
             )
             
             reply = QMessageBox.question(
@@ -1604,7 +1618,7 @@ class EmotionConfigTab(QWidget):
                 reset_count = 0
                 failed_count = 0
                 
-                print(f"\n🔄 STARTING RESET ALL {total_emotions} EMOTIONS")
+                print(f"\n[REFRESH] STARTING RESET ALL {total_emotions} EMOTIONS")
                 print("="*60)
                 
                 # Process tất cả emotions
@@ -1624,7 +1638,7 @@ class EmotionConfigTab(QWidget):
                             'speed': emotion.speed
                         }
                         
-                        print(f"🎭 {emotion_name}: Exag={default_values['exaggeration']:.2f}, "
+                        print(f"[THEATER] {emotion_name}: Exag={default_values['exaggeration']:.2f}, "
                               f"CFG={default_values['cfg_weight']:.2f}, "
                               f"Temp={default_values['temperature']:.2f}, "
                               f"Speed={default_values['speed']:.1f}")
@@ -1663,7 +1677,7 @@ class EmotionConfigTab(QWidget):
                         reset_count += 1
                         
                     except Exception as e:
-                        print(f"❌ Failed to reset {emotion_name}: {str(e)}")
+                        print(f"[EMOJI] Failed to reset {emotion_name}: {str(e)}")
                         failed_count += 1
                     
                     # Small delay để UI responsive
@@ -1678,41 +1692,41 @@ class EmotionConfigTab(QWidget):
                 self.update_statistics()
                 
                 print("="*60)
-                print(f"🎉 RESET ALL COMPLETED!")
-                print(f"✅ Successfully reset: {reset_count} emotions")
-                print(f"❌ Failed: {failed_count} emotions")
-                print(f"📊 Total processed: {reset_count + failed_count}/{total_emotions}")
+                print(f"[SUCCESS] RESET ALL COMPLETED!")
+                print(f"[OK] Successfully reset: {reset_count} emotions")
+                print(f"[EMOJI] Failed: {failed_count} emotions")
+                print(f"[STATS] Total processed: {reset_count + failed_count}/{total_emotions}")
                 
                 # Success message
                 if failed_count == 0:
-                    self.update_status(f"🎉 Reset ALL {reset_count} emotions thành công! 100% Expert Compliance!")
+                    self.update_status(f"[SUCCESS] Reset ALL {reset_count} emotions thành công! 100% Expert Compliance!")
                     QMessageBox.information(
                         self, 
                         "Reset All Hoàn Thành", 
-                        f"✅ Đã reset thành công {reset_count} emotions!\n\n"
-                        f"🎯 Tất cả emotions giờ đã 100% expert compliance:\n"
-                        f"• Temperature: 0.7-1.0 ✅\n"
-                        f"• Exaggeration: 0.8-1.2 ✅\n"
-                        f"• CFG Weight: 0.5-0.7 ✅\n"
-                        f"• Speed: 0.8-1.3 ✅\n\n"
-                        f"🔄 Unified Emotion System restored!"
+                        f"[OK] Đã reset thành công {reset_count} emotions!\n\n"
+                        f"[TARGET] Tất cả emotions giờ đã 100% expert compliance:\n"
+                        f"• Temperature: 0.7-1.0 [OK]\n"
+                        f"• Exaggeration: 0.8-1.2 [OK]\n"
+                        f"• CFG Weight: 0.5-0.7 [OK]\n"
+                        f"• Speed: 0.8-1.3 [OK]\n\n"
+                        f"[REFRESH] Unified Emotion System restored!"
                     )
                 else:
-                    self.update_status(f"⚠️ Reset ALL: {reset_count} thành công, {failed_count} thất bại")
+                    self.update_status(f"[WARNING] Reset ALL: {reset_count} thành công, {failed_count} thất bại")
                     QMessageBox.warning(
                         self, 
                         "Reset All Hoàn Thành Một Phần", 
-                        f"✅ Thành công: {reset_count} emotions\n"
-                        f"❌ Thất bại: {failed_count} emotions\n\n"
+                        f"[OK] Thành công: {reset_count} emotions\n"
+                        f"[EMOJI] Thất bại: {failed_count} emotions\n\n"
                         f"Vui lòng kiểm tra console để biết chi tiết."
                     )
             
         except Exception as e:
-            print(f"❌ CRITICAL ERROR in reset_all_emotions_to_default: {str(e)}")
-            self.update_status(f"❌ Lỗi reset all: {str(e)}")
+            print(f"[EMOJI] CRITICAL ERROR in reset_all_emotions_to_default: {str(e)}")
+            self.update_status(f"[EMOJI] Error reset all: {str(e)}")
             QMessageBox.critical(
                 self, 
-                "Lỗi Reset All", 
+                "Error Reset All", 
                 f"Không thể reset tất cả emotions:\n{str(e)}\n\n"
                 f"Vui lòng thử lại hoặc reset từng emotion riêng lẻ."
             ) 
@@ -1730,7 +1744,7 @@ class EmotionConfigTab(QWidget):
             original_vals = self.inner_voice_original_values[type_name]
             widgets = self.inner_voice_type_widgets[type_name]
             
-            print(f"🔄 RESETTING {type_name} to ORIGINAL values:")
+            print(f"[REFRESH] RESETTING {type_name} to ORIGINAL values:")
             print(f"   delay: {original_vals['delay']}")
             print(f"   decay: {original_vals['decay']}")
             print(f"   gain: {original_vals['gain']}")
@@ -1753,7 +1767,7 @@ class EmotionConfigTab(QWidget):
             widgets["gain"].blockSignals(False)
             widgets["filter"].blockSignals(False)
             
-            print(f"✅ Reset completed for {type_name}")
+            print(f"[OK] Reset completed for {type_name}")
             
             # Cập nhật InnerVoiceProcessor với thông số mới
             self.update_inner_voice_processor_preset(type_name)
@@ -1761,7 +1775,7 @@ class EmotionConfigTab(QWidget):
             # Save config sau khi reset
             self.save_inner_voice_config_to_file()
         else:
-            print(f"❌ Cannot reset {type_name}: No original values or widgets not found")
+            print(f"[EMOJI] Cannot reset {type_name}: No original values or widgets not found")
     
     def update_inner_voice_processor_preset(self, type_name: str):
         """Cập nhật preset InnerVoiceProcessor với thông số từ UI"""
@@ -1792,10 +1806,10 @@ class EmotionConfigTab(QWidget):
                 processor = InnerVoiceProcessor()
                 processor.set_custom_preset(type_name, custom_preset)
                 
-                print(f"🎭 Updated InnerVoiceProcessor preset for {type_name}: {custom_preset}")
+                print(f"[THEATER] Updated InnerVoiceProcessor preset for {type_name}: {custom_preset}")
                 
         except Exception as e:
-            print(f"⚠️ Warning: Không thể cập nhật InnerVoiceProcessor preset: {e}")
+            print(f"[WARNING] Warning: Không thể cập nhật InnerVoiceProcessor preset: {e}")
     
     def generate_filter_string(self, type_name: str, delay: float, decay: float, gain: float) -> str:
         """Generate FFmpeg filter string từ UI parameters"""
@@ -1825,21 +1839,21 @@ class EmotionConfigTab(QWidget):
         try:
             config_path = "configs/emotions/unified_emotions.json"
             
-            print(f"🔍 DEBUGGING SAVE: Starting save to {config_path}")
+            print(f"[SEARCH] DEBUGGING SAVE: Starting save to {config_path}")
             
             # Đọc config hiện tại
             import json
             if os.path.exists(config_path):
                 with open(config_path, 'r', encoding='utf-8') as f:
                     config = json.load(f)
-                print(f"✅ Successfully read existing config file")
+                print(f"[OK] Successfully read existing config file")
             else:
                 config = {}
-                print(f"⚠️ Config file doesn't exist, creating new one")
+                print(f"[WARNING] Config file doesn't exist, creating new one")
             
             # Cập nhật inner voice config
             if hasattr(self, 'inner_voice_group') and hasattr(self, 'inner_voice_type_widgets'):
-                print(f"🎭 Inner Voice enabled: {self.inner_voice_group.isChecked()}")
+                print(f"[THEATER] Inner Voice enabled: {self.inner_voice_group.isChecked()}")
                 
                 config["inner_voice_config"] = {
                     "enabled": self.inner_voice_group.isChecked(),
@@ -1860,7 +1874,7 @@ class EmotionConfigTab(QWidget):
                         }
                         config["inner_voice_config"]["presets"][type_name] = current_values
                         
-                        print(f"📊 {type_name}: delay={current_values['delay']}, decay={current_values['decay']}, gain={current_values['gain']}, filter='{current_values['filter']}'")
+                        print(f"[STATS] {type_name}: delay={current_values['delay']}, decay={current_values['decay']}, gain={current_values['gain']}, filter='{current_values['filter']}'")
                 
                 # Ghi lại file với error handling
                 try:
@@ -1872,26 +1886,26 @@ class EmotionConfigTab(QWidget):
                         verify_config = json.load(f)
                     
                     if "inner_voice_config" in verify_config:
-                        print(f"✅ SAVE VERIFIED: File updated successfully")
+                        print(f"[OK] SAVE VERIFIED: File updated successfully")
                         
                         # Show current file values for debugging
                         saved_presets = verify_config["inner_voice_config"]["presets"]
                         for type_name, preset in saved_presets.items():
-                            print(f"   📝 Saved {type_name}: delay={preset['delay']}, filter='{preset['filter']}'")
+                            print(f"   [EDIT] Saved {type_name}: delay={preset['delay']}, filter='{preset['filter']}'")
                     else:
-                        print(f"❌ SAVE FAILED: inner_voice_config not found in saved file")
+                        print(f"[EMOJI] SAVE FAILED: inner_voice_config not found in saved file")
                         
                 except Exception as write_error:
-                    print(f"❌ FILE WRITE ERROR: {write_error}")
+                    print(f"[EMOJI] FILE WRITE ERROR: {write_error}")
                     raise write_error
                 
-                print(f"💾 SAVE COMPLETED: {config_path}")
+                print(f"[EMOJI] SAVE COMPLETED: {config_path}")
                 
             else:
-                print(f"❌ SAVE FAILED: Missing inner_voice_group or inner_voice_type_widgets")
+                print(f"[EMOJI] SAVE FAILED: Missing inner_voice_group or inner_voice_type_widgets")
                 
         except Exception as e:
-            print(f"❌ CRITICAL SAVE ERROR: {e}")
+            print(f"[EMOJI] CRITICAL SAVE ERROR: {e}")
             import traceback
             traceback.print_exc()
     
@@ -1933,9 +1947,9 @@ class EmotionConfigTab(QWidget):
                                 widgets["gain"].setValue(preset.get("gain", 0.5))
                                 widgets["filter"].setText(preset.get("filter", "aecho=0.6:0.5:500:0.3"))
                                 
-                                print(f"📥 Loaded {type_name}: delay={preset.get('delay')}, filter='{preset.get('filter')}'")
+                                print(f"[EMOJI] Loaded {type_name}: delay={preset.get('delay')}, filter='{preset.get('filter')}'")
                     
-                    print(f"✅ Loaded inner voice config from {config_path}")
+                    print(f"[OK] Loaded inner voice config from {config_path}")
                 else:
                     # Nếu không có config, set default original values
                     self.set_default_original_values()
@@ -1945,7 +1959,7 @@ class EmotionConfigTab(QWidget):
                 self.set_default_original_values()
                     
         except Exception as e:
-            print(f"⚠️ Warning: Không thể load inner voice config: {e}")
+            print(f"[WARNING] Warning: Không thể load inner voice config: {e}")
             self.set_default_original_values()
     
     def set_default_original_values(self):
@@ -1961,10 +1975,10 @@ class EmotionConfigTab(QWidget):
             "dreamy": {"delay": 300, "decay": 0.8, "gain": 0.6, "filter": dreamy_filter}
         }
         
-        print("📋 Set default original values for Inner Voice:")
+        print("[CLIPBOARD] Set default original values for Inner Voice:")
         for type_name, values in self.inner_voice_original_values.items():
-            print(f"   🎛️ {type_name}: delay={values['delay']}, filter='{values['filter']}'")
-        print("📋 Set default original values for Inner Voice")
+            print(f"   [EMOJI] {type_name}: delay={values['delay']}, filter='{values['filter']}'")
+        print("[CLIPBOARD] Set default original values for Inner Voice")
     
     def connect_inner_voice_signals(self):
         """Kết nối signals cho inner voice widgets để auto-save"""
@@ -1985,10 +1999,10 @@ class EmotionConfigTab(QWidget):
                     if "filter" in widgets:
                         widgets["filter"].textChanged.connect(lambda v, t=type_name: self.on_inner_voice_param_changed(t))
                 
-                print("🔗 Connected inner voice signals for auto-save")
+                print("[EMOJI] Connected inner voice signals for auto-save")
                 
         except Exception as e:
-            print(f"⚠️ Warning: Không thể connect inner voice signals: {e}")
+            print(f"[WARNING] Warning: Không thể connect inner voice signals: {e}")
     
     def on_inner_voice_param_changed(self, type_name: str):
         """Xử lý khi user thay đổi thông số inner voice"""
@@ -2000,5 +2014,5 @@ class EmotionConfigTab(QWidget):
             self.save_inner_voice_config_to_file()
             
         except Exception as e:
-            print(f"⚠️ Warning: Lỗi xử lý param change cho {type_name}: {e}")
+            print(f"[WARNING] Warning: Error xử lý param change cho {type_name}: {e}")
     

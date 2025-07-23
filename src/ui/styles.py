@@ -18,8 +18,9 @@ COLORS = {
     'text_primary': '#1d1d1f',
     'text_secondary': '#86868b',
     'border': '#d1d1d6',
-    'background': '#f5f5f7',
+    'background': '#ffffff',  # Đổi từ xám sang trắng
     'surface': '#ffffff',
+    'group_background': '#f8f9fa',  # Màu nền nhẹ cho group
 }
 
 # Base Styles
@@ -212,19 +213,21 @@ GROUP_BOX_STYLE = f"""
     QGroupBox {{
         font-weight: 600;
         font-size: 14px;
-        border: 1px solid {COLORS['border']};
-        border-radius: {BASE_STYLES['border_radius']};
-        margin-top: 12px;
-        padding-top: 12px;
-        background-color: {COLORS['surface']};
+        border: 2px solid {COLORS['border']};
+        border-radius: 12px;
+        margin-top: 15px;
+        padding-top: 15px;
+        background-color: {COLORS['group_background']};
         font-family: {BASE_STYLES['font_family']};
     }}
     QGroupBox::title {{
         subcontrol-origin: margin;
-        left: 12px;
-        padding: 0 8px;
-        background-color: {COLORS['surface']};
-        color: {COLORS['text_primary']};
+        left: 15px;
+        padding: 4px 12px;
+        background-color: {COLORS['primary']};
+        color: white;
+        border-radius: 8px;
+        font-weight: bold;
     }}
 """
 

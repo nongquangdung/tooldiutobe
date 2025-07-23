@@ -4,8 +4,8 @@ from PySide6.QtWidgets import (
     QGroupBox, QFileDialog, QScrollArea
 )
 from PySide6.QtCore import Qt, Signal
-from ..threads.video_generation import VideoGenerationThread
-from ..styles import (
+from ui.threads.video_generation import VideoGenerationThread
+from ui.styles import (
     BUTTON_STYLE, LABEL_STYLE, GROUP_BOX_STYLE
 )
 
@@ -154,16 +154,16 @@ class VideoTab(QWidget):
         
     def validate_inputs(self):
         if not self.project_name.text().strip():
-            self.status_label.setText("⚠️ Vui lòng nhập tên dự án")
+            self.status_label.setText("[WARNING] Vui lòng nhập tên dự án")
             return False
             
         if not self.prompt_input.toPlainText().strip():
-            self.status_label.setText("⚠️ Vui lòng nhập nội dung video")
+            self.status_label.setText("[WARNING] Vui lòng nhập nội dung video")
             return False
             
         if (self.use_custom_images.isChecked() and 
             not self.custom_images_path.text().strip()):
-            self.status_label.setText("⚠️ Vui lòng chọn thư mục ảnh")
+            self.status_label.setText("[WARNING] Vui lòng chọn thư mục ảnh")
             return False
             
         return True
@@ -175,4 +175,4 @@ class VideoTab(QWidget):
     def generation_complete(self, result):
         self.generate_button.setEnabled(True)
         self.generation_finished.emit(result)
-        self.status_label.setText("✅ Tạo video thành công") 
+        self.status_label.setText("[OK] Tạo video thành công") 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-🎭 UNIFIED EMOTION SYSTEM
+[THEATER] UNIFIED EMOTION SYSTEM
 =========================
 
 HỆ THỐNG EMOTION THỐNG NHẤT - Gộp và chuẩn hóa từ 3 hệ thống cũ:
@@ -47,7 +47,7 @@ class UnifiedEmotionParameters:
 
 class UnifiedEmotionSystem:
     """
-    🎯 HỆ THỐNG EMOTION THỐNG NHẤT
+    [TARGET] HỆ THỐNG EMOTION THỐNG NHẤT
     
     Gộp tất cả emotions từ 3 hệ thống cũ và chuẩn hóa theo khuyến nghị tối ưu:
     - Loại bỏ duplicate emotions
@@ -59,23 +59,27 @@ class UnifiedEmotionSystem:
     def __init__(self, config_dir: str = "configs/emotions"):
         self.config_dir = Path(config_dir)
         self.config_dir.mkdir(parents=True, exist_ok=True)
-        
-        # Master emotion database
         self.unified_emotions: Dict[str, UnifiedEmotionParameters] = {}
-        self.emotion_aliases: Dict[str, str] = {}  # alias -> main_name mapping
-        
-        # Initialize unified system
-        self.create_unified_emotion_database()
-        self.generate_backward_compatibility_mapping()
-        
-        # Save unified configuration
-        self.save_unified_config()
+        self.emotion_aliases: Dict[str, str] = {}
+
+        # === Load from file if exists ===
+        config_file = self.config_dir / "unified_emotions.json"
+        if config_file.exists():
+            with open(config_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                for name, params in data.get("emotions", {}).items():
+                    self.unified_emotions[name] = UnifiedEmotionParameters(**params)
+                self.emotion_aliases = data.get("aliases", {})
+        else:
+            self.create_unified_emotion_database()
+            self.generate_backward_compatibility_mapping()
+            self.save_unified_config()
     
     def create_unified_emotion_database(self):
         """Tạo database emotion thống nhất từ 3 hệ thống cũ"""
         
         # ================================================================
-        # 🎭 MASTER EMOTION DATABASE - 101+ Emotions Unified
+        # [THEATER] MASTER EMOTION DATABASE - 101+ Emotions Unified
         # Áp dụng khuyến nghị tối ưu: temp=0.7-1.0, exag=0.8-1.2, cfg=0.5-0.7, speed=0.8-1.3
         # ================================================================
         
@@ -288,14 +292,14 @@ class UnifiedEmotionSystem:
             for alias in emotion.aliases:
                 self.emotion_aliases[alias] = emotion.name
         
-        logger.info(f"✅ Created unified emotion database with {len(self.unified_emotions)} emotions")
-        logger.info(f"📋 Generated {len(self.emotion_aliases)} emotion aliases for backward compatibility")
+        logger.info(f"[OK] Created unified emotion database with {len(self.unified_emotions)} emotions")
+        logger.info(f"[CLIPBOARD] Generated {len(self.emotion_aliases)} emotion aliases for backward compatibility")
     
     def generate_backward_compatibility_mapping(self):
         """Tạo mapping cho backward compatibility với 3 hệ thống cũ"""
         
         # ================================================================
-        # 🔄 BACKWARD COMPATIBILITY MAPPING
+        # [REFRESH] BACKWARD COMPATIBILITY MAPPING
         # Đảm bảo các hệ thống cũ vẫn hoạt động bình thường
         # ================================================================
         
@@ -370,7 +374,7 @@ class UnifiedEmotionSystem:
             if unified_name in self.unified_emotions:
                 self.emotion_aliases[legacy_name] = unified_name
         
-        logger.info(f"🔄 Generated {len(legacy_mappings)} legacy emotion mappings")
+        logger.info(f"[REFRESH] Generated {len(legacy_mappings)} legacy emotion mappings")
     
     def get_emotion_parameters(self, emotion_name: str) -> Dict[str, float]:
         """
@@ -395,7 +399,7 @@ class UnifiedEmotionSystem:
         # Fallback to neutral
         neutral = self.unified_emotions.get("neutral")
         if neutral:
-            logger.warning(f"⚠️ Emotion '{emotion_name}' not found, using neutral")
+            logger.warning(f"[WARNING] Emotion '{emotion_name}' not found, using neutral")
             return {
                 "temperature": neutral.temperature,
                 "exaggeration": neutral.exaggeration,
@@ -404,7 +408,7 @@ class UnifiedEmotionSystem:
             }
         
         # Ultimate fallback
-        logger.error(f"❌ Neutral emotion not found! Using hardcoded defaults")
+        logger.error(f"[EMOJI] Neutral emotion not found! Using hardcoded defaults")
         return {
             "temperature": 0.8,
             "exaggeration": 1.0,
@@ -509,11 +513,11 @@ class UnifiedEmotionSystem:
             # Save config
             self.save_unified_config()
             
-            logger.info(f"✅ Added custom emotion: {name}")
+            logger.info(f"[OK] Added custom emotion: {name}")
             return True
             
         except Exception as e:
-            logger.error(f"❌ Failed to add custom emotion '{name}': {str(e)}")
+            logger.error(f"[EMOJI] Failed to add custom emotion '{name}': {str(e)}")
             raise e
     
     def delete_custom_emotion(self, emotion_name: str) -> bool:
@@ -541,11 +545,11 @@ class UnifiedEmotionSystem:
             # Save config
             self.save_unified_config()
             
-            logger.info(f"✅ Deleted custom emotion: {emotion_name}")
+            logger.info(f"[OK] Deleted custom emotion: {emotion_name}")
             return True
             
         except Exception as e:
-            logger.error(f"❌ Failed to delete emotion '{emotion_name}': {str(e)}")
+            logger.error(f"[EMOJI] Failed to delete emotion '{emotion_name}': {str(e)}")
             return False
     
     def get_custom_emotions(self) -> Dict[str, UnifiedEmotionParameters]:
@@ -648,11 +652,11 @@ class UnifiedEmotionSystem:
             with open(compliance_file, 'w', encoding='utf-8') as f:
                 json.dump(compliance, f, indent=2, ensure_ascii=False)
             
-            logger.info(f"✅ Saved unified emotion config to {config_file}")
-            logger.info(f"📊 Saved compliance report to {compliance_file}")
+            logger.info(f"[OK] Saved unified emotion config to {config_file}")
+            logger.info(f"[STATS] Saved compliance report to {compliance_file}")
             
         except Exception as e:
-            logger.error(f"❌ Failed to save unified config: {e}")
+            logger.error(f"[EMOJI] Failed to save unified config: {e}")
     
     def export_legacy_compatibility_layer(self):
         """Export compatibility layer cho 3 hệ thống cũ"""
@@ -698,11 +702,11 @@ class UnifiedEmotionSystem:
         with open(compat_file, 'w', encoding='utf-8') as f:
             json.dump(compatibility_data, f, indent=2, ensure_ascii=False)
         
-        logger.info(f"🔄 Exported legacy compatibility layer to {compat_file}")
+        logger.info(f"[REFRESH] Exported legacy compatibility layer to {compat_file}")
 
 
 # ================================================================
-# 🌟 GLOBAL UNIFIED EMOTION SYSTEM INSTANCE
+# [STAR] GLOBAL UNIFIED EMOTION SYSTEM INSTANCE
 # ================================================================
 
 # Singleton instance for entire Voice Studio application
@@ -710,7 +714,7 @@ unified_emotion_system = UnifiedEmotionSystem()
 
 
 # ================================================================
-# 🚀 CONVENIENCE FUNCTIONS FOR BACKWARD COMPATIBILITY
+# [ROCKET] CONVENIENCE FUNCTIONS FOR BACKWARD COMPATIBILITY
 # ================================================================
 
 def get_emotion_parameters(emotion_name: str) -> Dict[str, float]:
@@ -735,23 +739,23 @@ def validate_expert_compliance() -> Dict[str, Any]:
 
 
 # ================================================================
-# 🧪 DEMO AND TESTING
+# [TEST] DEMO AND TESTING
 # ================================================================
 
 def demo_unified_emotion_system():
     """Demo unified emotion system capabilities"""
-    print("🎭 === UNIFIED EMOTION SYSTEM DEMO ===")
+    print("[THEATER] === UNIFIED EMOTION SYSTEM DEMO ===")
     print("=" * 50)
     
     # System overview
     emotions = unified_emotion_system.get_all_emotions()
-    print(f"📊 Total Emotions: {len(emotions)}")
-    print(f"🏷️ Categories: {', '.join(unified_emotion_system.get_emotion_categories())}")
-    print(f"🔄 Aliases: {len(unified_emotion_system.emotion_aliases)}")
+    print(f"[STATS] Total Emotions: {len(emotions)}")
+    print(f"[EMOJI] Categories: {', '.join(unified_emotion_system.get_emotion_categories())}")
+    print(f"[REFRESH] Aliases: {len(unified_emotion_system.emotion_aliases)}")
     print()
     
     # Test backward compatibility
-    print("🔄 BACKWARD COMPATIBILITY TEST:")
+    print("[REFRESH] BACKWARD COMPATIBILITY TEST:")
     legacy_emotions = ["neutral", "happy", "furious", "joyful", "contemplative", "mysterious"]
     
     for emotion in legacy_emotions:
@@ -762,19 +766,19 @@ def demo_unified_emotion_system():
     
     # Expert compliance
     compliance = validate_expert_compliance()
-    print("📋 EXPERT COMPLIANCE SUMMARY:")
+    print("[CLIPBOARD] EXPERT COMPLIANCE SUMMARY:")
     for param, data in compliance["summary"].items():
         print(f"   {param.title()}: {data['compliance_rate']:.1f}% "
               f"({data['compliant']}/{data['total']} emotions)")
     print()
     
     # Search test
-    print("🔍 SEARCH TEST:")
+    print("[SEARCH] SEARCH TEST:")
     search_results = search_emotions("happy")
     print(f"   Search 'happy': {', '.join(search_results[:5])}")
     print()
     
-    print("✅ Unified Emotion System Demo Complete!")
+    print("[OK] Unified Emotion System Demo Complete!")
 
 
 if __name__ == "__main__":

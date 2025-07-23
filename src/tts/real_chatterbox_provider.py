@@ -428,6 +428,73 @@ class RealChatterboxProvider:
         
         return basic_status
     
+<<<<<<< Updated upstream
+=======
+    def generate_voice_batch(self, batch_requests: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        Generate a batch of TTS audio files using Real Chatterbox.
+        This is highly efficient on GPU.
+        """
+        if not self.is_initialized or self.demo_mode:
+            # Fallback to generating one by one if not in real mode or not initialized
+            print("Batch processing unavailable, falling back to sequential generation.")
+            results = []
+            for req in batch_requests:
+                result = self.generate_voice(**req)
+                results.append(result)
+            return results
+
+        print(f"[HOT] Generating batch of {len(batch_requests)} audio files with REAL Chatterbox TTS...")
+        
+        try:
+            # Prepare data for the model
+            texts = [req['text'] for req in batch_requests]
+            
+            # --- Core Batch Generation ---
+            # Assuming the model's generate method can handle a list of texts
+            wavs = self.chatterbox_model.generate(texts)
+            # -----------------------------
+
+            if wavs is None or len(wavs) != len(texts):
+                raise RuntimeError("Batch generation did not return the expected number of waveforms.")
+
+            results = []
+            for i, req in enumerate(batch_requests):
+                try:
+                    wav = wavs[i]
+                    save_path = req['save_path']
+                    
+                    import torchaudio as ta
+                    save_dir = os.path.dirname(save_path)
+                    if save_dir:
+                        os.makedirs(save_dir, exist_ok=True)
+                    
+                    ta.save(save_path, wav, self.chatterbox_model.sr)
+                    
+                    results.append({
+                        "success": True,
+                        "audio_path": save_path,
+                        "duration": wav.shape[-1] / self.chatterbox_model.sr
+                    })
+                except Exception as e:
+                    print(f"Error saving file for segment {i}: {e}")
+                    results.append({"success": False, "error": str(e)})
+            
+            print(f"[OK] Batch generation complete. {sum(1 for r in results if r['success'])}/{len(results)} files created.")
+            return results
+
+        except Exception as e:
+            print(f"[EMOJI] ERROR: Real ChatterboxTTS batch generation failed: {e}")
+            logger.error(traceback.format_exc())
+            # Fallback to individual generation on batch failure
+            print("Batch generation failed. Falling back to sequential generation.")
+            results = []
+            for req in batch_requests:
+                result = self.generate_voice(**req)
+                results.append(result)
+            return results
+        
+>>>>>>> Stashed changes
     def generate_voice(self, 
                       text: str, 
                       save_path: str, 
@@ -436,7 +503,14 @@ class RealChatterboxProvider:
                       speed: float = 1.0,
                       voice_name: Optional[str] = None,
                       cfg_weight: float = 0.5,
+<<<<<<< Updated upstream
                       voice_prompt: Optional[str] = None) -> Dict[str, Any]:
+=======
+                      temperature: float = 0.7,  # NEW: Temperature parameter
+                      voice_prompt: Optional[str] = None,
+                      inner_voice: bool = False,  # NEW: Inner voice support
+                      inner_voice_type: Optional[str] = None) -> Dict[str, Any]:
+>>>>>>> Stashed changes
         """
         Generate TTS audio - Real Chatterbox on CUDA, Demo on macOS/CPU
         
@@ -448,23 +522,66 @@ class RealChatterboxProvider:
             speed: Speaking speed (0.5-2.0)
             voice_name: Voice name reference
             cfg_weight: CFG guidance weight (0.0-1.0)
+            temperature: Temperature for voice variance (0.1-1.5)
             voice_prompt: Text prompt to describe desired voice characteristics
         """
         if not self.is_initialized:
             return {"success": False, "error": "Provider not initialized"}
         
         try:
+<<<<<<< Updated upstream
+=======
+            # Apply emotion-to-parameter mapping if emotion provided
+            if emotion and emotion != "neutral":
+                mapped_exaggeration, mapped_cfg = self._map_emotion_to_parameters(emotion, emotion_exaggeration)
+                print(f"   [THEATER] Emotion mapping: '{emotion}' -> exag={mapped_exaggeration:.2f}, cfg={mapped_cfg:.2f}")
+                
+                # Check if user has customized parameters (different from defaults)
+                # If exaggeration is close to 1.0 (neutral) or exactly the mapped value, use mapping
+                # Otherwise, assume user has customized and keep their values
+                user_customized_exag = abs(emotion_exaggeration - 1.0) > 0.05 and abs(emotion_exaggeration - mapped_exaggeration) > 0.05
+                user_customized_cfg = abs(cfg_weight - 0.6) > 0.05 and abs(cfg_weight - mapped_cfg) > 0.05
+                
+                if not user_customized_exag:
+                    emotion_exaggeration = mapped_exaggeration
+                    print(f"   [AUTO] Using mapped exaggeration: {mapped_exaggeration:.2f}")
+                else:
+                    print(f"   [USER] Keeping user exaggeration: {emotion_exaggeration:.2f} (customized)")
+                    
+                if not user_customized_cfg:
+                    cfg_weight = mapped_cfg  
+                    print(f"   [AUTO] Using mapped cfg_weight: {mapped_cfg:.2f}")
+                else:
+                    print(f"   [USER] Keeping user cfg_weight: {cfg_weight:.2f} (customized)")
+            
+>>>>>>> Stashed changes
             # Validate parameters
             emotion_exaggeration = max(0.0, min(2.0, emotion_exaggeration))
             speed = max(0.5, min(2.0, speed))
             cfg_weight = max(0.0, min(1.0, cfg_weight))
+            temperature = max(0.1, min(1.5, temperature))
             
+<<<<<<< Updated upstream
             if self.demo_mode:
                 print(f"🎯 Generating with Demo Mode...")
                 print(f"   📱 Device: {self.device_name}")
                 print(f"   🎭 Emotion: {emotion_exaggeration} (simulated)")
                 print(f"   ⚡ Speed: {speed}")
                 print(f"   🎚️ CFG Weight: {cfg_weight} (simulated)")
+=======
+            # Apply inner voice effects if enabled
+            if inner_voice and inner_voice_type:
+                text = self._apply_inner_voice_effects(text, inner_voice_type)
+                print(f"   [EMOJI] Inner voice: {inner_voice_type}")
+            
+            if self.demo_mode:
+                print(f"Generating with Demo Mode...")
+                print(f"   Device: {self.device_name}")
+                print(f"   Emotion: {emotion} -> {emotion_exaggeration} (simulated)")
+                print(f"   Speed: {speed}")
+                print(f"   CFG Weight: {cfg_weight} (simulated)")
+                print(f"   Temperature: {temperature} (simulated)")
+>>>>>>> Stashed changes
                 if IS_MACOS:
                     print(f"   🍎 macOS compatibility mode")
                 
@@ -476,15 +593,25 @@ class RealChatterboxProvider:
                     emotion_exaggeration=emotion_exaggeration,
                     speed=speed,
                     cfg_weight=cfg_weight,
+                    temperature=temperature,
                     voice_prompt=voice_prompt
                 )
             
             else:
+<<<<<<< Updated upstream
                 print(f"🎙️ Generating with REAL Chatterbox TTS...")
                 print(f"   📱 Device: {self.device_name}")
                 print(f"   🎭 Emotion: {emotion_exaggeration} (REAL control)")
                 print(f"   ⚡ Speed: {speed}")
                 print(f"   🎚️ CFG Weight: {cfg_weight} (REAL cfg_weight!)")
+=======
+                print(f"Generating with REAL Chatterbox TTS...")
+                print(f"   Device: {self.device_name}")
+                print(f"   Emotion: {emotion} -> {emotion_exaggeration} (REAL control)")
+                print(f"   Speed: {speed}")
+                print(f"   CFG Weight: {cfg_weight} (REAL cfg_weight!)")
+                print(f"   Temperature: {temperature} (REAL temperature!)")
+>>>>>>> Stashed changes
                 
                 # Voice selection and setup
                 selected_voice = self._resolve_voice_selection(voice_name)
@@ -507,6 +634,7 @@ class RealChatterboxProvider:
                     emotion_exaggeration=emotion_exaggeration,
                     speed=speed,
                     cfg_weight=cfg_weight,
+                    temperature=temperature,
                     voice_prompt=voice_prompt
                 )
                 
@@ -514,8 +642,13 @@ class RealChatterboxProvider:
                     return {"success": True, "audio_path": save_path}
                 else:
                     # Fallback to demo
+<<<<<<< Updated upstream
                     print("⚠️ Real generation failed, falling back to demo")
                     return self._generate_demo_audio(text, save_path, voice_name, emotion_exaggeration, speed, cfg_weight, voice_prompt)
+=======
+                    print("WARNING: Real generation failed, falling back to demo")
+                    return self._generate_demo_audio(text, save_path, voice_name, emotion, emotion_exaggeration, speed, cfg_weight, temperature, voice_prompt)
+>>>>>>> Stashed changes
             
             # Return actual path (might be MP3 instead of WAV)
             actual_path = save_path
@@ -541,31 +674,51 @@ class RealChatterboxProvider:
         except Exception as e:
             logger.error(f"TTS generation failed: {e}")
             # Final fallback to demo
+<<<<<<< Updated upstream
             print("⚠️ Generation failed, creating demo file...")
             return self._generate_demo_audio(text, save_path, voice_name, emotion_exaggeration, speed, cfg_weight, voice_prompt)
     
     def _generate_demo_audio(self, text: str, save_path: str, voice_name: Optional[str] = None,
                            emotion_exaggeration: float = 1.0, speed: float = 1.0, 
                            cfg_weight: float = 0.5, voice_prompt: Optional[str] = None) -> Dict[str, Any]:
+=======
+            print("WARNING: Generation failed, creating demo file...")
+            return self._generate_demo_audio(text, save_path, voice_name, emotion, emotion_exaggeration, speed, cfg_weight, temperature, voice_prompt)
+    
+    def _generate_demo_audio(self, text: str, save_path: str, voice_name: Optional[str] = None,
+                           emotion: str = "neutral", emotion_exaggeration: float = 1.0, speed: float = 1.0, 
+                           cfg_weight: float = 0.5, temperature: float = 0.7, voice_prompt: Optional[str] = None) -> Dict[str, Any]:
+>>>>>>> Stashed changes
         """Generate demo audio file for macOS compatibility"""
         try:
-            # Create directory if needed
-            save_dir = os.path.dirname(save_path) if os.path.dirname(save_path) else "."
+            # Normalize path and create directory if needed
+            normalized_path = os.path.normpath(os.path.abspath(save_path))
+            save_dir = os.path.dirname(normalized_path)
             os.makedirs(save_dir, exist_ok=True)
             
-            # Create demo text file
-            demo_path = save_path.replace('.wav', '_real_chatterbox_demo.txt')
+            # Create demo text file using normalized path
+            demo_path = normalized_path.replace('.wav', '_real_chatterbox_demo.txt')
             with open(demo_path, 'w', encoding='utf-8') as f:
                 f.write(f"🎯 Chatterbox TTS Demo Mode\n")
                 f.write(f"{'='*50}\n")
                 f.write(f"📱 Device: {self.device_name}\n")
                 f.write(f"🍎 Platform: {'macOS' if IS_MACOS else 'Other'}\n")
                 f.write(f"{'='*50}\n")
+<<<<<<< Updated upstream
                 f.write(f"📝 Text: {text}\n")
                 f.write(f"🗣️ Voice: {voice_name or 'Default'}\n")
                 f.write(f"🎭 Emotion: {emotion_exaggeration} (simulated)\n")
                 f.write(f"⚡ Speed: {speed}\n")
                 f.write(f"🎚️ CFG Weight: {cfg_weight} (simulated)\n")
+=======
+                f.write(f"Text: {text}\n")
+                f.write(f"Voice: {voice_name or 'Default'}\n")
+                f.write(f"Emotion: {emotion} (simulated)\n")
+                f.write(f"Emotion Exaggeration: {emotion_exaggeration} (simulated)\n")
+                f.write(f"Speed: {speed}\n")
+                f.write(f"CFG Weight: {cfg_weight} (simulated)\n")
+                f.write(f"Temperature: {temperature} (simulated)\n")
+>>>>>>> Stashed changes
                 if voice_prompt:
                     f.write(f"💬 Voice Prompt: {voice_prompt}\n")
                 f.write(f"{'='*50}\n")
@@ -604,21 +757,25 @@ class RealChatterboxProvider:
                 # Convert to 16-bit integers
                 audio_data = (audio_data * 32767).astype(np.int16)
                 
-                # Save as WAV
-                with wave.open(save_path, 'w') as wav_file:
+                # Save as WAV using normalized path
+                with wave.open(normalized_path, 'w') as wav_file:
                     wav_file.setnchannels(1)  # Mono
                     wav_file.setsampwidth(2)  # 16-bit
                     wav_file.setframerate(sample_rate)
                     wav_file.writeframes(audio_data.tobytes())
                 
+<<<<<<< Updated upstream
                 print(f"✅ Placeholder audio created: {save_path}")
+=======
+                print(f"Placeholder audio created: {normalized_path}")
+>>>>>>> Stashed changes
                 
             except Exception as wav_error:
                 print(f"⚠️ Could not create placeholder audio: {wav_error}")
             
             return {
                 "success": True,
-                "audio_path": save_path,
+                "audio_path": normalized_path,
                 "demo_mode": True,
                 "demo_file": demo_path,
                 "message": f"Demo mode active on {self.device_name}"
@@ -635,11 +792,70 @@ class RealChatterboxProvider:
         """
         available_voices = self.get_available_voices()
         
+<<<<<<< Updated upstream
         # If no voice specified, use default
         if not voice_name:
             return available_voices[0]  # Default to first voice
         
         # Direct voice ID match - THÊM VOICE FILE PATH
+=======
+        # Loại bỏ mọi path và extension để tránh mismatch (e.g., "voices/Alice.wav" → "alice")
+        voice_name_clean = voice_name.strip().lower() if voice_name else ""
+
+        # Nếu bao gồm path, lấy basename
+        if voice_name_clean and ("/" in voice_name_clean or "\\" in voice_name_clean):
+            voice_name_clean = os.path.basename(voice_name_clean)
+
+        # Loại bỏ đuôi .wav nếu có
+        if voice_name_clean.endswith('.wav'):
+            voice_name_clean = voice_name_clean[:-4]
+
+        # Debug log để quan sát kết quả làm sạch
+        print(f"Resolving voice for requested name: '{voice_name}' -> cleaned: '{voice_name_clean}'")
+
+        # Nếu user không chỉ định, dùng giọng đầu tiên
+        if not voice_name_clean:
+            return available_voices[0]
+
+        # 1) Khớp chính xác (case-insensitive) – sử dụng dict mapping để tránh bỏ sót
+        try:
+            from tts.chatterbox_voices_integration import ChatterboxVoicesManager
+            voices_manager = ChatterboxVoicesManager()
+            voices_map = voices_manager.get_available_voices()  # key: id (lowercase)
+            if voice_name_clean in voices_map:
+                voice_info_obj = voices_map[voice_name_clean]
+                # Chuyển về dict để đồng bộ với available_voices format
+                selected_voice = {
+                    "id": voice_info_obj.voice_id,
+                    "name": voice_info_obj.name,
+                    "gender": voice_info_obj.gender,
+                    "description": voice_info_obj.description,
+                }
+
+                # Tìm file wav theo 3 biến thể tên
+                variations = [
+                    f"{voice_name_clean}.wav",
+                    f"{voice_name_clean.capitalize()}.wav",
+                    f"{voice_name_clean.upper()}.wav",
+                ]
+                for var in variations:
+                    candidate = voices_manager.voices_directory / var
+                    if candidate.exists():
+                        selected_voice["file_path"] = str(candidate)
+                        print(f"Voice found: {selected_voice['name']} -> {candidate}")
+                        break
+                else:
+                    print(f"WARNING: Voice file not found for '{voice_name_clean}', tried {variations}")
+
+                return selected_voice
+            else:
+                print(f"WARNING: Voice '{voice_name_clean}' NOT found in predefined voices. Available IDs: {', '.join(sorted(voices_map.keys()))}")
+
+        except Exception as e:
+            print(f"WARNING: Voice lookup error: {e}")
+
+        # 2) Khớp một phần (contains) – ví dụ user gõ "alex" vẫn ra "alexander"
+>>>>>>> Stashed changes
         for voice in available_voices:
             if voice['id'] == voice_name:
                 # Load voice file path từ ChatterboxVoicesManager
@@ -719,6 +935,15 @@ class RealChatterboxProvider:
         print(f"⚠️ Voice '{voice_name}' không tìm thấy, dùng default")
         return available_voices[0]
     
+<<<<<<< Updated upstream
+=======
+    def clear_voice_embedding_cache(self):
+        """Xóa bộ đệm embedding giọng nói trong bộ nhớ."""
+        count = len(self.voice_embedding_cache)
+        self.voice_embedding_cache.clear()
+        print(f"[OK] Đã xóa {count} mục khỏi bộ đệm embedding giọng nói.")
+
+>>>>>>> Stashed changes
     def _generate_real_chatterbox_audio(self, 
                                        text: str, 
                                        save_path: str,
@@ -726,6 +951,7 @@ class RealChatterboxProvider:
                                        emotion_exaggeration: float = 1.0,
                                        speed: float = 1.0,
                                        cfg_weight: float = 0.5,
+                                       temperature: float = 0.7,
                                        voice_prompt: Optional[str] = None) -> bool:
         """Generate audio using REAL ChatterboxTTS"""
         try:
@@ -741,15 +967,31 @@ class RealChatterboxProvider:
                 print(f"⚠️ Voice prompt '{voice_prompt}' được bỏ qua - ChatterboxTTS không hỗ trợ text prompt")
                 print(f"   💡 Gợi ý: Sử dụng Voice Clone mode với audio mẫu thay thế")
             
+<<<<<<< Updated upstream
             # Generate audio với real ChatterboxTTS API
             if reference_audio and os.path.exists(reference_audio):
                 print(f"🎤 Using voice cloning: {os.path.basename(reference_audio)}")
                 # Voice cloning mode với parameters
+=======
+            # === Voice selection logic ===
+            if reference_audio and os.path.exists(reference_audio):
+                # Voice cloning mode
+                print(f"Using voice cloning: {os.path.basename(reference_audio)}")
+
+                # --- VOICE EMBEDDING CACHE LOGIC (placeholder) ---
+                # TODO: implement embedding cache to avoid recomputation
+
+>>>>>>> Stashed changes
                 wav = self.chatterbox_model.generate(
                     text, 
                     audio_prompt_path=reference_audio,
                     exaggeration=emotion_exaggeration,
+<<<<<<< Updated upstream
                     cfg_weight=cfg_weight
+=======
+                    cfg_weight=cfg_weight,
+                    temperature=temperature
+>>>>>>> Stashed changes
                 )
             else:
                 print(f"🗣️ Using default voice")
@@ -757,23 +999,32 @@ class RealChatterboxProvider:
                 wav = self.chatterbox_model.generate(
                     text,
                     exaggeration=emotion_exaggeration,
-                    cfg_weight=cfg_weight
+                    cfg_weight=cfg_weight,
+                    temperature=temperature
                 )
             
             # Save audio file using torchaudio
             if wav is not None:
                 try:
                     import torchaudio as ta
-                    # Ensure directory exists
-                    save_dir = os.path.dirname(save_path)
+                    # Ensure directory exists và normalize path
+                    normalized_path = os.path.normpath(os.path.abspath(save_path))
+                    save_dir = os.path.dirname(normalized_path)
                     if save_dir:
                         os.makedirs(save_dir, exist_ok=True)
                     
                     # Save audio với sample rate từ model
+<<<<<<< Updated upstream
                     ta.save(save_path, wav, self.chatterbox_model.sr)
                     print(f"✅ Real ChatterboxTTS audio saved: {save_path}")
                     print(f"   📊 Sample rate: {self.chatterbox_model.sr}")
                     print(f"   📏 Duration: {wav.shape[-1] / self.chatterbox_model.sr:.2f}s")
+=======
+                    ta.save(normalized_path, wav, self.chatterbox_model.sr)
+                    print(f"Real ChatterboxTTS audio saved: {save_path}")
+                    print(f"   Sample rate: {self.chatterbox_model.sr}")
+                    print(f"   Duration: {wav.shape[-1] / self.chatterbox_model.sr:.2f}s")
+>>>>>>> Stashed changes
                     return True
                 except ImportError:
                     print("❌ torchaudio not available for saving audio")
@@ -933,7 +1184,7 @@ class RealChatterboxProvider:
             import os
             sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'ui'))
             
-            from .chatterbox_voices_integration import ChatterboxVoicesManager
+            from tts.chatterbox_voices_integration import ChatterboxVoicesManager
             voices_manager = ChatterboxVoicesManager()
             
             available_chatterbox_voices = voices_manager.get_available_voices()
