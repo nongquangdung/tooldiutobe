@@ -1648,7 +1648,7 @@ class AdvancedMainWindow(QMainWindow):
         mode_layout.addWidget(self.generation_mode_description, 1, 0, 1, 2)
         
         # Connect signal để cập nhật mô tả
-        self.generation_control_mode.currentTextChanged.connect(self._update_generation_mode_description)
+        # self.generation_control_mode.currentTextChanged.connect(self._update_generation_mode_description)
         
         mode_group.setLayout(mode_layout)
         generation_layout.addWidget(mode_group)
@@ -1713,7 +1713,7 @@ class AdvancedMainWindow(QMainWindow):
         fallback_layout.addWidget(self.fallback_description, 1, 0, 1, 2)
         
         # Connect signal
-        self.fallback_strategy.currentTextChanged.connect(self._update_fallback_description)
+        # self.fallback_strategy.currentTextChanged.connect(self._update_fallback_description)
         
         fallback_group.setLayout(fallback_layout)
         generation_layout.addWidget(fallback_group)
@@ -1802,18 +1802,18 @@ class AdvancedMainWindow(QMainWindow):
         button_layout = QHBoxLayout()
         
         test_btn = QPushButton("🧪 Test điều khiển tạo")
-        test_btn.clicked.connect(self._test_generation_control)
+        # test_btn.clicked.connect(self._test_generation_control)
         button_layout.addWidget(test_btn)
         
         reset_btn = QPushButton("🔄 Khôi phục mặc định")
-        reset_btn.clicked.connect(self._reset_generation_settings)
+        # reset_btn.clicked.connect(self._reset_generation_settings)
         button_layout.addWidget(reset_btn)
         
         button_layout.addStretch()
         
         apply_btn = QPushButton("✅ Áp dụng cài đặt")
         apply_btn.setStyleSheet("background-color: #FF6347; color: white; font-weight: bold; padding: 8px;")
-        apply_btn.clicked.connect(self._apply_generation_settings)
+        # apply_btn.clicked.connect(self._apply_generation_settings)
         button_layout.addWidget(apply_btn)
         
         generation_layout.addLayout(button_layout)
