@@ -338,6 +338,7 @@ class EmotionConfigTab(QWidget):
         self.emotions_table.setAlternatingRowColors(True)
         self.emotions_table.setSelectionBehavior(QTableWidget.SelectRows)
         self.emotions_table.verticalHeader().setDefaultSectionSize(45)  # Tăng row height
+        self.emotions_table.verticalHeader().setVisible(False)  # Ẩn số thứ tự hàng
         self.emotions_table.setStyleSheet("""
             QTableWidget {
                 gridline-color: #e0e0e0;
@@ -396,12 +397,9 @@ class EmotionConfigTab(QWidget):
             group_layout.addWidget(QLabel("Filter:")); group_layout.addWidget(filter_edit)
             reset_btn = QPushButton("Reset mặc định"); reset_btn.clicked.connect(lambda _, t=type_name: self.reset_inner_voice_type(t))
             group_layout.addWidget(reset_btn)
-<<<<<<< Updated upstream
-=======
             preview_btn = QPushButton("[MUSIC] Preview")
             preview_btn.clicked.connect(lambda _, t=type_name: self.preview_inner_voice_type(t))
             group_layout.addWidget(preview_btn)
->>>>>>> Stashed changes
             group.setLayout(group_layout)
             inner_voice_layout.addWidget(group)
             self.inner_voice_type_widgets[type_name] = {
@@ -1262,33 +1260,23 @@ class EmotionConfigTab(QWidget):
                 
                 for emotion_name, emotion_config in imported_emotions.items():
                     try:
-                        # Check nếu emotion tồn tại trong unified system
+                        # Nếu emotion chưa có, tự động thêm vào unified system như custom emotion
                         if emotion_name not in self.unified_emotion_system.get_all_emotions():
-                            # Thêm custom emotion nếu không có trong unified system
-                            description = emotion_config.get("description", "")
-                            category = emotion_config.get("category", "neutral")
                             params = emotion_config.get("parameters", {})
-                            temp = params.get("temperature", 0.8)
-                            exag = params.get("exaggeration", 1.0)
-                            cfg = params.get("cfg_weight", 0.6)
-                            speed = params.get("speed", 1.0)
-                            try:
-                                self.unified_emotion_system.add_custom_emotion(
-                                    name=emotion_name,
-                                    description=description,
-                                    category=category,
-                                    temperature=temp,
-                                    exaggeration=exag,
-                                    cfg_weight=cfg,
-                                    speed=speed,
-                                    aliases=emotion_config.get("aliases", [])
-                                )
-                                print(f"➕ ADDED: {emotion_name} as custom emotion")
-                                success_count += 1
-                            except Exception as e:
-                                print(f"❌ FAILED ADD: {emotion_name} - {str(e)}")
-                                failed_count += 1
-                            continue
+                            self.unified_emotion_system.add_custom_emotion(
+                                name=emotion_name,
+                                description=emotion_config.get("description", "Imported custom emotion"),
+                                category=emotion_config.get("category", "neutral"),
+                                temperature=params.get("temperature", 0.8),
+                                exaggeration=params.get("exaggeration", 1.0),
+                                cfg_weight=params.get("cfg_weight", 0.6),
+                                speed=params.get("speed", 1.0),
+                                aliases=emotion_config.get("aliases", [])
+                            )
+                            # Reload table row sẽ được thêm sau khi import hoàn thành
+                            is_new_custom = True
+                        else:
+                            is_new_custom = False
                         
                         # Get parameters từ import file
                         if "parameters" not in emotion_config:
@@ -1341,8 +1329,6 @@ class EmotionConfigTab(QWidget):
                         failed_count += 1
                 
                 # Force UI refresh
-                # Reload table to include newly added custom emotions
-                self.load_emotions_to_table()
                 self.emotions_table.viewport().update()
                 self.emotions_table.repaint()
                 self.update_statistics()
@@ -1405,16 +1391,11 @@ class EmotionConfigTab(QWidget):
                 if inner_voice_imported:
                     completion_msg += f"\n[THEATER] Inner Voice config cũng đã được import!\n"
                 
-<<<<<<< Updated upstream
-                completion_msg += f"\n💡 UI đã được cập nhật với imported values!"
-                
-=======
                 completion_msg += f"\n[IDEA] UI đã được cập nhật với imported values!"
 
                 # Save imported emotions to disk so they persist on next app start
                 self.unified_emotion_system.save_unified_config()
 
->>>>>>> Stashed changes
                 QMessageBox.information(self, "Import Hoàn Thành", completion_msg)
                     
         except Exception as e:
@@ -2016,3 +1997,16 @@ class EmotionConfigTab(QWidget):
         except Exception as e:
             print(f"[WARNING] Warning: Error xử lý param change cho {type_name}: {e}")
     
+    def preview_inner_voice_type(self, type_name):
+        """Preview inner voice effect for the given type (light, deep, dreamy)"""
+        widgets = self.inner_voice_type_widgets.get(type_name)
+        if not widgets:
+            QMessageBox.warning(self, "Preview", f"Không tìm thấy inner voice type: {type_name}")
+            return
+        delay = widgets["delay"].value()
+        decay = widgets["decay"].value()
+        gain = widgets["gain"].value()
+        filter_str = widgets["filter"].text()
+        # Simulate preview (real implementation: call audio processor)
+        QMessageBox.information(self, "Preview", f"[Demo] Preview inner voice: {type_name}\nDelay: {delay} ms\nDecay: {decay}\nGain: {gain}\nFilter: {filter_str}")
+

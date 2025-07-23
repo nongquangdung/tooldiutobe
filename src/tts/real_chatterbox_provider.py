@@ -2,7 +2,6 @@
 Real Chatterbox TTS Provider
 Chế độ thật sử dụng chatterbox-tts package chính thức
 macOS Compatible - Auto fallback to demo mode
-OPTIMIZED VERSION: 2-4x faster với torch compilation & mixed precision
 """
 import os
 import tempfile
@@ -12,51 +11,27 @@ import logging
 import traceback
 import threading
 import platform
+import warnings
 
-# Import optimized provider
-try:
-    from .optimized_chatterbox_provider import OptimizedChatterboxProvider
-    OPTIMIZED_PROVIDER_AVAILABLE = True
-    print("✅ OptimizedChatterboxProvider imported successfully")
-except ImportError as e:
-    OPTIMIZED_PROVIDER_AVAILABLE = False
-    print(f"⚠️ OptimizedChatterboxProvider not available: {e}")
+# Suppress common warnings for cleaner output
+warnings.filterwarnings("ignore", category=UserWarning, message=".*pkg_resources.*")
+warnings.filterwarnings("ignore", category=FutureWarning, message=".*LoRACompatibleLinear.*")
+warnings.filterwarnings("ignore", category=DeprecationWarning, module="pkg_resources")
 
 # Safe imports với fallbacks
 try:
     import torch
     import torchaudio  # Required by ChatterboxTTS
     TORCH_AVAILABLE = True
-    print(f"✅ PyTorch {torch.__version__} & torchaudio available")
-    
-    # Kiểm tra CUDA chi tiết
-    if torch.cuda.is_available():
-        print(f"✅ CUDA available: {torch.version.cuda}")
-        print(f"✅ GPU count: {torch.cuda.device_count()}")
-        print(f"✅ GPU name: {torch.cuda.get_device_name(0)}")
-        print(f"✅ GPU memory: {torch.cuda.get_device_properties(0).total_memory // (1024**3)}GB")
-    else:
-        print(f"❌ CUDA not available. Checking for CUDA installation...")
-        print(f"   PyTorch built with CUDA: {torch.version.cuda is not None}")
-        print(f"   Checking CUDA driver issues...")
-        try:
-            # Thử chạy CUDA init để xem lỗi chi tiết
-            torch.cuda.init()
-        except Exception as cuda_err:
-            print(f"   CUDA initialization error: {cuda_err}")
-            print(f"   Possible solutions:")
-            print(f"   1. Install NVIDIA drivers: https://www.nvidia.com/Download/index.aspx")
-            print(f"   2. Ensure PyTorch CUDA version matches installed CUDA")
-            print(f"   3. Try: pip install torch==2.0.0+cu118 torchvision==0.15.1+cu118 torchaudio==2.0.1 --index-url https://download.pytorch.org/whl/cu118")
 except ImportError as e:
     TORCH_AVAILABLE = False
-    print(f"⚠️ PyTorch/torchaudio not available: {e}")
+    print(f"WARNING: PyTorch/torchaudio not available: {e}")
     print("   Install with: pip install torch torchaudio")
 
 # macOS Detection
 IS_MACOS = platform.system() == "Darwin"
 if IS_MACOS:
-    print("🍎 macOS detected - will use CPU mode or demo fallback")
+    print("macOS detected - will use CPU mode or demo fallback")
 
 # Conditional import with proper error handling for cross-platform compatibility
 ChatterboxTTS = None
@@ -75,11 +50,15 @@ def _import_chatterbox_safely():
         python_version = sys.version_info
         
         if python_version < (3, 11):
-            print(f"⚠️ Python {python_version.major}.{python_version.minor} detected")
+            print(f"WARNING: Python {python_version.major}.{python_version.minor} detected")
             print(f"   ChatterboxTTS requires Python 3.11+ for typing.Self support")
             if IS_MACOS:
-                print("🍎 macOS: Falling back to demo mode for compatibility")
+                print("macOS: Falling back to demo mode for compatibility")
             return False
+            
+        # Suppress warnings during import
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
             
         # Try to import from local chatterbox clone first (Windows dev environment)
         if not IS_MACOS:  # Only try local path on non-macOS
@@ -90,29 +69,31 @@ def _import_chatterbox_safely():
         from chatterbox.tts import ChatterboxTTS as _ChatterboxTTS
         ChatterboxTTS = _ChatterboxTTS
         CHATTERBOX_AVAILABLE = True
-        print("✅ Real Chatterbox TTS imported successfully")
+        print("Real Chatterbox TTS imported successfully")
         return True
         
     except ImportError as e:
         try:
             # Fallback to installed package
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
             from chatterbox.tts import ChatterboxTTS as _ChatterboxTTS
             ChatterboxTTS = _ChatterboxTTS
             CHATTERBOX_AVAILABLE = True
-            print("✅ Real Chatterbox TTS imported from installed package")
+            print("Real Chatterbox TTS imported from installed package")
             return True
         except ImportError as e2:
             CHATTERBOX_AVAILABLE = False
-            print(f"❌ Real Chatterbox TTS import failed: {e2}")
+            print(f"ERROR: Real Chatterbox TTS import failed: {e2}")
             if IS_MACOS:
-                print("🍎 macOS: Will use demo mode instead")
-                print("   💡 For real TTS: upgrade to Python 3.11+ or use demo mode")
+                print("macOS: Will use demo mode instead")
+                print("   For real TTS: upgrade to Python 3.11+ or use demo mode")
             else:
-                print(f"   💡 Try: pip install chatterbox-tts torch")
+                print(f"   Try: pip install chatterbox-tts torch")
             return False
     except Exception as e:
         CHATTERBOX_AVAILABLE = False
-        print(f"❌ Unexpected error importing ChatterboxTTS: {e}")
+        print(f"ERROR: Unexpected error importing ChatterboxTTS: {e}")
         return False
 
 # Don't import at module level - defer to actual usage
@@ -126,13 +107,13 @@ class RealChatterboxProvider:
     SINGLETON PATTERN: Chỉ có 1 instance duy nhất để tránh lãng phí resources
     
     Features:
-    - 🚀 Real Chatterbox voice cloning (NVIDIA/Linux)
-    - 🍎 macOS compatible demo mode
-    - 🎛️ CFG weight control (real on GPU, simulated on CPU)
-    - 🎭 Emotion exaggeration (real on GPU, simulated on CPU)
-    - 💾 Auto device detection (CUDA/MPS/CPU)
-    - 🔄 Thread-safe operations
-    - 🎯 Singleton pattern
+    - Real Chatterbox voice cloning (NVIDIA/Linux)
+    - macOS compatible demo mode
+    - CFG weight control (real on GPU, simulated on CPU)
+    - Emotion exaggeration (real on GPU, simulated on CPU)
+    - Auto device detection (CUDA/MPS/CPU)
+    - Thread-safe operations
+    - Singleton pattern
     """
     
     _instance = None
@@ -143,13 +124,13 @@ class RealChatterboxProvider:
         if cls._instance is None:
             with cls._lock:
                 if cls._instance is None:
-                    print("🔄 Creating new RealChatterboxProvider instance (Singleton)")
+                    print("Creating new RealChatterboxProvider instance (Singleton)")
                     cls._instance = super(RealChatterboxProvider, cls).__new__(cls)
                     cls._instance._initialized = False
                 else:
-                    print("♻️ Reusing existing RealChatterboxProvider instance (Singleton)")
+                    print("Reusing existing RealChatterboxProvider instance (Singleton)")
         else:
-            print("♻️ Reusing existing RealChatterboxProvider instance (Singleton)")
+            print("Reusing existing RealChatterboxProvider instance (Singleton)")
         return cls._instance
     
     def __init__(self):
@@ -163,10 +144,7 @@ class RealChatterboxProvider:
         self.available = False  # Will be set based on actual capabilities
         self.chatterbox_model = None
         self.demo_mode = False
-        
-        # NEW: Optimized provider for 2-4x faster generation
-        self.optimized_provider = None
-        self.use_optimization = True  # Can be disabled via env var
+        self.voice_embedding_cache = {}
         
         # Always initialize as available for macOS compatibility
         self.available = True
@@ -174,10 +152,9 @@ class RealChatterboxProvider:
         try:
             self._detect_device()
             self._initialize_provider()
-            self._initialize_optimized_provider()
         except Exception as e:
-            print(f"⚠️ Real Chatterbox TTS initialization failed: {e}")
-            print("🎯 Falling back to demo mode...")
+            print(f"WARNING: Real Chatterbox TTS initialization failed: {e}")
+            print("Falling back to demo mode...")
             self.demo_mode = True
             self.is_initialized = True
             self.available = True  # Still available in demo mode
@@ -189,119 +166,8 @@ class RealChatterboxProvider:
         """Get singleton instance - thread-safe"""
         return cls()
     
-    def _initialize_optimized_provider(self):
-        """Initialize optimized provider for 2-4x faster generation"""
-        if not OPTIMIZED_PROVIDER_AVAILABLE:
-            print("⚠️ Optimized provider not available, using standard provider")
-            return
-        
-        # Check if optimization is disabled
-        if os.getenv("DISABLE_OPTIMIZATION", "").lower() in ("true", "1", "yes"):
-            print("🔄 Optimization disabled via DISABLE_OPTIMIZATION env var")
-            self.use_optimization = False
-            return
-        
-        # Only use optimization on CUDA devices for best results
-        if self.device != "cuda":
-            print(f"⚠️ Optimization works best on CUDA, current device: {self.device}")
-            print("   Using standard provider for compatibility")
-            self.use_optimization = False
-            return
-        
-        try:
-            print("🚀 Initializing OptimizedChatterboxProvider...")
-            
-            # Try to load settings from UI first, fall back to env vars
-            optimization_settings = self._load_optimization_settings()
-            
-            dtype = optimization_settings.get("dtype", "float16")
-            use_compilation = optimization_settings.get("compilation", True)
-            cpu_offload = optimization_settings.get("cpu_offload", False)
-            
-            self.optimized_provider = OptimizedChatterboxProvider(
-                device=self.device,
-                dtype=dtype,
-                use_compilation=use_compilation,
-                cpu_offload=cpu_offload
-            )
-            
-            print("✅ OptimizedChatterboxProvider initialized successfully!")
-            print(f"   🎯 Optimization enabled: dtype={dtype}, compilation={use_compilation}")
-            
-        except Exception as e:
-            print(f"❌ Failed to initialize OptimizedChatterboxProvider: {e}")
-            self.optimized_provider = None
-            self.use_optimization = False
-    
-    def _load_optimization_settings(self):
-        """Load optimization settings from UI config file or environment variables"""
-        settings = {
-            "dtype": "float16",
-            "compilation": True,
-            "cpu_offload": False,
-            "lazy_load": True,
-            "chunked_processing": True,
-            "chunk_size": 200,
-            "voice_cache": True,
-            "cache_size": 10
-        }
-        
-        try:
-            # Try to load from UI settings file first
-            import json
-            settings_file = os.path.join(os.getcwd(), "configs", "tts_optimization.json")
-            if os.path.exists(settings_file):
-                with open(settings_file, 'r') as f:
-                    ui_settings = json.load(f)
-                    settings.update(ui_settings)
-                    print(f"✅ Loaded UI optimization settings: {settings}")
-                    return settings
-        except Exception as e:
-            print(f"⚠️ Could not load UI settings: {e}")
-        
-        # Fallback to environment variables
-        try:
-            env_settings = {
-                "dtype": os.getenv("CHATTERBOX_DTYPE", "float16"),
-                "compilation": os.getenv("CHATTERBOX_COMPILATION", "true").lower() in ("true", "1", "yes"),
-                "cpu_offload": os.getenv("CHATTERBOX_CPU_OFFLOAD", "false").lower() in ("true", "1", "yes"),
-                "lazy_load": os.getenv("CHATTERBOX_LAZY_LOAD", "true").lower() in ("true", "1", "yes"),
-                "chunked_processing": os.getenv("CHATTERBOX_CHUNKED", "true").lower() in ("true", "1", "yes"),
-                "chunk_size": int(os.getenv("CHATTERBOX_CHUNK_SIZE", "200")),
-            }
-            settings.update({k: v for k, v in env_settings.items() if v is not None})
-            print(f"✅ Loaded environment optimization settings: {settings}")
-        except Exception as e:
-            print(f"⚠️ Error loading environment settings: {e}")
-        
-        return settings
-    
     def _detect_device(self):
-        """Auto-detect best available device, with optional FORCE_DEVICE env override"""
-        # 1) Check override via env var
-        force_device = os.getenv("FORCE_DEVICE", "").lower().strip()
-        if force_device in {"cuda", "gpu"}:
-            if TORCH_AVAILABLE and torch.cuda.is_available():
-                self.device = "cuda"
-                gpu_name = torch.cuda.get_device_name(0)
-                self.device_name = f"GPU ({gpu_name}) - Real Chatterbox (FORCED)"
-                print(f"⚡ FORCE_DEVICE override detected -> {self.device_name}")
-                return
-            else:
-                print("⚠️ FORCE_DEVICE=cuda set nhưng không tìm thấy GPU khả dụng, bỏ qua override")
-        elif force_device == "mps" and TORCH_AVAILABLE and hasattr(torch.backends, 'mps'):
-            if torch.backends.mps.is_available():
-                self.device = "mps"
-                self.device_name = "Apple MPS - Real Chatterbox (FORCED)"
-                print(f"🍎 FORCE_DEVICE override -> {self.device_name}")
-                return
-        elif force_device == "cpu":
-            self.device = "cpu"
-            self.device_name = "CPU - Real Chatterbox (FORCED)"
-            print(f"💻 FORCE_DEVICE override -> {self.device_name}")
-            return
-
-        # 2) Auto detection như trước
+        """Auto-detect best available device"""
         if not TORCH_AVAILABLE:
             self.device = "cpu"
             self.device_name = "CPU (Demo Mode - no PyTorch)"
@@ -314,21 +180,21 @@ class RealChatterboxProvider:
                 self.device = "cuda"
                 gpu_name = torch.cuda.get_device_name(0)
                 self.device_name = f"GPU ({gpu_name}) - Real Chatterbox"
-                print(f"🎯 Real Chatterbox detected device: {self.device_name}")
-                print(f"   🚀 GPU Memory: {torch.cuda.get_device_properties(0).total_memory // (1024**3)}GB")
+                print(f"Real Chatterbox detected device: {self.device_name}")
+                print(f"   GPU Memory: {torch.cuda.get_device_properties(0).total_memory // (1024**3)}GB")
             elif hasattr(torch.backends, 'mps') and torch.backends.mps.is_available() and IS_MACOS:
                 # Apple Silicon MPS - TRY REAL FIRST
                 self.device = "mps"
                 self.device_name = "Apple MPS - Real Chatterbox"
-                print(f"🍎 macOS Apple Silicon: {self.device_name}")
-                print("   🎯 Attempting real Chatterbox TTS on MPS...")
+                print(f"macOS Apple Silicon: {self.device_name}")
+                print("   Attempting real Chatterbox TTS on MPS...")
             else:
                 # CPU - TRY REAL FIRST (including macOS Intel)
                 self.device = "cpu"
                 self.device_name = "CPU - Real Chatterbox"
-                print(f"💻 CPU device: {self.device_name}")
+                print(f"CPU device: {self.device_name}")
                 if IS_MACOS:
-                    print("🍎 macOS CPU: Attempting real Chatterbox TTS...")
+                    print("macOS CPU: Attempting real Chatterbox TTS...")
                 
         except Exception as e:
             logger.warning(f"Device detection failed: {e}")
@@ -341,22 +207,26 @@ class RealChatterboxProvider:
         chatterbox_import_success = _import_chatterbox_safely()
         
         if not chatterbox_import_success:
-            print(f"⚠️ Chatterbox TTS not available - using demo mode")
+            print(f"WARNING: Chatterbox TTS not available - using demo mode")
             self.demo_mode = True
             self.is_initialized = True
             self.available = True
             return True
             
         try:
-            print(f"🔄 Initializing Real Chatterbox TTS on {self.device_name}...")
+            print(f"Initializing Real Chatterbox TTS on {self.device_name}...")
+            
+            # Suppress warnings during model loading
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
             
             # TRY REAL CHATTERBOX ON ALL DEVICES (including macOS CPU)
             self.chatterbox_model = ChatterboxTTS.from_pretrained(device=self.device)
             
-            print(f"✅ Real Chatterbox TTS ready on {self.device_name}")
-            print("🎤 Real voice cloning available!")
+            print(f"Real Chatterbox TTS ready on {self.device_name}")
+            print("Real voice cloning available!")
             if IS_MACOS:
-                print("🍎 macOS real Chatterbox TTS confirmed working!")
+                print("macOS real Chatterbox TTS confirmed working!")
             
             self.is_initialized = True
             self.available = True
@@ -365,9 +235,9 @@ class RealChatterboxProvider:
                 
         except Exception as e:
             logger.error(f"Real Chatterbox TTS initialization failed: {e}")
-            print(f"⚠️ Falling back to demo mode: {e}")
+            print(f"WARNING: Falling back to demo mode: {e}")
             if IS_MACOS:
-                print("🍎 macOS: Real TTS failed, using demo mode")
+                print("macOS: Real TTS failed, using demo mode")
             
             self.demo_mode = True
             self.is_initialized = True
@@ -399,37 +269,9 @@ class RealChatterboxProvider:
         return info
     
     def get_provider_status(self) -> Dict[str, Any]:
-        """Get comprehensive provider status với device info và optimization status"""
-        basic_status = {
-            'available': self.available,
-            'initialized': self.is_initialized,
-            'device': self.device,
-            'device_name': self.device_name,
-            'torch_available': TORCH_AVAILABLE,
-            'chatterbox_available': CHATTERBOX_AVAILABLE,
-            'provider_type': 'Real Chatterbox TTS (Official)',
-            'cuda_version': torch.version.cuda if TORCH_AVAILABLE else None,
-            **self.get_device_info()
-        }
-        
-        # Add optimization status
-        if self.optimized_provider:
-            opt_status = self.optimized_provider.get_status()
-            basic_status.update({
-                'optimization_enabled': True,
-                'optimization_details': opt_status,
-                'provider_type': 'Real Chatterbox TTS (Optimized 2-4x faster)'
-            })
-        else:
-            basic_status.update({
-                'optimization_enabled': False,
-                'optimization_reason': 'Not available or disabled'
-            })
-        
-        return basic_status
+        """Get provider status for compatibility with EnhancedVoiceGenerator"""
+        return self.get_device_info()
     
-<<<<<<< Updated upstream
-=======
     def generate_voice_batch(self, batch_requests: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
         Generate a batch of TTS audio files using Real Chatterbox.
@@ -494,23 +336,19 @@ class RealChatterboxProvider:
                 results.append(result)
             return results
         
->>>>>>> Stashed changes
     def generate_voice(self, 
                       text: str, 
                       save_path: str, 
                       voice_sample_path: Optional[str] = None,
+                      emotion: str = "neutral",  # NEW: Emotion parameter
                       emotion_exaggeration: float = 1.0,
                       speed: float = 1.0,
                       voice_name: Optional[str] = None,
                       cfg_weight: float = 0.5,
-<<<<<<< Updated upstream
-                      voice_prompt: Optional[str] = None) -> Dict[str, Any]:
-=======
                       temperature: float = 0.7,  # NEW: Temperature parameter
                       voice_prompt: Optional[str] = None,
                       inner_voice: bool = False,  # NEW: Inner voice support
                       inner_voice_type: Optional[str] = None) -> Dict[str, Any]:
->>>>>>> Stashed changes
         """
         Generate TTS audio - Real Chatterbox on CUDA, Demo on macOS/CPU
         
@@ -518,19 +356,20 @@ class RealChatterboxProvider:
             text: Text to synthesize
             save_path: Path to save audio file
             voice_sample_path: Voice cloning sample (3-30s audio)
+            emotion: Emotion label (neutral, happy, sad, angry, etc.)
             emotion_exaggeration: Emotion control (0.0-2.0)
             speed: Speaking speed (0.5-2.0)
             voice_name: Voice name reference
             cfg_weight: CFG guidance weight (0.0-1.0)
             temperature: Temperature for voice variance (0.1-1.5)
             voice_prompt: Text prompt to describe desired voice characteristics
+            inner_voice: Enable inner voice effects
+            inner_voice_type: Type of inner voice (light, deep, dreamy)
         """
         if not self.is_initialized:
             return {"success": False, "error": "Provider not initialized"}
         
         try:
-<<<<<<< Updated upstream
-=======
             # Apply emotion-to-parameter mapping if emotion provided
             if emotion and emotion != "neutral":
                 mapped_exaggeration, mapped_cfg = self._map_emotion_to_parameters(emotion, emotion_exaggeration)
@@ -554,21 +393,12 @@ class RealChatterboxProvider:
                 else:
                     print(f"   [USER] Keeping user cfg_weight: {cfg_weight:.2f} (customized)")
             
->>>>>>> Stashed changes
             # Validate parameters
             emotion_exaggeration = max(0.0, min(2.0, emotion_exaggeration))
             speed = max(0.5, min(2.0, speed))
             cfg_weight = max(0.0, min(1.0, cfg_weight))
             temperature = max(0.1, min(1.5, temperature))
             
-<<<<<<< Updated upstream
-            if self.demo_mode:
-                print(f"🎯 Generating with Demo Mode...")
-                print(f"   📱 Device: {self.device_name}")
-                print(f"   🎭 Emotion: {emotion_exaggeration} (simulated)")
-                print(f"   ⚡ Speed: {speed}")
-                print(f"   🎚️ CFG Weight: {cfg_weight} (simulated)")
-=======
             # Apply inner voice effects if enabled
             if inner_voice and inner_voice_type:
                 text = self._apply_inner_voice_effects(text, inner_voice_type)
@@ -581,15 +411,15 @@ class RealChatterboxProvider:
                 print(f"   Speed: {speed}")
                 print(f"   CFG Weight: {cfg_weight} (simulated)")
                 print(f"   Temperature: {temperature} (simulated)")
->>>>>>> Stashed changes
                 if IS_MACOS:
-                    print(f"   🍎 macOS compatibility mode")
+                    print(f"   macOS compatibility mode")
                 
                 # Create demo audio file for macOS compatibility
                 return self._generate_demo_audio(
                     text=text,
                     save_path=save_path,
                     voice_name=voice_name,
+                    emotion=emotion,
                     emotion_exaggeration=emotion_exaggeration,
                     speed=speed,
                     cfg_weight=cfg_weight,
@@ -598,33 +428,25 @@ class RealChatterboxProvider:
                 )
             
             else:
-<<<<<<< Updated upstream
-                print(f"🎙️ Generating with REAL Chatterbox TTS...")
-                print(f"   📱 Device: {self.device_name}")
-                print(f"   🎭 Emotion: {emotion_exaggeration} (REAL control)")
-                print(f"   ⚡ Speed: {speed}")
-                print(f"   🎚️ CFG Weight: {cfg_weight} (REAL cfg_weight!)")
-=======
                 print(f"Generating with REAL Chatterbox TTS...")
                 print(f"   Device: {self.device_name}")
                 print(f"   Emotion: {emotion} -> {emotion_exaggeration} (REAL control)")
                 print(f"   Speed: {speed}")
                 print(f"   CFG Weight: {cfg_weight} (REAL cfg_weight!)")
                 print(f"   Temperature: {temperature} (REAL temperature!)")
->>>>>>> Stashed changes
                 
                 # Voice selection and setup
                 selected_voice = self._resolve_voice_selection(voice_name)
-                print(f"   🗣️ Voice: {selected_voice['name']} ({selected_voice['gender']})")
+                print(f"   Voice: {selected_voice['name']} ({selected_voice['gender']})")
                 
                 # Voice cloning setup
                 reference_audio = None
                 if voice_sample_path and os.path.exists(voice_sample_path):
                     reference_audio = voice_sample_path
-                    print(f"   🎤 Voice cloning: {os.path.basename(voice_sample_path)} (User-provided)")
+                    print(f"   Voice cloning: {os.path.basename(voice_sample_path)} (User-provided)")
                 elif selected_voice.get('file_path') and os.path.exists(selected_voice['file_path']):
                     reference_audio = selected_voice['file_path']
-                    print(f"   🎤 Voice cloning: {os.path.basename(reference_audio)} (Predefined voice)")
+                    print(f"   Voice cloning: {os.path.basename(reference_audio)} (Predefined voice)")
                 
                 # Generate real audio
                 success = self._generate_real_chatterbox_audio(
@@ -642,13 +464,8 @@ class RealChatterboxProvider:
                     return {"success": True, "audio_path": save_path}
                 else:
                     # Fallback to demo
-<<<<<<< Updated upstream
-                    print("⚠️ Real generation failed, falling back to demo")
-                    return self._generate_demo_audio(text, save_path, voice_name, emotion_exaggeration, speed, cfg_weight, voice_prompt)
-=======
                     print("WARNING: Real generation failed, falling back to demo")
                     return self._generate_demo_audio(text, save_path, voice_name, emotion, emotion_exaggeration, speed, cfg_weight, temperature, voice_prompt)
->>>>>>> Stashed changes
             
             # Return actual path (might be MP3 instead of WAV)
             actual_path = save_path
@@ -659,7 +476,8 @@ class RealChatterboxProvider:
                 "success": True, 
                 "path": actual_path,
                 "device": self.device_name,
-                "emotion": emotion_exaggeration,
+                "emotion": emotion,
+                "emotion_exaggeration": emotion_exaggeration,
                 "speed": speed,
                 "cfg_weight": cfg_weight,
                 "voice_cloned": reference_audio is not None,
@@ -674,21 +492,12 @@ class RealChatterboxProvider:
         except Exception as e:
             logger.error(f"TTS generation failed: {e}")
             # Final fallback to demo
-<<<<<<< Updated upstream
-            print("⚠️ Generation failed, creating demo file...")
-            return self._generate_demo_audio(text, save_path, voice_name, emotion_exaggeration, speed, cfg_weight, voice_prompt)
-    
-    def _generate_demo_audio(self, text: str, save_path: str, voice_name: Optional[str] = None,
-                           emotion_exaggeration: float = 1.0, speed: float = 1.0, 
-                           cfg_weight: float = 0.5, voice_prompt: Optional[str] = None) -> Dict[str, Any]:
-=======
             print("WARNING: Generation failed, creating demo file...")
             return self._generate_demo_audio(text, save_path, voice_name, emotion, emotion_exaggeration, speed, cfg_weight, temperature, voice_prompt)
     
     def _generate_demo_audio(self, text: str, save_path: str, voice_name: Optional[str] = None,
                            emotion: str = "neutral", emotion_exaggeration: float = 1.0, speed: float = 1.0, 
                            cfg_weight: float = 0.5, temperature: float = 0.7, voice_prompt: Optional[str] = None) -> Dict[str, Any]:
->>>>>>> Stashed changes
         """Generate demo audio file for macOS compatibility"""
         try:
             # Normalize path and create directory if needed
@@ -699,18 +508,11 @@ class RealChatterboxProvider:
             # Create demo text file using normalized path
             demo_path = normalized_path.replace('.wav', '_real_chatterbox_demo.txt')
             with open(demo_path, 'w', encoding='utf-8') as f:
-                f.write(f"🎯 Chatterbox TTS Demo Mode\n")
+                f.write(f"Chatterbox TTS Demo Mode\n")
                 f.write(f"{'='*50}\n")
-                f.write(f"📱 Device: {self.device_name}\n")
-                f.write(f"🍎 Platform: {'macOS' if IS_MACOS else 'Other'}\n")
+                f.write(f"Device: {self.device_name}\n")
+                f.write(f"Platform: {'macOS' if IS_MACOS else 'Other'}\n")
                 f.write(f"{'='*50}\n")
-<<<<<<< Updated upstream
-                f.write(f"📝 Text: {text}\n")
-                f.write(f"🗣️ Voice: {voice_name or 'Default'}\n")
-                f.write(f"🎭 Emotion: {emotion_exaggeration} (simulated)\n")
-                f.write(f"⚡ Speed: {speed}\n")
-                f.write(f"🎚️ CFG Weight: {cfg_weight} (simulated)\n")
-=======
                 f.write(f"Text: {text}\n")
                 f.write(f"Voice: {voice_name or 'Default'}\n")
                 f.write(f"Emotion: {emotion} (simulated)\n")
@@ -718,23 +520,22 @@ class RealChatterboxProvider:
                 f.write(f"Speed: {speed}\n")
                 f.write(f"CFG Weight: {cfg_weight} (simulated)\n")
                 f.write(f"Temperature: {temperature} (simulated)\n")
->>>>>>> Stashed changes
                 if voice_prompt:
-                    f.write(f"💬 Voice Prompt: {voice_prompt}\n")
+                    f.write(f"Voice Prompt: {voice_prompt}\n")
                 f.write(f"{'='*50}\n")
-                f.write(f"ℹ️ This is a demo file created because:\n")
+                f.write(f"This is a demo file created because:\n")
                 if IS_MACOS:
-                    f.write(f"   • Running on macOS (limited Chatterbox support)\n")
+                    f.write(f"   - Running on macOS (limited Chatterbox support)\n")
                 if not CHATTERBOX_AVAILABLE:
-                    f.write(f"   • Chatterbox TTS not installed\n")
+                    f.write(f"   - Chatterbox TTS not installed\n")
                 if not TORCH_AVAILABLE:
-                    f.write(f"   • PyTorch not available\n")
-                f.write(f"\n🎯 To get real TTS on GPU:\n")
+                    f.write(f"   - PyTorch not available\n")
+                f.write(f"\nTo get real TTS on GPU:\n")
                 f.write(f"   1. Use Linux/Windows with NVIDIA GPU\n")
                 f.write(f"   2. Install: pip install chatterbox-tts torch[cuda]\n")
                 f.write(f"   3. Configure proper GPU drivers\n")
             
-            print(f"✅ Demo file created: {demo_path}")
+            print(f"Demo file created: {demo_path}")
             
             # Also try to create a simple WAV file if possible
             try:
@@ -764,14 +565,10 @@ class RealChatterboxProvider:
                     wav_file.setframerate(sample_rate)
                     wav_file.writeframes(audio_data.tobytes())
                 
-<<<<<<< Updated upstream
-                print(f"✅ Placeholder audio created: {save_path}")
-=======
                 print(f"Placeholder audio created: {normalized_path}")
->>>>>>> Stashed changes
                 
             except Exception as wav_error:
-                print(f"⚠️ Could not create placeholder audio: {wav_error}")
+                print(f"WARNING: Could not create placeholder audio: {wav_error}")
             
             return {
                 "success": True,
@@ -785,6 +582,94 @@ class RealChatterboxProvider:
             logger.error(f"Demo audio generation failed: {e}")
             return {"success": False, "error": f"Demo generation failed: {str(e)}"}
     
+    def _map_emotion_to_parameters(self, emotion_label: str, base_exaggeration: float = 1.0) -> tuple[float, float]:
+        """Map emotion label to optimized ChatterboxTTS parameters"""
+        
+        # Enhanced emotion mapping table (matches backend implementation)
+        emotion_mapping = {
+            # Neutral - Objective narration
+            'neutral': {'exaggeration': 0.5, 'cfg_weight': 0.5},
+            'calm': {'exaggeration': 0.5, 'cfg_weight': 0.5},
+            'normal': {'exaggeration': 0.5, 'cfg_weight': 0.5},
+            
+            # Gentle/Contemplative - Deep inner thoughts
+            'gentle': {'exaggeration': 0.35, 'cfg_weight': 0.35},
+            'contemplative': {'exaggeration': 0.4, 'cfg_weight': 0.4},
+            'soft': {'exaggeration': 0.3, 'cfg_weight': 0.3},
+            'whisper': {'exaggeration': 0.3, 'cfg_weight': 0.3},
+            
+            # Happy/Cheerful - Positive emotions
+            'happy': {'exaggeration': 1.35, 'cfg_weight': 0.55},
+            'cheerful': {'exaggeration': 1.2, 'cfg_weight': 0.5},
+            'joyful': {'exaggeration': 1.5, 'cfg_weight': 0.6},
+            'friendly': {'exaggeration': 1.2, 'cfg_weight': 0.5},
+            
+            # Surprised - Shock, amazement
+            'surprised': {'exaggeration': 1.85, 'cfg_weight': 0.55},
+            'shocked': {'exaggeration': 2.0, 'cfg_weight': 0.6},
+            'amazed': {'exaggeration': 1.7, 'cfg_weight': 0.5},
+            
+            # Sad/Hurt - Heavy emotions
+            'sad': {'exaggeration': 0.4, 'cfg_weight': 0.35},
+            'hurt': {'exaggeration': 0.3, 'cfg_weight': 0.3},
+            'disappointed': {'exaggeration': 0.5, 'cfg_weight': 0.4},
+            'melancholy': {'exaggeration': 0.3, 'cfg_weight': 0.3},
+            
+            # Angry/Furious - Intense emotions
+            'angry': {'exaggeration': 2.0, 'cfg_weight': 0.7},
+            'furious': {'exaggeration': 2.2, 'cfg_weight': 0.8},
+            'irritated': {'exaggeration': 1.8, 'cfg_weight': 0.6},
+            'frustrated': {'exaggeration': 1.8, 'cfg_weight': 0.6},
+            
+            # Anxious/Worried - Tension
+            'anxious': {'exaggeration': 1.4, 'cfg_weight': 0.55},
+            'worried': {'exaggeration': 1.3, 'cfg_weight': 0.5},
+            'nervous': {'exaggeration': 1.5, 'cfg_weight': 0.6},
+            
+            # Mysterious - Suspense
+            'mysterious': {'exaggeration': 1.4, 'cfg_weight': 0.45},
+            'suspenseful': {'exaggeration': 1.2, 'cfg_weight': 0.4},
+            
+            # Commanding - Authority
+            'commanding': {'exaggeration': 1.75, 'cfg_weight': 0.8},
+            'authoritative': {'exaggeration': 2.0, 'cfg_weight': 0.9},
+            
+            # Additional common emotions
+            'excited': {'exaggeration': 1.6, 'cfg_weight': 0.6},
+            'fearful': {'exaggeration': 1.4, 'cfg_weight': 0.5},
+            'confident': {'exaggeration': 1.5, 'cfg_weight': 0.6},
+            'shy': {'exaggeration': 0.6, 'cfg_weight': 0.4},
+            'dramatic': {'exaggeration': 1.2, 'cfg_weight': 0.6},
+        }
+        
+        # Get mapping or use defaults
+        mapping = emotion_mapping.get(emotion_label.lower(), {'exaggeration': 1.0, 'cfg_weight': 0.5})
+        
+        # Apply mapping values
+        final_exaggeration = mapping['exaggeration']
+        cfg_weight = mapping['cfg_weight']
+        
+        # Clamp to valid ranges
+        final_exaggeration = max(0.0, min(2.5, final_exaggeration))
+        cfg_weight = max(0.0, min(1.0, cfg_weight))
+        
+        return final_exaggeration, cfg_weight
+    
+    def _apply_inner_voice_effects(self, text: str, inner_voice_type: str) -> str:
+        """Apply inner voice text effects based on type"""
+        
+        if inner_voice_type == "light":
+            # Light inner voice - add gentle pauses and softness
+            return f"... {text} ..."
+        elif inner_voice_type == "deep":
+            # Deep inner voice - add emphasis and contemplation
+            return f"[{text}]"
+        elif inner_voice_type == "dreamy":
+            # Dreamy inner voice - add ethereal quality
+            return f"~ {text} ~"
+        else:
+            return text
+    
     def _resolve_voice_selection(self, voice_name: Optional[str]) -> Dict[str, str]:
         """
         Resolve voice selection from voice_name parameter
@@ -792,13 +677,6 @@ class RealChatterboxProvider:
         """
         available_voices = self.get_available_voices()
         
-<<<<<<< Updated upstream
-        # If no voice specified, use default
-        if not voice_name:
-            return available_voices[0]  # Default to first voice
-        
-        # Direct voice ID match - THÊM VOICE FILE PATH
-=======
         # Loại bỏ mọi path và extension để tránh mismatch (e.g., "voices/Alice.wav" → "alice")
         voice_name_clean = voice_name.strip().lower() if voice_name else ""
 
@@ -855,41 +733,10 @@ class RealChatterboxProvider:
             print(f"WARNING: Voice lookup error: {e}")
 
         # 2) Khớp một phần (contains) – ví dụ user gõ "alex" vẫn ra "alexander"
->>>>>>> Stashed changes
         for voice in available_voices:
-            if voice['id'] == voice_name:
-                # Load voice file path từ ChatterboxVoicesManager
-                try:
-                    import sys
-                    import os
-                    sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'ui'))
-                    
-                    from .chatterbox_voices_integration import ChatterboxVoicesManager
-                    voices_manager = ChatterboxVoicesManager()
-                    available_voices = voices_manager.get_available_voices()
-                    
-                    if voice_name in available_voices:
-                        voice_info = available_voices[voice_name]
-                        # Try both lowercase and capitalize case for file name
-                        voice_file_path_lower = str(voices_manager.voices_directory / f"{voice_name}.wav")
-                        voice_file_path_capital = str(voices_manager.voices_directory / f"{voice_name.capitalize()}.wav")
-                        
-                        if os.path.exists(voice_file_path_lower):
-                            voice['file_path'] = voice_file_path_lower
-                            print(f"🎤 Voice found: {voice['name']} → {voice_file_path_lower}")
-                        elif os.path.exists(voice_file_path_capital):
-                            voice['file_path'] = voice_file_path_capital
-                            print(f"🎤 Voice found: {voice['name']} → {voice_file_path_capital}")
-                        else:
-                            print(f"⚠️ Voice file not found for: {voice_name} (tried {voice_file_path_lower} and {voice_file_path_capital})")
-                    else:
-                        print(f"⚠️ Voice file not found for: {voice_name}")
-                        
-                except Exception as e:
-                    print(f"⚠️ Error loading voice file for {voice_name}: {e}")
-                
+            if voice_name_clean and voice_name_clean in voice['id'].lower():
                 return voice
-        
+
         # Gender-based matching (for integration with other TTS providers)
         voice_lower = voice_name.lower()
         
@@ -932,18 +779,15 @@ class RealChatterboxProvider:
                         return voice
         
         # Fallback to first available voice
-        print(f"⚠️ Voice '{voice_name}' không tìm thấy, dùng default")
+        print(f"WARNING: Voice '{voice_name_clean}' not found, using default")
         return available_voices[0]
     
-<<<<<<< Updated upstream
-=======
     def clear_voice_embedding_cache(self):
         """Xóa bộ đệm embedding giọng nói trong bộ nhớ."""
         count = len(self.voice_embedding_cache)
         self.voice_embedding_cache.clear()
         print(f"[OK] Đã xóa {count} mục khỏi bộ đệm embedding giọng nói.")
 
->>>>>>> Stashed changes
     def _generate_real_chatterbox_audio(self, 
                                        text: str, 
                                        save_path: str,
@@ -955,24 +799,18 @@ class RealChatterboxProvider:
                                        voice_prompt: Optional[str] = None) -> bool:
         """Generate audio using REAL ChatterboxTTS"""
         try:
-            print(f"🎤 Real ChatterboxTTS generation starting...")
-            print(f"   📝 Text: '{text[:50]}...'")
-            print(f"   🎭 Emotion (exaggeration): {emotion_exaggeration}")
-            print(f"   ⚡ Speed: {speed}")
-            print(f"   🎚️ CFG Weight: {cfg_weight}")
+            print(f"Real ChatterboxTTS generation starting...")
+            print(f"   Text: '{text[:50]}...' ")
+            print(f"   Emotion (exaggeration): {emotion_exaggeration}")
+            print(f"   Speed: {speed}")
+            print(f"   CFG Weight: {cfg_weight}")
             
             # NOTE: ChatterboxTTS không hỗ trợ voice_prompt text trực tiếp
             # Chỉ hỗ trợ: 1) Default voice, 2) Voice cloning với audio file
             if voice_prompt:
-                print(f"⚠️ Voice prompt '{voice_prompt}' được bỏ qua - ChatterboxTTS không hỗ trợ text prompt")
-                print(f"   💡 Gợi ý: Sử dụng Voice Clone mode với audio mẫu thay thế")
+                print(f"WARNING: Voice prompt '{voice_prompt}' is not supported by ChatterboxTTS")
+                print(f"   Suggestion: Use Voice Clone mode with an audio sample instead")
             
-<<<<<<< Updated upstream
-            # Generate audio với real ChatterboxTTS API
-            if reference_audio and os.path.exists(reference_audio):
-                print(f"🎤 Using voice cloning: {os.path.basename(reference_audio)}")
-                # Voice cloning mode với parameters
-=======
             # === Voice selection logic ===
             if reference_audio and os.path.exists(reference_audio):
                 # Voice cloning mode
@@ -981,21 +819,16 @@ class RealChatterboxProvider:
                 # --- VOICE EMBEDDING CACHE LOGIC (placeholder) ---
                 # TODO: implement embedding cache to avoid recomputation
 
->>>>>>> Stashed changes
                 wav = self.chatterbox_model.generate(
                     text, 
                     audio_prompt_path=reference_audio,
                     exaggeration=emotion_exaggeration,
-<<<<<<< Updated upstream
-                    cfg_weight=cfg_weight
-=======
                     cfg_weight=cfg_weight,
                     temperature=temperature
->>>>>>> Stashed changes
                 )
             else:
-                print(f"🗣️ Using default voice")
-                # Default voice mode với parameters
+                # Fallback to default voice
+                print("Using default voice")
                 wav = self.chatterbox_model.generate(
                     text,
                     exaggeration=emotion_exaggeration,
@@ -1014,27 +847,20 @@ class RealChatterboxProvider:
                         os.makedirs(save_dir, exist_ok=True)
                     
                     # Save audio với sample rate từ model
-<<<<<<< Updated upstream
-                    ta.save(save_path, wav, self.chatterbox_model.sr)
-                    print(f"✅ Real ChatterboxTTS audio saved: {save_path}")
-                    print(f"   📊 Sample rate: {self.chatterbox_model.sr}")
-                    print(f"   📏 Duration: {wav.shape[-1] / self.chatterbox_model.sr:.2f}s")
-=======
                     ta.save(normalized_path, wav, self.chatterbox_model.sr)
                     print(f"Real ChatterboxTTS audio saved: {save_path}")
                     print(f"   Sample rate: {self.chatterbox_model.sr}")
                     print(f"   Duration: {wav.shape[-1] / self.chatterbox_model.sr:.2f}s")
->>>>>>> Stashed changes
                     return True
                 except ImportError:
-                    print("❌ torchaudio not available for saving audio")
+                    print("ERROR: torchaudio not available for saving audio")
                     return False
             else:
-                print("❌ Real ChatterboxTTS returned no audio data")
+                print("ERROR: Real ChatterboxTTS returned no audio data")
                 return False
                 
         except Exception as e:
-            print(f"❌ Real ChatterboxTTS generation failed: {e}")
+            print(f"ERROR: Real ChatterboxTTS generation failed: {e}")
             logger.error(traceback.format_exc())
             return False
     
@@ -1046,12 +872,12 @@ class RealChatterboxProvider:
         try:
             from gtts import gTTS
             
-            print(f"🎵 Generating fallback audio với gTTS...")
+            print(f"Generating fallback audio with gTTS...")
             
             # Voice simulation log
             if voice_info:
-                print(f"   🎭 Simulating {voice_info['name']} ({voice_info['gender']})")
-                print(f"   📝 Note: Real implementation would use voice model: {voice_info['id']}")
+                print(f"   Simulating {voice_info['name']} ({voice_info['gender']})")
+                print(f"   Note: Real implementation would use voice model: {voice_info['id']}")
             
             # Detect language
             lang = 'vi' if any(char in text for char in 'àáãạảăắằẳẵặâấầẩẫậđèéẹẻẽêềếểễệìíĩỉịòóõọỏôốồổỗộơớờởỡợùúũụủưứừửữựỳýỵỷỹ') else 'en'
@@ -1082,13 +908,13 @@ class RealChatterboxProvider:
             
             # For now, just use MP3 since ffmpeg not available
             if save_path.endswith('.wav'):
-                print(f"⚠️ Saving as MP3 instead of WAV (ffmpeg not available): {mp3_path}")
-            print(f"✅ Fallback audio saved as MP3: {mp3_path}")
+                print(f"WARNING: Saving as MP3 instead of WAV (ffmpeg not available): {mp3_path}")
+            print(f"Fallback audio saved as MP3: {mp3_path}")
             
             return True
             
         except Exception as e:
-            print(f"❌ Fallback audio generation failed: {e}")
+            print(f"ERROR: Fallback audio generation failed: {e}")
             logger.error(f"Fallback audio generation failed: {e}")
             return False
     
@@ -1147,7 +973,7 @@ class RealChatterboxProvider:
                 torch.cuda.empty_cache()
                 
             self.is_initialized = False
-            print("🧹 Real Chatterbox TTS cleaned up (Singleton)")
+            print("Real Chatterbox TTS cleaned up (Singleton)")
             
         except Exception as e:
             logger.error(f"Cleanup failed: {e}")
@@ -1160,7 +986,7 @@ class RealChatterboxProvider:
         try:
             if TORCH_AVAILABLE and self.device == "cuda":
                 torch.cuda.empty_cache()
-                print("🧹 Real Chatterbox CUDA cache cleared (Singleton safe)")
+                print("Real Chatterbox CUDA cache cleared (Singleton safe)")
         except Exception as e:
             logger.warning(f"Real Chatterbox soft cleanup warning: {e}")
     
@@ -1199,28 +1025,10 @@ class RealChatterboxProvider:
                     "description": f"Predefined voice: {voice_data.name} ({voice_data.gender})"
                 })
             
-            print(f"🎙️ Loaded {len(available_voices)} predefined voices từ ChatterboxVoicesManager")
+            print(f"Loaded {len(available_voices)} predefined voices from ChatterboxVoicesManager")
             return available_voices
             
         except Exception as e:
-            print(f"⚠️ Failed to load predefined voices: {e}")
-            # Fallback to basic voices if loading fails
-            return [
-                # Female voices
-                {"id": "female_young", "name": "Young Female", "gender": "female", "description": "Giọng nữ trẻ, tươi tắn"},
-                {"id": "female_mature", "name": "Mature Female", "gender": "female", "description": "Giọng nữ trưởng thành, ấm áp"},
-                {"id": "female_gentle", "name": "Gentle Female", "gender": "female", "description": "Giọng nữ dịu dàng"},
-                
-                # Male voices  
-                {"id": "male_young", "name": "Young Male", "gender": "male", "description": "Giọng nam trẻ, năng động"},
-                {"id": "male_mature", "name": "Mature Male", "gender": "male", "description": "Giọng nam trưởng thành, uy tín"},
-                {"id": "male_deep", "name": "Deep Male", "gender": "male", "description": "Giọng nam trầm, khỏe khoắn"},
-                
-                # Neutral/Character voices
-                {"id": "neutral_narrator", "name": "Narrator", "gender": "neutral", "description": "Giọng kể chuyện trung tính"},
-                {"id": "neutral_child", "name": "Child Voice", "gender": "neutral", "description": "Giọng trẻ em"},
-                {"id": "neutral_elder", "name": "Elder Voice", "gender": "neutral", "description": "Giọng người lớn tuổi"},
-                
-                # Voice cloning
-                {"id": "cloned", "name": "Voice Cloning", "gender": "variable", "description": "Nhân bản giọng từ mẫu audio"}
-            ] 
+            print(f"WARNING: Failed to load predefined voices: {e}")
+            # Không trả về danh sách mock – để trống để tránh nhầm lẫn
+            return []

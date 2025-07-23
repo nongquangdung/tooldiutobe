@@ -14,9 +14,9 @@ def setup_ffmpeg_path():
         current_path = os.environ.get("PATH", "")
         if local_ffmpeg_path not in current_path:
             os.environ["PATH"] = local_ffmpeg_path + os.pathsep + current_path
-            print(f"✅ Added local ffmpeg to PATH: {local_ffmpeg_path}")
+            print(f"[OK] Added local ffmpeg to PATH: {local_ffmpeg_path}")
     else:
-        print("⚠️ Local ffmpeg not found - run install_dependencies.bat")
+        print("[WARNING] Local ffmpeg not found - run install_dependencies.bat")
 
 def main():
     # Setup environment

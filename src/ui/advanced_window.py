@@ -187,6 +187,11 @@ from ai.prompt_templates import PromptTemplates
 from core.api_manager import APIManager
 from tts.voice_generator import VoiceGenerator
 
+# Import Chatterbox-Audiobook inspired processors
+from core.pause_processor import PauseProcessor
+from core.audio_combiner import AudioCombiner
+from core.voice_library import VoiceLibrary
+
 # Audio processing
 try:
     from pydub import AudioSegment
@@ -247,6 +252,7 @@ from .license_tab import LicenseTab
 from core.audio_metadata_fixer import AudioMetadataFixer
 from core.license_manager import license_manager
 
+
 class VideoGenerationThread(QThread):
     progress_updated = Signal(int, str)
     finished = Signal(dict)
@@ -281,8 +287,6 @@ class VideoGenerationThread(QThread):
         self.finished.emit(result)
 
 class AdvancedMainWindow(QMainWindow):
-<<<<<<< Updated upstream
-=======
     def reload_code(self):
         """Reload code without restarting app"""
         try:
@@ -305,7 +309,6 @@ class AdvancedMainWindow(QMainWindow):
         except Exception as e:
             QMessageBox.critical(self, "Error", f"[EMOJI] Reload failed: {str(e)}")
             
->>>>>>> Stashed changes
     def __init__(self):
         super().__init__()
         self.setWindowTitle("AI Video Generator - Advanced")
@@ -349,7 +352,6 @@ class AdvancedMainWindow(QMainWindow):
         self.create_voice_studio_tab()
         self.create_voice_conversion_tab()
         self.create_emotion_config_tab()
-        self.create_tts_optimization_tab()
         self.create_license_tab()
         self.create_projects_tab()
         self.create_settings_tab()
@@ -573,12 +575,6 @@ class AdvancedMainWindow(QMainWindow):
         self.generate_video_btn.setShortcut("Cmd+3" if platform.system() == "Darwin" else "Ctrl+3")
         actions_layout.addWidget(self.generate_video_btn, 1, 0, 1, 2)
         
-        # Nút cấu hình giọng nói thủ công (luôn hiển thị)
-        self.manual_voice_setup_btn = QPushButton("🎭 Cấu hình giọng theo nhân vật")
-        self.manual_voice_setup_btn.clicked.connect(self.show_manual_voice_setup)
-        self.manual_voice_setup_btn.setToolTip("Tạo và cấu hình giọng nói cho các nhân vật thủ công (Cmd+4)")
-        self.manual_voice_setup_btn.setShortcut("Cmd+4" if platform.system() == "Darwin" else "Ctrl+4")
-        actions_layout.addWidget(self.manual_voice_setup_btn, 2, 0, 1, 2)
 
         
         actions_group.setLayout(actions_layout)
@@ -679,15 +675,6 @@ class AdvancedMainWindow(QMainWindow):
         voice_studio_widget = QWidget()
         layout = QVBoxLayout()
         
-<<<<<<< Updated upstream
-        # Title đã được xóa theo yêu cầu người dùng
-        
-        # === ENHANCED: Multi-file Import Section ===
-        import_group = QGroupBox("📥 Import Script Data (Enhanced Multi-File Support)")
-        import_layout = QVBoxLayout()
-        
-        # Data source selection
-=======
         # === TTS Provider (moved) ===
         provider_layout = QHBoxLayout()
         provider_layout.addWidget(QLabel("TTS Provider:"))
@@ -702,77 +689,10 @@ class AdvancedMainWindow(QMainWindow):
         import_layout = QVBoxLayout()
         
         # Data source selection - Cải thiện layout giống tab Tạo Video
->>>>>>> Stashed changes
         source_layout = QHBoxLayout()
         source_layout.addWidget(QLabel("Nguồn dữ liệu:"))
-        
+        source_layout.addStretch(1)  # Thêm stretch để đẩy dropdown về bên phải
         self.data_source_combo = QComboBox()
-<<<<<<< Updated upstream
-        self.data_source_combo.addItem("📁 Import từ file JSON", "file")
-        self.data_source_combo.addItem("📁 Import nhiều file JSON (Multi-merge)", "multi_file")  # NEW
-        self.data_source_combo.addItem("🔄 Sử dụng data từ tab Tạo Video", "generated")
-        self.data_source_combo.addItem("✏️ Nhập thủ công", "manual")
-        self.data_source_combo.currentTextChanged.connect(self.switch_data_source)
-        
-        source_layout.addWidget(self.data_source_combo)
-        source_layout.addStretch()
-        import_layout.addLayout(source_layout)
-        
-        # === NEW: Template Mode Selection ===
-        template_group = QGroupBox("🎯 AI Template Mode (Token Optimization)")
-        template_layout = QHBoxLayout()
-        
-        template_layout.addWidget(QLabel("Template Mode:"))
-        self.template_mode_combo = QComboBox()
-        self.template_mode_combo.addItem("🏃‍♂️ RAPID Mode (~150 tokens) - Compact", "rapid")
-        self.template_mode_combo.addItem("📝 STANDARD Mode (~400 tokens) - Balanced", "standard") 
-        self.template_mode_combo.addItem("📚 DETAILED Mode (~800 tokens) - Full Guide", "detailed")
-        self.template_mode_combo.setCurrentText("📝 STANDARD Mode (~400 tokens) - Balanced")
-        self.template_mode_combo.currentTextChanged.connect(self.update_token_preview)
-        
-        template_layout.addWidget(self.template_mode_combo)
-        template_layout.addStretch()
-        
-        # Token preview
-        self.token_preview_label = QLabel("💡 Tiết kiệm: +1100 tokens cho story content")
-        self.token_preview_label.setStyleSheet("color: #28CD41; font-weight: bold;")
-        template_layout.addWidget(self.token_preview_label)
-        
-        # === NEW: AI Request Form Button ===
-        self.generate_ai_request_btn = QPushButton("📋 Tạo Request Form cho AI")
-        self.generate_ai_request_btn.setStyleSheet("""
-            QPushButton {
-                background-color: white;
-                color: #5856D6;
-                border: 1px solid #5856D6;
-                padding: 8px 16px;
-                border-radius: 6px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #F0F0FF;
-                border-color: #4B49C8;
-            }
-        """)
-        self.generate_ai_request_btn.clicked.connect(self.generate_ai_request_form)
-        self.generate_ai_request_btn.setToolTip("Tạo template form theo mode đã chọn để request AI tạo JSON script")
-        template_layout.addWidget(self.generate_ai_request_btn)
-        
-        template_group.setLayout(template_layout)
-        import_layout.addWidget(template_group)
-        
-        # File import controls
-        file_layout = QHBoxLayout()
-        self.import_file_btn = QPushButton("📁 Chọn file JSON")
-        self.import_file_btn.clicked.connect(self.import_script_file)
-        
-        # === NEW: Multi-file import button ===
-        self.import_multi_files_btn = QPushButton("📂 Import nhiều file JSON")
-        self.import_multi_files_btn.clicked.connect(self.import_multiple_script_files)
-        self.import_multi_files_btn.setVisible(False)  # Hidden initially
-        
-        self.load_generated_btn = QPushButton("🔄 Load từ tab Tạo Video")
-=======
         self.data_source_combo.addItem("[FOLDER] Mode JSON - Import từ file", "file")
         #self.data_source_combo.addItem("[FOLDER] Mode JSON - Import nhiều file (Multi-merge)", "multi_file")
         self.data_source_combo.addItem("[REFRESH] Mode JSON - Sử dụng data từ tab Tạo Video", "generated")
@@ -791,17 +711,15 @@ class AdvancedMainWindow(QMainWindow):
         self.import_multi_files_btn.setVisible(False)  # Hidden initially
 
         self.load_generated_btn = QPushButton("[REFRESH] Load từ tab Tạo Video")
->>>>>>> Stashed changes
         self.load_generated_btn.clicked.connect(self.load_generated_script_data)
         self.load_generated_btn.setVisible(False)
-        
-        file_layout.addWidget(self.import_file_btn)
-        file_layout.addWidget(self.import_multi_files_btn)  # NEW
-        file_layout.addWidget(self.load_generated_btn)
-        file_layout.addStretch()
-        
-        import_layout.addLayout(file_layout)
-        
+
+        source_layout.addWidget(self.import_file_btn)
+        source_layout.addWidget(self.import_multi_files_btn)
+        source_layout.addWidget(self.load_generated_btn)
+        source_layout.addStretch()  # Thêm stretch ở cuối để các widget không dính sát mép phải
+        import_layout.addLayout(source_layout)
+         
         # File status
         file_status_layout = QHBoxLayout()
         file_status_layout.addWidget(QLabel("Imported file:"))
@@ -847,8 +765,6 @@ class AdvancedMainWindow(QMainWindow):
         self.manual_input_widget.setVisible(False)
         import_layout.addWidget(self.manual_input_widget)
         
-<<<<<<< Updated upstream
-=======
         # === NEW: Manual Table Input Section ===
         self.manual_table_widget = QWidget()
         manual_table_layout = QVBoxLayout()
@@ -963,25 +879,10 @@ class AdvancedMainWindow(QMainWindow):
         self.manual_table_widget.setVisible(False)
         import_layout.addWidget(self.manual_table_widget)
         
->>>>>>> Stashed changes
         import_group.setLayout(import_layout)
         layout.addWidget(import_group)
         
-        # === NEW: Template Usage Guide ===
-        guide_group = QGroupBox("💡 Hướng dẫn sử dụng Template Modes")
-        guide_layout = QVBoxLayout()
         
-        guide_text = QLabel("""
-<b>🏃‍♂️ RAPID Mode:</b> Cho stories đơn giản, tập trung vào nội dung. Tiết kiệm token tối đa.<br/>
-<b>📝 STANDARD Mode:</b> Cân bằng giữa format và content. Phù hợp cho hầu hết trường hợp.<br/>
-<b>📚 DETAILED Mode:</b> Cho stories phức tạp với nhiều tính năng cinematic và advanced settings.
-        """)
-        guide_text.setWordWrap(True)
-        guide_text.setStyleSheet("color: #666; font-size: 12px; padding: 8px;")
-        guide_layout.addWidget(guide_text)
-        
-        guide_group.setLayout(guide_layout)
-        layout.addWidget(guide_group)
         
         # Group 2: Script Overview
         overview_group = QGroupBox("[CLIPBOARD] Script Overview")
@@ -1019,19 +920,20 @@ class AdvancedMainWindow(QMainWindow):
         chatterbox_layout = QVBoxLayout()
         chatterbox_layout.setSpacing(8)
         
-        # Enable/disable toggle
+        # Enable/disable toggle - Cải thiện layout giống tab Tạo Video
         chatterbox_controls_layout = QHBoxLayout()
         self.enable_chatterbox_manual = QCheckBox("Sử dụng cấu hình thủ công")
         self.enable_chatterbox_manual.toggled.connect(self.toggle_chatterbox_manual_controls)
         chatterbox_controls_layout.addWidget(self.enable_chatterbox_manual)
+        
+        chatterbox_controls_layout.addStretch(1)  # Thêm stretch ở giữa để cách đều các checkbox
         
         # Auto emotion mapping toggle
         self.enable_emotion_mapping = QCheckBox("[THEATER] Tự động điều chỉnh cảm xúc theo script")
         self.enable_emotion_mapping.setChecked(True)  # Default enabled
         self.enable_emotion_mapping.setToolTip("Tự động map emotion labels (happy, sad, excited...) thành emotion exaggeration values")
         chatterbox_controls_layout.addWidget(self.enable_emotion_mapping)
-        
-        chatterbox_controls_layout.addStretch()
+        chatterbox_controls_layout.addStretch(1)  # Thêm stretch ở cuối để các widget không dính sát mép phải
         chatterbox_layout.addLayout(chatterbox_controls_layout)
         
         # Manual controls container
@@ -1046,16 +948,10 @@ class AdvancedMainWindow(QMainWindow):
         
         # Character settings table với styling cải thiện
         self.character_settings_table = QTableWidget()
-<<<<<<< Updated upstream
-        self.character_settings_table.setColumnCount(10)  # Tăng lên 10 columns để thêm Exaggeration
-        self.character_settings_table.setHorizontalHeaderLabels([
-            "Nhân vật", "Emotion", "Exaggeration", "Speed", "CFG Weight", "Mode", "Voice/Prompt/Clone", "Quick", "Status", "Preview"
-=======
         self.character_settings_table.verticalHeader().setVisible(False)
         self.character_settings_table.setColumnCount(11)  # Tăng lên 11 columns, thêm Temperature
         self.character_settings_table.setHorizontalHeaderLabels([
             "Nhân vật", "Emotion", "Exaggeration", "Speed", "CFG Weight", "Temperature", "Mode", "Voice/Clone", "Whisper Voice", "Status", "Preview"
->>>>>>> Stashed changes
         ])
         self.character_settings_table.horizontalHeader().setStretchLastSection(False)
         self.character_settings_table.setMaximumHeight(200)  # Tăng height cho table
@@ -1087,18 +983,6 @@ class AdvancedMainWindow(QMainWindow):
         
         # Set responsive column widths that adapt to window size
         header = self.character_settings_table.horizontalHeader()
-<<<<<<< Updated upstream
-        header.resizeSection(0, 120)  # Character name
-        header.resizeSection(1, 80)   # Emotion  
-        header.resizeSection(2, 80)   # Exaggeration (NEW)
-        header.resizeSection(3, 80)   # Speed
-        header.resizeSection(4, 80)   # CFG Weight
-        header.resizeSection(5, 130)  # Mode (reduced width)
-        header.resizeSection(6, 130)  # Voice/Prompt/Clone (reduced width)
-        header.resizeSection(7, 60)   # Quick
-        header.resizeSection(8, 60)   # Status
-        header.resizeSection(9, 60)   # Preview
-=======
         
         # Use resize modes for flexible column sizing
         header.setSectionResizeMode(0, QHeaderView.Interactive)  # Character name - resizable
@@ -1117,7 +1001,6 @@ class AdvancedMainWindow(QMainWindow):
         self.character_settings_table.setColumnWidth(0, 120)  # Character name minimum
         self.character_settings_table.setColumnWidth(5, 130)  # Mode minimum
         self.character_settings_table.setColumnWidth(7, 150)  # Whisper Voice minimum
->>>>>>> Stashed changes
         
         chatterbox_manual_layout.addWidget(self.character_settings_table)
         
@@ -1147,53 +1030,20 @@ class AdvancedMainWindow(QMainWindow):
         chatterbox_group.setLayout(chatterbox_layout)
         layout.addWidget(chatterbox_group)
         
-        # Group 5: Generation Controls
-        generation_group = QGroupBox("🎙️ Tạo Audio")
-        generation_layout = QVBoxLayout()
-        generation_layout.setSpacing(8)
         
         # TTS Provider - CHỈ CHATTERBOX
         provider_layout = QHBoxLayout()
         provider_layout.addWidget(QLabel("TTS Provider:"))
-<<<<<<< Updated upstream
-        
-        provider_info = QLabel("🤖 Chatterbox TTS (AI Voice Cloning)")
-=======
         provider_info = QLabel("[BOT] Chatterbox TTS (AI Voice Cloning)")
->>>>>>> Stashed changes
         provider_info.setStyleSheet("font-weight: bold; color: #007AFF; padding: 4px;")
         provider_layout.addWidget(provider_info)
-        
         provider_layout.addStretch()
-        generation_layout.addLayout(provider_layout)
+        layout.addLayout(provider_layout) 
         
         # Output settings
-        output_layout = QHBoxLayout()
-        output_layout.addWidget(QLabel("Thư mục output:"))
-        
         self.voice_output_input = QLineEdit()
         self.voice_output_input.setPlaceholderText("./voice_studio_output/")
         self.voice_output_input.setReadOnly(True)
-<<<<<<< Updated upstream
-        output_layout.addWidget(self.voice_output_input)
-        
-        self.select_voice_output_btn = QPushButton("📁")
-        self.select_voice_output_btn.clicked.connect(self.select_voice_output_folder)
-        self.select_voice_output_btn.setMaximumWidth(40)
-        output_layout.addWidget(self.select_voice_output_btn)
-        
-        generation_layout.addLayout(output_layout)
-        
-        # Generation buttons
-        generation_buttons_layout = QHBoxLayout()
-        
-        self.generate_selected_btn = QPushButton("🎤 Tạo voice cho nhân vật đã chọn")
-        self.generate_selected_btn.clicked.connect(self.generate_selected_character_voice)
-        self.generate_selected_btn.setEnabled(False)
-        generation_buttons_layout.addWidget(self.generate_selected_btn)
-        
-        self.generate_all_btn = QPushButton("🎭 Tạo voice cho tất cả nhân vật")
-=======
 
         self.select_voice_output_btn = QPushButton("[FOLDER]")
         self.select_voice_output_btn.clicked.connect(self.select_voice_output_folder)
@@ -1204,23 +1054,15 @@ class AdvancedMainWindow(QMainWindow):
         self.generate_selected_btn.setEnabled(False)
 
         self.generate_all_btn = QPushButton("[THEATER] Tạo voice")
->>>>>>> Stashed changes
         self.generate_all_btn.clicked.connect(self.generate_all_voices)
         self.generate_all_btn.setEnabled(False)
-        generation_buttons_layout.addWidget(self.generate_all_btn)
         
-<<<<<<< Updated upstream
-        generation_layout.addLayout(generation_buttons_layout)
-=======
         self.open_voice_folder_btn = QPushButton("[FOLDER] Mở Folder output")
         self.open_voice_folder_btn.clicked.connect(self.open_voice_output_folder)
         
         self.clear_voice_results_btn = QPushButton("[CLEAN] Xóa kết quả")
         self.clear_voice_results_btn.clicked.connect(self.clear_voice_results)
->>>>>>> Stashed changes
         
-        generation_group.setLayout(generation_layout)
-        layout.addWidget(generation_group)
         
         # Group 6: Progress & Results
         progress_group = QGroupBox("[STATS] Tiến trình & Kết quả")
@@ -1244,16 +1086,9 @@ class AdvancedMainWindow(QMainWindow):
         self.voice_results_text.setPlaceholderText("Kết quả tạo voice sẽ hiển thị ở đây...")
         progress_layout.addWidget(self.voice_results_text)
         
-        # Action buttons
-        action_buttons_layout = QHBoxLayout()
+        progress_group.setLayout(progress_layout)
+        layout.addWidget(progress_group)
         
-<<<<<<< Updated upstream
-        # Removed old merge and play buttons - now using Force Merge All only
-        
-        self.open_voice_folder_btn = QPushButton("📁 Mở thư mục output")
-        self.open_voice_folder_btn.clicked.connect(self.open_voice_output_folder)
-        action_buttons_layout.addWidget(self.open_voice_folder_btn)
-=======
         # Extended settings moved to Settings tab for cleaner UI
         
         # Group 7: Actions - Tách thành group riêng giống tab Dự án/Cài đặt
@@ -1267,18 +1102,17 @@ class AdvancedMainWindow(QMainWindow):
         output_layout.addWidget(self.voice_output_input)
         output_layout.addWidget(self.select_voice_output_btn)
         action_buttons_layout.addLayout(output_layout, 0, 0, 1, 2)
->>>>>>> Stashed changes
         
-        self.clear_voice_results_btn = QPushButton("🧹 Xóa kết quả")
-        self.clear_voice_results_btn.clicked.connect(self.clear_voice_results)
-        action_buttons_layout.addWidget(self.clear_voice_results_btn)
+        # Generate buttons
+        action_buttons_layout.addWidget(self.generate_selected_btn, 1, 0)
+        action_buttons_layout.addWidget(self.generate_all_btn, 1, 1)
+        
+        # Output management buttons
+        action_buttons_layout.addWidget(self.open_voice_folder_btn, 2, 0)
+        action_buttons_layout.addWidget(self.clear_voice_results_btn, 2, 1)
         
         # Force Merge button - tối ưu cho trường hợp script data không match
-<<<<<<< Updated upstream
-        self.force_merge_btn = QPushButton("🔧 Force Merge All")
-=======
         self.force_merge_btn = QPushButton("Merge All")
->>>>>>> Stashed changes
         self.force_merge_btn.setStyleSheet("""
             QPushButton {
                 background-color: white;
@@ -1295,13 +1129,10 @@ class AdvancedMainWindow(QMainWindow):
         """)
         self.force_merge_btn.clicked.connect(self.force_merge_all_segments)
         self.force_merge_btn.setToolTip("Gộp tất cả file segment_*.mp3 có trong thư mục output (không cần script data)")
-        action_buttons_layout.addWidget(self.force_merge_btn)
+        action_buttons_layout.addWidget(self.force_merge_btn, 3, 0, 1, 2)
         
-        action_buttons_layout.addStretch()
-        progress_layout.addLayout(action_buttons_layout)
-        
-        progress_group.setLayout(progress_layout)
-        layout.addWidget(progress_group)
+        actions_group.setLayout(action_buttons_layout)
+        layout.addWidget(actions_group)
         
         # Initialize data
         self.voice_studio_script_data = None
@@ -2524,23 +2355,6 @@ class AdvancedMainWindow(QMainWindow):
             fallback_tab.setLayout(layout)
             self.tabs.addTab(fallback_tab, self.language_manager.get('tab_emotion_config'))
 
-    def create_tts_optimization_tab(self):
-        """Tạo tab TTS Optimization Settings"""
-        try:
-            from .tabs.tts_optimization_tab import TtsOptimizationTab
-            self.optimization_tab = TtsOptimizationTab()
-            self.optimization_tab.optimization_changed.connect(self.on_optimization_settings_changed)
-            self.tabs.addTab(self.optimization_tab, "🚀 TTS Tối ưu")
-        except Exception as e:
-            # Fallback nếu có lỗi
-            fallback_tab = QWidget()
-            layout = QVBoxLayout()
-            error_label = QLabel(f"⚠️ Lỗi load TTS Optimization tab: {str(e)}")
-            error_label.setWordWrap(True)
-            layout.addWidget(error_label)
-            fallback_tab.setLayout(layout)
-            self.tabs.addTab(fallback_tab, "🚀 TTS Tối ưu")
-
     def create_license_tab(self):
         """Tạo tab License Management"""
         try:
@@ -3139,13 +2953,10 @@ class AdvancedMainWindow(QMainWindow):
         actions_group.setLayout(actions_layout)
         layout.addWidget(actions_group)
         
-<<<<<<< Updated upstream
-=======
         reload_btn = QPushButton("[REFRESH] Reload Code")
         reload_btn.clicked.connect(self.reload_code)
         layout.addWidget(reload_btn)
         
->>>>>>> Stashed changes
         # Thêm stretch để đẩy nội dung lên trên
         layout.addStretch()
         
@@ -3948,39 +3759,7 @@ Created: {data['created_at']}
         else:
             QMessageBox.warning(self, "Cảnh báo", "Không tìm thấy file audio!")
     
-    def show_manual_voice_setup(self):
-        """Hiển thị dialog cấu hình giọng đọc thủ công"""
-        from tts.voice_generator import VoiceGenerator
-        voice_gen = VoiceGenerator()
-        
-        dialog = ManualVoiceSetupDialog(voice_gen, self)
-        if dialog.exec_() == QDialog.Accepted:
-            characters, voice_mapping = dialog.get_characters_and_mapping()
-            
-            # Create manual script data
-            manual_script_data = {
-                "segments": [
-                    {
-                        "id": 1,
-                        "script": "Audio được tạo từ cấu hình thủ công",
-                        "image_prompt": "Hình ảnh minh họa",
-                        "dialogues": [
-                            {
-                                "speaker": char['id'],
-                                "text": f"Xin chào, tôi là {char['name']}. Đây là giọng nói {char['suggested_voice']} của tôi.",
-                                "emotion": "friendly"
-                            }
-                            for char in characters
-                        ],
-                        "duration": 10
-                    }
-                ],
-                "characters": characters
-            }
-            
-            # Generate audio immediately
-            self.current_script_data = manual_script_data
-            self.generate_audio_with_mapping(voice_mapping)
+    
     
     def generate_audio_with_mapping(self, voice_mapping):
         """Tạo audio với voice mapping đã có"""
@@ -4177,29 +3956,48 @@ Created: {data['created_at']}
         self.token_preview_label.setStyleSheet(f"color: {color}; font-weight: bold;")
 
     def switch_data_source(self):
-        """Switch between data sources với enhanced multi-file support"""
+        """Switch between data sources với enhanced multi-file support và manual table mode"""
         source = self.data_source_combo.currentData()
         
         # Hide all widgets first
         self.import_file_btn.setVisible(False)
         self.import_multi_files_btn.setVisible(False)
         self.load_generated_btn.setVisible(False)
-        if hasattr(self, 'manual_script_widget'):
-            self.manual_script_widget.setVisible(False)
+        if hasattr(self, 'manual_input_widget'):
+            self.manual_input_widget.setVisible(False)
+        if hasattr(self, 'manual_table_widget'):
+            self.manual_table_widget.setVisible(False)
+        
+        # Show/hide emotion mapping based on mode
+        if hasattr(self, 'enable_emotion_mapping'):
+            if source == "manual_table":
+                # Ẩn tính năng auto emotion mapping trong manual table mode
+                self.enable_emotion_mapping.setVisible(False)
+                self.enable_emotion_mapping.setChecked(False)
+            else:
+                # Hiện tính năng auto emotion mapping trong các mode JSON
+                self.enable_emotion_mapping.setVisible(True)
+                self.enable_emotion_mapping.setChecked(True)
         
         if source == "file":
             self.import_file_btn.setVisible(True)
             self.imported_file_label.setText("Chưa import file nào")
-        elif source == "multi_file":  # NEW
+        elif source == "multi_file":
             self.import_multi_files_btn.setVisible(True)
             self.imported_file_label.setText("Chưa import files nào")
         elif source == "generated":
             self.load_generated_btn.setVisible(True)
             self.imported_file_label.setText("Sử dụng data từ tab Tạo Video")
         elif source == "manual":
-            if hasattr(self, 'manual_script_widget'):
-                self.manual_script_widget.setVisible(True)
+            if hasattr(self, 'manual_input_widget'):
+                self.manual_input_widget.setVisible(True)
             self.imported_file_label.setText("Nhập thủ công JSON script")
+        elif source == "manual_table":  # NEW
+            if hasattr(self, 'manual_table_widget'):
+                self.manual_table_widget.setVisible(True)
+            self.imported_file_label.setText("Mode thủ công - nhập dữ liệu vào bảng")
+            # Setup manual table mode specifics
+            self.setup_manual_table_mode()
     
     def import_script_file(self):
         """Import script từ file JSON"""
@@ -4973,9 +4771,8 @@ Created: {data['created_at']}
                     # Get per-character settings từ character_chatterbox_settings
                     char_settings = self.character_chatterbox_settings.get(speaker, {})
                     voice_prompt = char_settings.get('voice_prompt', '').strip()
+                    voice_name     = char_settings.get('voice_id', voice_name)
                     voice_clone_path = char_settings.get('voice_clone_path', None)
-<<<<<<< Updated upstream
-=======
 
                     # Whisper [EMOJI] override voice (per-character) - Enhanced với clone support
                     whisper_voice_id = char_settings.get('whisper_voice_id')
@@ -5037,7 +4834,6 @@ Created: {data['created_at']}
                             # Clear whisper override flag
                             char_settings['whisper_override_active'] = False
                             self.character_chatterbox_settings[speaker] = char_settings
->>>>>>> Stashed changes
                     
                     # Generate filename
                     filename = f"segment_{segment_id}_dialogue_{dialogue_idx}_{speaker}.mp3"
@@ -5076,11 +4872,7 @@ Created: {data['created_at']}
                             voice_sample_path=voice_clone_path if voice_mode == 'clone' else None,
                             emotion_exaggeration=emotion_exaggeration,  # [OK] FIX: Use correct parameter name
                             speed=speed,
-<<<<<<< Updated upstream
-                            voice_name=voice_name if voice_mode == 'selection' else None,
-=======
                             voice_name=voice_name if voice_mode == 'selection' else None,  # [OK] Use override voice_name
->>>>>>> Stashed changes
                             cfg_weight=cfg_weight,
                             voice_prompt=voice_prompt if voice_mode == 'prompt' else None
                         )
@@ -5772,9 +5564,6 @@ Created: {data['created_at']}
         format_group.setLayout(format_layout)
         layout.addWidget(format_group)
         
-        # === TEMPLATE OPTIONS ===
-        template_group = QGroupBox("📄 Template Selection")
-        template_layout = QGridLayout()
         
         # Template buttons
         rapid_btn = QPushButton("[FAST] Rapid Template")
@@ -7237,17 +7026,10 @@ Create a video script about "[TOPIC]" with **complete creative freedom** accordi
             
             self.character_settings_table.setCellWidget(i, 7, stacked_widget)
             
-            # Quick action button (test for clone, etc.)
-            quick_btn = QPushButton("🔧")
-            quick_btn.setMaximumWidth(30)
-            quick_btn.setToolTip("Quick actions")
-            quick_btn.clicked.connect(lambda checked, cid=char_id: self.show_voice_quick_actions(cid))
-            self.character_settings_table.setCellWidget(i, 7, quick_btn)
+            # Whisper Voice Widget (NEW COLUMN 7) - Shared mode với main voice column
+            whisper_stacked_widget = QStackedWidget()
+            whisper_stacked_widget.setMaximumHeight(30)
             
-<<<<<<< Updated upstream
-            # Status indicator
-            status_label = QLabel("🗣️")
-=======
             # 1. Whisper Voice Selection Widget (using same voice list as main column)
             whisper_voice_widget = QWidget()
             whisper_voice_layout = QHBoxLayout(whisper_voice_widget)
@@ -7343,19 +7125,13 @@ Create a video script about "[TOPIC]" with **complete creative freedom** accordi
             
             # Status indicator - MOVED TO COLUMN 9
             status_label = QLabel("[EMOJI]")
->>>>>>> Stashed changes
             status_label.setMaximumWidth(30)
             status_label.setAlignment(Qt.AlignCenter)
             status_label.setToolTip("Voice Selection mode")
             self.character_settings_table.setCellWidget(i, 9, status_label)
             
-<<<<<<< Updated upstream
-            # Preview button (Center aligned)
-            preview_btn = QPushButton("🎧")
-=======
             # Preview button (Center aligned) - MOVED TO COLUMN 10
             preview_btn = QPushButton("[EMOJI]")
->>>>>>> Stashed changes
             preview_btn.setMaximumWidth(40)
             preview_btn.setToolTip(f"Preview {character['name']}")
             preview_btn.clicked.connect(lambda checked, cid=char_id: self.preview_character_with_settings(cid))
@@ -7369,15 +7145,25 @@ Create a video script about "[TOPIC]" with **complete creative freedom** accordi
             preview_layout.addStretch()
             self.character_settings_table.setCellWidget(i, 10, preview_widget)
             
-            # Initialize character settings với voice mode
+            # Initialize character settings với voice mode và whisper settings
+            default_whisper_voice = whisper_voice_combo.currentData()
+            
+            # Special case: Set whisper voice phù hợp cho từng character
+            if char_id == 'character2':  # Assuming character2 là Minh (male character)
+                default_whisper_voice = 'willow ii (whispering)'  # Set whisper voice cho Minh
+            
             self.character_chatterbox_settings[char_id] = {
                 'emotion': 1.0,
                 'speed': 1.0,
                 'cfg_weight': 0.5,
-                'voice_mode': 'voice_selection',  # NEW: voice_selection | voice_clone
+                'voice_mode': 'voice_selection',  # voice_selection | voice_clone (SHARED mode)
                 'voice_id': 'female_young',  # For voice_selection mode
                 'voice_clone_path': None,  # For voice_clone mode
-                'voice_clone_status': 'none'  # Track clone status
+                'voice_clone_status': 'none',  # Track clone status
+                # NEW: Whisper voice settings (shared mode với main voice)
+                'whisper_voice_id': default_whisper_voice,  # Default or character-specific whisper voice ID
+                'whisper_voice_clone_path': None,  # For whisper voice clone mode
+                'whisper_voice_clone_status': 'none'  # Track whisper clone status
             }
             
             # Store widget references for mode switching
@@ -7388,9 +7174,16 @@ Create a video script about "[TOPIC]" with **complete creative freedom** accordi
                 'stacked_widget': stacked_widget,
                 'voice_combo': voice_combo,
                 'voice_clone_btn': voice_clone_btn,
-                'status_label': status_label,
-                'quick_btn': quick_btn
+                'whisper_stacked_widget': whisper_stacked_widget,  # NEW
+                'whisper_voice_combo': whisper_voice_combo,  # NEW
+                'whisper_clone_btn': whisper_clone_btn,  # NEW
+                'status_label': status_label
             }
+            
+            # Connect mode switching để sync giữa main và whisper columns
+            mode_combo.currentIndexChanged.connect(
+                lambda index, cid=char_id, main_stack=stacked_widget, whisper_stack=whisper_stacked_widget: self.update_shared_voice_mode(cid, main_stack, whisper_stack, index)
+            )
     
     def update_character_emotion_from_input(self, char_id, text):
         """Cập nhật emotion cho nhân vật cụ thể từ input (now string-based) và tự động cập nhật parameters"""
@@ -7537,8 +7330,6 @@ Create a video script about "[TOPIC]" with **complete creative freedom** accordi
         print(f"[THEATER] Voice changed for {char_id}: {voice_id}")
         print(f"   [SPARKLE] Auto-adjusted: emotion={voice_gender_params['emotion']}, speed={voice_gender_params['speed']:.1f}, cfg_weight={voice_gender_params['cfg_weight']:.2f}")
     
-<<<<<<< Updated upstream
-=======
     def update_character_whisper_voice(self, char_id, voice_id):
         """Cập nhật whisper voice cho nhân vật cụ thể"""
         if char_id not in self.character_chatterbox_settings:
@@ -7614,7 +7405,6 @@ Create a video script about "[TOPIC]" with **complete creative freedom** accordi
             if tooltip_text:
                 whisper_clone_btn.setToolTip(tooltip_text)
     
->>>>>>> Stashed changes
     def update_character_voice_mode(self, char_id, voice_mode):
         """Cập nhật voice mode cho nhân vật và switch UI accordingly"""
         if char_id not in self.character_chatterbox_settings:
@@ -7628,30 +7418,19 @@ Create a video script about "[TOPIC]" with **complete creative freedom** accordi
             widgets = self.character_widgets[char_id]
             stacked_widget = widgets['stacked_widget']
             status_label = widgets['status_label']
-            quick_btn = widgets['quick_btn']
             
             # Switch stacked widget and update status
             if voice_mode == 'voice_selection':
                 stacked_widget.setCurrentIndex(0)  # Voice combo
                 status_label.setText("[EMOJI]")
                 status_label.setToolTip("Voice Selection mode - chọn giọng có sẵn")
-<<<<<<< Updated upstream
-                quick_btn.setToolTip("Voice options")
-                print(f"🗣️ {char_id}: Switched to VOICE SELECTION mode")
-=======
                 print(f"[EMOJI] {char_id}: Switched to VOICE SELECTION mode")
->>>>>>> Stashed changes
                 
             elif voice_mode == 'voice_clone':
                 stacked_widget.setCurrentIndex(1)  # Voice clone button
                 status_label.setText("[EMOJI]")
                 status_label.setToolTip("Voice Clone mode - nhân bản giọng từ mẫu audio")
-<<<<<<< Updated upstream
-                quick_btn.setToolTip("Test voice clone")
-                print(f"🎤 {char_id}: Switched to VOICE CLONE mode")
-=======
                 print(f"[EMOJI] {char_id}: Switched to VOICE CLONE mode")
->>>>>>> Stashed changes
     
     def _get_voice_gender_parameters(self, voice_id):
         """Lấy parameters tối ưu cho voice dựa trên gender (như AI Gender Analysis system)"""
@@ -7987,74 +7766,24 @@ Create a video script about "[TOPIC]" with **complete creative freedom** accordi
         dialog.accept()
     
     def select_character_voice_clone_folder(self, char_id):
-        """Chọn thư mục và file voice sample cho nhân vật cụ thể với UI selection"""
-        from PySide6.QtWidgets import QFileDialog, QMessageBox, QProgressDialog
+        """Chọn file voice sample trực tiếp cho nhân vật cụ thể"""
+        from PySide6.QtWidgets import QFileDialog, QMessageBox
         
         character_name = self.get_character_name_by_id(char_id)
-        folder = QFileDialog.getExistingDirectory(
+        file_path, _ = QFileDialog.getOpenFileName(
             self, 
-            f"Chọn thư mục voice samples cho {character_name}",
+            f"Chọn audio file cho {character_name}",
             "",
-            QFileDialog.ShowDirsOnly | QFileDialog.DontResolveSymlinks
+            "Audio Files (*.wav *.mp3 *.flac *.ogg *.m4a)"
         )
         
-        if folder:
+        if file_path:
             # Update status to processing
             self._update_voice_clone_status_ui(char_id, 'processing', 'Đang xử lý...')
             
-            # Kiểm tra xem folder có audio files không
-            import os
-            audio_extensions = ['.wav', '.mp3', '.flac', '.ogg', '.m4a']
-            audio_files = []
-            
             try:
-                print(f"🔍 Scanning folder: {folder}")
-                all_files = os.listdir(folder)
-                print(f"📂 Found {len(all_files)} total files: {all_files}")
+                import os
                 
-<<<<<<< Updated upstream
-                for file in all_files:
-                    file_lower = file.lower()
-                    print(f"   Checking file: {file} (lowercase: {file_lower})")
-                    
-                    if any(file_lower.endswith(ext) for ext in audio_extensions):
-                        print(f"   ✅ Audio file detected: {file}")
-                        # Get file info
-                        file_path = os.path.join(folder, file)
-                        
-                        try:
-                            file_size = os.path.getsize(file_path)
-                            file_size_mb = file_size / (1024 * 1024)
-                            
-                            # Try to get audio duration (optional)
-                            duration_info = ""
-                            try:
-                                import mutagen
-                                audio_file = mutagen.File(file_path)
-                                if audio_file and hasattr(audio_file, 'info') and hasattr(audio_file.info, 'length'):
-                                    duration = audio_file.info.length
-                                    duration_info = f" ({duration:.1f}s)"
-                            except Exception as e:
-                                print(f"   ⚠️ Could not get duration for {file}: {e}")
-                                pass  # Skip duration if mutagen not available
-                            
-                            audio_files.append({
-                                'name': file,
-                                'path': file_path,
-                                'size_mb': file_size_mb,
-                                'duration_info': duration_info,
-                                'display_name': f"{file} ({file_size_mb:.1f}MB{duration_info})"
-                            })
-                            print(f"   ✅ Added to list: {file} ({file_size_mb:.1f}MB)")
-                            
-                        except Exception as e:
-                            print(f"   ❌ Error processing file {file}: {e}")
-                            continue
-                    else:
-                        print(f"   ❌ Not an audio file: {file}")
-                
-                print(f"🎵 Total audio files found: {len(audio_files)}")
-=======
                 # Get file info
                 file_size = os.path.getsize(file_path)
                 file_size_mb = file_size / (1024 * 1024)
@@ -8071,67 +7800,15 @@ Create a video script about "[TOPIC]" with **complete creative freedom** accordi
                 except Exception as e:
                     print(f"[WARNING] Could not get duration for {file_name}: {e}")
                     pass  # Skip duration if mutagen not available
->>>>>>> Stashed changes
                 
-                if not audio_files:
-                    self._update_voice_clone_status_ui(char_id, 'error', 'Không tìm thấy audio files')
-                    
-                    # Create detailed message with file list for debugging
-                    debug_message = f"Thư mục '{folder}' không chứa file audio nào.\n\n"
-                    debug_message += f"Supported formats: {', '.join(audio_extensions)}\n\n"
-                    debug_message += f"Files found in folder ({len(all_files)} total):\n"
-                    for i, file in enumerate(all_files[:10]):  # Show first 10 files
-                        debug_message += f"  • {file}\n"
-                    if len(all_files) > 10:
-                        debug_message += f"  ... and {len(all_files) - 10} more files"
-                    
-                    QMessageBox.warning(
-                        self, 
-                        "⚠️ Không tìm thấy audio files", 
-                        debug_message
-                    )
-                    return
+                # Lưu file path cụ thể
+                if char_id not in self.character_chatterbox_settings:
+                    self.character_chatterbox_settings[char_id] = {}
                 
-                # Show file selection dialog
-                print(f"🔍 Calling file selection dialog with {len(audio_files)} files")
-                selected_file = self._show_voice_file_selection_dialog(character_name, folder, audio_files)
-                print(f"🎯 Dialog result: {selected_file}")
+                self.character_chatterbox_settings[char_id]['voice_clone_path'] = file_path
+                self.character_chatterbox_settings[char_id]['voice_clone_status'] = 'ready'
+                self.character_chatterbox_settings[char_id]['voice_clone_folder'] = os.path.dirname(file_path)
                 
-<<<<<<< Updated upstream
-                if selected_file is None:
-                    print("⚠️ User cancelled file selection")
-                    self._update_voice_clone_status_ui(char_id, 'none', 'Đã hủy chọn file')
-                    return
-                
-                if selected_file:
-                    # Lưu file path cụ thể
-                    if char_id not in self.character_chatterbox_settings:
-                        self.character_chatterbox_settings[char_id] = {}
-                    
-                    self.character_chatterbox_settings[char_id]['voice_clone_path'] = selected_file['path']
-                    self.character_chatterbox_settings[char_id]['voice_clone_status'] = 'ready'
-                    self.character_chatterbox_settings[char_id]['voice_clone_folder'] = folder
-                    
-                    # Update UI status
-                    self._update_voice_clone_status_ui(char_id, 'ready', f"File: {selected_file['name']}")
-                    
-                    print(f"📁 Voice clone file set for {character_name}: {selected_file['path']}")
-                    print(f"   📂 Folder: {folder}")
-                    print(f"   🎵 Selected: {selected_file['name']} ({selected_file['size_mb']:.1f}MB{selected_file['duration_info']})")
-                    
-                    QMessageBox.information(
-                        self,
-                        "✅ Voice Clone Setup",
-                        f"Đã thiết lập voice cloning cho {character_name}\n"
-                        f"Folder: {os.path.basename(folder)}\n"
-                        f"File: {selected_file['name']}\n"
-                        f"Size: {selected_file['size_mb']:.1f}MB{selected_file['duration_info']}"
-                    )
-                else:
-                    # User cancelled file selection
-                    self._update_voice_clone_status_ui(char_id, 'none', 'Chưa chọn file')
-                
-=======
                 # Update UI status
                 self._update_voice_clone_status_ui(char_id, 'ready', f"File: {file_name}")
         
@@ -8146,7 +7823,6 @@ Create a video script about "[TOPIC]" with **complete creative freedom** accordi
                     f"Size: {file_size_mb:.1f}MB{duration_info}"
                 )
     
->>>>>>> Stashed changes
             except Exception as e:
                 self._update_voice_clone_status_ui(char_id, 'error', f'Error: {str(e)}')
                 QMessageBox.critical(
@@ -8309,9 +7985,6 @@ Create a video script about "[TOPIC]" with **complete creative freedom** accordi
     def map_emotion_to_parameters(self, emotion_label, base_exaggeration=1.0):
         """Map emotion label to optimized emotion exaggeration + cfg_weight parameters"""
         
-<<<<<<< Updated upstream
-        # 🎭 Enhanced 22-Emotion Mapping Table (English labels for Chatterbox compatibility)
-=======
         # [THEATER] USE UNIFIED EMOTION SYSTEM (load từ unified_emotions.json)
         try:
             from src.core.unified_emotion_system import UnifiedEmotionSystem
@@ -8339,7 +8012,6 @@ Create a video script about "[TOPIC]" with **complete creative freedom** accordi
             print(f"   Falling back to hardcode mapping for '{emotion_label}'")
         
         # [REFRESH] FALLBACK: Enhanced 22-Emotion Mapping Table (English labels for Chatterbox compatibility)
->>>>>>> Stashed changes
         emotion_mapping = {
             # 1. Neutral - Objective narration, reporting
             'neutral': {'exaggeration': 0.5, 'cfg_weight': 0.5},
@@ -8480,7 +8152,7 @@ Create a video script about "[TOPIC]" with **complete creative freedom** accordi
             'fear': {'exaggeration': 1.4, 'cfg_weight': 0.5},
             'confident': {'exaggeration': 1.5, 'cfg_weight': 0.6},
             'shy': {'exaggeration': 0.6, 'cfg_weight': 0.4},
-            'dramatic': {'exaggeration': 1.8, 'cfg_weight': 0.6},
+            'dramatic': {'exaggeration': 1.2, 'cfg_weight': 0.6},
         }
         
         # Get mapping for emotion label (English labels)
@@ -8498,11 +8170,7 @@ Create a video script about "[TOPIC]" with **complete creative freedom** accordi
         
         # Log emotion mapping results (English labels for better clarity)
         if emotion_label.lower() not in ['neutral', 'normal', 'calm']:
-<<<<<<< Updated upstream
-            print(f"   🎭 Emotion Auto-Mapping: '{emotion_label}' → exaggeration={final_exaggeration:.2f}, cfg_weight={cfg_weight:.2f}")
-=======
             print(f"   [THEATER] Emotion Auto-Mapping (Fallback): '{emotion_label}' → exaggeration={final_exaggeration:.2f}, cfg_weight={cfg_weight:.2f}")
->>>>>>> Stashed changes
         
         return final_exaggeration, cfg_weight
     
@@ -9069,13 +8737,9 @@ Create a {content_type.lower()} video script about "[TOPIC]" using the following
         else:
             self.inner_voice_json_guide.setText(
                 "<b>Thoại nội tâm đang tắt.</b> Không cần khai báo cờ <code>inner_voice</code> trong JSON.")
+
+    # === NEW: Manual Table Mode Functions ===
     
-<<<<<<< Updated upstream
-    def on_optimization_settings_changed(self, settings):
-        """Handle TTS optimization settings changes"""
-        try:
-            print(f"🚀 TTS Optimization settings changed: {settings}")
-=======
     def setup_manual_table_mode(self):
         """Setup specific configurations for manual table mode"""
         # Initialize manual table data
@@ -9359,25 +9023,8 @@ Create a {content_type.lower()} video script about "[TOPIC]" using the following
             content = content_item.text().strip()
             if not content:
                 continue
->>>>>>> Stashed changes
             
-            # Apply settings to RealChatterboxProvider if available
             try:
-<<<<<<< Updated upstream
-                from ..tts.real_chatterbox_provider import RealChatterboxProvider
-                provider = RealChatterboxProvider.get_instance()
-                
-                # Update optimization settings
-                if hasattr(provider, 'optimized_provider') and provider.optimized_provider:
-                    provider.optimized_provider.current_settings.update(settings)
-                    print("✅ Applied optimization settings to provider")
-                    
-            except Exception as e:
-                print(f"⚠️ Could not apply settings to provider: {e}")
-                
-        except Exception as e:
-            print(f"❌ Error handling optimization settings change: {e}")
-=======
                 segment_id = int(segment_item.text())
             except ValueError:
                 segment_id = row + 1
@@ -9866,4 +9513,3 @@ Create a {content_type.lower()} video script about "[TOPIC]" using the following
         except Exception as e:
             print(f"Error getting extended settings: {e}")
             return {}
->>>>>>> Stashed changes

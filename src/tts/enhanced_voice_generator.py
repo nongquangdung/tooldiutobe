@@ -45,6 +45,10 @@ class VoiceGenerationRequest:
     cfg_weight: float = 3.0
     seed: int = -1
 
+    # Multi-character and inner voice support
+    inner_voice: bool = False
+    inner_voice_type: Optional[str] = None  # "light", "deep", "dreamy"
+
 @dataclass
 class VoiceGenerationResult:
     """Voice generation result with metadata"""
@@ -96,19 +100,6 @@ class EnhancedVoiceGenerator:
                 "description": voice.description
             }
         
-<<<<<<< Updated upstream
-        # Real Chatterbox voices (fallback)
-        real_chatterbox_voices = ["narrator", "character1", "character2", "character3"]
-        for voice_id in real_chatterbox_voices:
-            if voice_id not in self.voice_quality_map:
-                self.voice_quality_map[voice_id] = {
-                    "provider": "real_chatterbox", 
-                    "quality": 7.5,
-                    "gender": "neutral",
-                    "name": voice_id.title(),
-                    "description": f"Local {voice_id} voice"
-                }
-=======
         # Real Chatterbox voices - Load từ ChatterboxVoicesManager (voices/ folder)
         try:
             # Import ChatterboxVoicesManager để load voices từ voices/ folder
@@ -133,7 +124,6 @@ class EnhancedVoiceGenerator:
         except Exception as e:
             print(f"[WARNING] Could not load voices from ChatterboxVoicesManager: {e}")
             print("   [EMOJI] No fallback mock voices will be added. Voice list remains empty if loading failed.")
->>>>>>> Stashed changes
     
     def get_available_voices(self) -> Dict[str, Dict[str, Any]]:
         """Get all available voices from all providers"""
@@ -209,20 +199,29 @@ class EnhancedVoiceGenerator:
             Provider name ("chatterbox" or "real_chatterbox")
         """
         
-        if voice_id not in self.voice_quality_map:
-            return "real_chatterbox"  # Fallback
+        # Cache connection status để không phải check mỗi lần
+        if not hasattr(self, '_chatterbox_available'):
+            self._chatterbox_available = None
+            self._last_check_time = 0
         
-        voice_info = self.voice_quality_map[voice_id]
-        preferred_provider = voice_info["provider"]
-        
-        # Check if Chatterbox server is available
-        if preferred_provider == "chatterbox":
+        # Check connection mỗi 30 giây một lần (cache)
+        import time
+        current_time = time.time()
+        if (self._chatterbox_available is None or 
+            current_time - self._last_check_time > 30):
+            
             connection_test = self.chatterbox_manager.test_chatterbox_connection()
-            if not connection_test.get("success"):
-                logger.warning("Chatterbox TTS Server not available, falling back to Real Chatterbox")
-                return "real_chatterbox"
+            self._chatterbox_available = connection_test.get("success", False)
+            self._last_check_time = current_time
+            
+            if not self._chatterbox_available:
+                logger.info("Chatterbox TTS Server not available, using Real Chatterbox")
         
-        return preferred_provider
+        # Return appropriate provider
+        if self._chatterbox_available:
+            return "chatterbox"
+        else:
+            return "real_chatterbox"
     
     def generate_voice(self, request: VoiceGenerationRequest) -> VoiceGenerationResult:
         """
@@ -308,8 +307,6 @@ class EnhancedVoiceGenerator:
                 generation_time=generation_time
             )
     
-<<<<<<< Updated upstream
-=======
     def generate_voice_batch(self, requests: List[VoiceGenerationRequest]) -> List[VoiceGenerationResult]:
         """
         Generate a batch of voice audio files.
@@ -387,7 +384,6 @@ class EnhancedVoiceGenerator:
             logger.error(traceback.format_exc())
             return [VoiceGenerationResult(success=False, error_message=str(e)) for _ in requests]
 
->>>>>>> Stashed changes
     def _generate_with_chatterbox(self, request: VoiceGenerationRequest) -> Dict[str, Any]:
         """Generate using Chatterbox TTS Server"""
         return self.chatterbox_manager.generate_audio_chatterbox(
@@ -404,46 +400,39 @@ class EnhancedVoiceGenerator:
     def _generate_with_real_chatterbox(self, request: VoiceGenerationRequest) -> Dict[str, Any]:
         """Generate using Real Chatterbox provider"""
         try:
-            # Map voice_id to Real Chatterbox format
-            voice_mapping = {
-                # Map Chatterbox voices to available Real Chatterbox voices
-                "narrator": "narrator",
-                "character1": "character1", 
-                "character2": "character2",
-                "character3": "character3"
-            }
+            # Use voice_id directly instead of hardcoded mapping
+            voice_id = request.voice_id
             
-<<<<<<< Updated upstream
-            mapped_voice = request.voice_id  # giữ nguyên voice được truyền từ phía trên
-=======
             # Log voice assignment for debugging
             print(f"   [EMOJI] Enhanced Voice Generator: Using voice_id='{voice_id}' for character '{request.character_id}'")
->>>>>>> Stashed changes
             
-            # Generate with Real Chatterbox có truyền voice_name
+            # Generate with Real Chatterbox - now including emotion parameter
             result = self.real_chatterbox.generate_voice(
                 text=request.text,
                 save_path=request.output_path,
                 voice_sample_path=None,  # Use predefined voice
+                emotion=request.emotion,  # NEW: Pass emotion parameter
                 emotion_exaggeration=request.exaggeration,
                 speed=request.speed,
-                voice_name=mapped_voice,
-                cfg_weight=request.cfg_weight
+                cfg_weight=request.cfg_weight,
+                voice_name=voice_id,  # Pass voice_id directly
+                inner_voice=request.inner_voice,
+                inner_voice_type=request.inner_voice_type
             )
-            success = result.get("success", False)
             
-            if success and os.path.exists(request.output_path):
+            if result.get("success") and os.path.exists(request.output_path):
                 return {
                     "success": True,
                     "output_path": request.output_path,
-                    "voice_used": mapped_voice,
+                    "voice_used": voice_id,
                     "quality_rating": 7.5,
                     "provider": "real_chatterbox"
                 }
             else:
+                # Propagate the actual error message from real_chatterbox.generate_voice
                 return {
                     "success": False,
-                    "error": "Real Chatterbox generation failed"
+                    "error": result.get("error", "Real Chatterbox generation failed (unknown error)")
                 }
                 
         except Exception as e:
