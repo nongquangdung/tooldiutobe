@@ -50,7 +50,8 @@
       "Bash(\"venv_clean/Scripts/pip.exe\" show:*)",
       "Bash(\".venv_clean/Scripts/python.exe\" -c \"import sys; sys.path.insert(0, ''src''); from tts.voice_generator import VoiceGenerator; vg = VoiceGenerator(); print(''VoiceGenerator methods:''); [print(f''  {method}'') for method in dir(vg) if not method.startswith(''_'')]\")",
       "Bash(\".venv_clean/Scripts/python.exe\" test_chatterbox_method.py)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(sed:*)"
     ],
     "deny": []
   }

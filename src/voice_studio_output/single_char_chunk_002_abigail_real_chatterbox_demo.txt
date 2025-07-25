@@ -1,0 +1,20 @@
+Chatterbox TTS Demo Mode
+==================================================
+Device: GPU (NVIDIA GeForce GTX 1080) - Real Chatterbox
+Platform: Other
+==================================================
+Text: Every page you copy preserves religious texts, royal decrees, family genealogies, medical recipes, or legal codes. The printing press won’t arrive for another few centuries, so people like you are the entire publishing industry. Congratulations, you’re essential—but also underpaid, overworked, and perpetually thirsty.
+Voice: abigail
+Emotion: neutral (simulated)
+Emotion Exaggeration: 1.0 (simulated)
+Speed: 1.0
+CFG Weight: 0.6 (simulated)
+Temperature: 0.8 (simulated)
+==================================================
+This is a demo file created because:
+   - Chatterbox TTS not installed
+
+To get real TTS on GPU:
+   1. Use Linux/Windows with NVIDIA GPU
+   2. Install: pip install chatterbox-tts torch[cuda]
+   3. Configure proper GPU drivers

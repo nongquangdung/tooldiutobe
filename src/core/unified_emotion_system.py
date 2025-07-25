@@ -65,11 +65,23 @@ class UnifiedEmotionSystem:
         # === Load from file if exists ===
         config_file = self.config_dir / "unified_emotions.json"
         if config_file.exists():
-            with open(config_file, "r", encoding="utf-8") as f:
-                data = json.load(f)
-                for name, params in data.get("emotions", {}).items():
-                    self.unified_emotions[name] = UnifiedEmotionParameters(**params)
-                self.emotion_aliases = data.get("aliases", {})
+            try:
+                with open(config_file, "r", encoding="utf-8") as f:
+                    content = f.read().strip()
+                    if content:  # Check if file is not empty
+                        data = json.loads(content)
+                        for name, params in data.get("emotions", {}).items():
+                            self.unified_emotions[name] = UnifiedEmotionParameters(**params)
+                        self.emotion_aliases = data.get("aliases", {})
+                    else:
+                        # File is empty, recreate
+                        raise ValueError("Empty config file")
+            except (json.JSONDecodeError, ValueError, KeyError) as e:
+                print(f"[WARNING] Error loading emotion config: {e}")
+                print("[INFO] Recreating emotion config...")
+                self.create_unified_emotion_database()
+                self.generate_backward_compatibility_mapping()
+                self.save_unified_config()
         else:
             self.create_unified_emotion_database()
             self.generate_backward_compatibility_mapping()

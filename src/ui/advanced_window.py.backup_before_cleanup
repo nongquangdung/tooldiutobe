@@ -32,6 +32,9 @@ class LanguageManager:
                 'tab_license': 'License',
                 'tab_projects': 'Dự án', 
                 'tab_settings': 'Cài đặt',
+                'tab_workflow': '🎬 Workflow',
+                'tab_voice_tools': '⚙️ Voice Tools', 
+                'tab_system': 'ℹ️ System',
                 
                 # Settings
                 'language_interface': 'Ngôn ngữ giao diện:',
@@ -177,7 +180,7 @@ class LanguageManager:
 language_manager = LanguageManager()
 from .manual_voice_setup_dialog import ManualVoiceSetupDialog
 from .emotion_config_tab import EmotionConfigTab
-from .macos_styles import get_macos_window_size, get_macos_stylesheet
+from .macos_styles import get_macos_window_size, get_macos_stylesheet, get_dark_mode_enabled, get_accent_color
 
 # Import pipeline
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
@@ -316,14 +319,13 @@ class AdvancedMainWindow(QMainWindow):
         # Initialize language manager first
         self.language_manager = LanguageManager()
         
+        # Platform detection và theme setup TRƯỚC
+        self.platform = platform.system()
+        self.setup_platform_config()
+        
         # Tối ưu kích thước cho MacOS 13 inch
-        if platform.system() == "Darwin":  # macOS
-            window_size = get_macos_window_size()
-            self.setGeometry(50, 50, window_size['default_width'], window_size['default_height'])
-            self.setMinimumSize(window_size['min_width'], window_size['min_height'])
-            self.setMaximumSize(window_size['max_width'], window_size['max_height'])
-        else:
-            self.setGeometry(100, 100, 1000, 700)
+        # Responsive window system cho tất cả platforms  
+        self.setup_responsive_window()
         
         # Khởi tạo pipeline và API manager
         self.pipeline = VideoPipeline()
@@ -335,26 +337,31 @@ class AdvancedMainWindow(QMainWindow):
         # Thiết lập style cho macOS
         self.setup_macos_style()
         
+        # Auto-detect theme changes (macOS only)
+        if self.platform == "Darwin":
+            self.theme_timer = QTimer()
+            self.theme_timer.timeout.connect(self.check_theme_change)
+            self.theme_timer.start(5000)  # Check every 5 seconds
+        
         # Widget trung tâm với tabs
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
         
         layout = QVBoxLayout()
-        layout.setContentsMargins(10, 10, 10, 10)  # Giảm margin
+        layout.setContentsMargins(24, 24, 24, 24)  # Standardized 24px margins
+        layout.setSpacing(16)  # 8pt grid spacing
         central_widget.setLayout(layout)
         
         # Tab widget
         self.tabs = QTabWidget()
         layout.addWidget(self.tabs)
         
-        # Tạo các tabs
-        self.create_video_tab()
-        self.create_voice_studio_tab()
-        self.create_voice_conversion_tab()
-        self.create_emotion_config_tab()
-        self.create_license_tab()
-        self.create_projects_tab()
-        self.create_settings_tab()
+        # Tạo các tabs với grouping logic mới
+        self.create_workflow_tab()      # 🎬 Workflow (Video + Voice Studio)
+        self.create_voice_tools_tab()   # ⚙️ Voice Tools (Advanced features)  
+        self.create_projects_tab()      # 📁 Projects (Management)
+        self.create_settings_tab()      # 🔧 Settings (Configuration)
+        self.create_system_tab()        # ℹ️ System (License + Info)
         
         # Tạo status bar
         self.create_status_bar()
@@ -401,27 +408,295 @@ class AdvancedMainWindow(QMainWindow):
             if hasattr(self, 'api_status_label'):
                 self.api_status_label.setText("[WARNING] API: Error")
     
+    def setup_platform_config(self):
+        """Setup platform-specific configurations"""
+        if self.platform == "Darwin":  # macOS
+            self.dark_mode = get_dark_mode_enabled()
+            self.accent_color = get_accent_color()
+            self.native_features = True
+        elif self.platform == "Windows":
+            # Windows-specific config
+            self.dark_mode = self.is_windows_dark_mode()
+            self.accent_color = '#0078D4'  # Windows 10/11 blue
+            self.native_features = True
+        else:  # Linux
+            # Linux-specific config  
+            self.dark_mode = self.is_linux_dark_mode()
+            self.accent_color = '#4A90E2'  # Standard blue
+            self.native_features = False
+    
+    def is_windows_dark_mode(self):
+        """Detect Windows dark mode"""
+        try:
+            import winreg
+            registry = winreg.ConnectRegistry(None, winreg.HKEY_CURRENT_USER)
+            key = winreg.OpenKey(registry, r"SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize")
+            value, _ = winreg.QueryValueEx(key, "AppsUseLightTheme")
+            return value == 0
+        except:
+            return False
+    
+    def is_linux_dark_mode(self):
+        """Detect Linux dark mode (basic detection)"""
+        try:
+            import subprocess
+            result = subprocess.run(['gsettings', 'get', 'org.gnome.desktop.interface', 'gtk-theme'], 
+                                  capture_output=True, text=True)
+            return 'dark' in result.stdout.lower()
+        except:
+            return False
+
     def setup_macos_style(self):
-        """Thiết lập style phù hợp với macOS"""
-        if platform.system() == "Darwin":
+        """Thiết lập style phù hợp với macOS với dark mode support"""
+        if self.platform == "Darwin":
             # Font system của macOS
             font = QFont("-apple-system", 13)  # macOS system font
             self.setFont(font)
             
-            # Sử dụng stylesheet từ file riêng
-            self.setStyleSheet(get_macos_stylesheet())
+            # Sử dụng stylesheet từ file riêng với dark mode
+            self.setStyleSheet(get_macos_stylesheet(self.dark_mode))
+        else:
+            # Cross-platform styling
+            font = QFont("Segoe UI", 10) if self.platform == "Windows" else QFont("Ubuntu", 10)
+            self.setFont(font)
+            self.setStyleSheet(get_macos_stylesheet(self.dark_mode))
     
-    def create_video_tab(self):
-        """Tab tạo video mới với layout tối ưu cho MacOS"""
+    def setup_responsive_window(self):
+        """Setup responsive window sizing for all platforms"""
+        screen = QApplication.primaryScreen().geometry()
+        screen_width = screen.width()
+        screen_height = screen.height()
+        
+        # Calculate optimal window size based on screen
+        if screen_width >= 2560:  # 4K+ monitors
+            width, height = 1600, 1000
+        elif screen_width >= 1920:  # Full HD+ monitors  
+            width, height = 1400, 900
+        elif screen_width >= 1366:  # Standard laptops
+            width, height = 1200, 800
+        else:  # Small screens
+            width, height = 1000, 700
+            
+        # Center window on screen
+        x = (screen_width - width) // 2
+        y = (screen_height - height) // 2
+        
+        self.setGeometry(x, y, width, height)
+        self.setMinimumSize(1000, 600)  # Absolute minimum
+        
+        # Platform-specific optimizations
+        if self.platform == "Darwin":
+            # macOS-specific window behavior
+            self.setMaximumSize(screen_width - 100, screen_height - 100)
+        
+    def check_theme_change(self):
+        """Check for system theme changes (macOS only)"""
+        if self.platform == "Darwin":
+            new_dark_mode = get_dark_mode_enabled()
+            new_accent_color = get_accent_color()
+            
+            if new_dark_mode != self.dark_mode or new_accent_color != self.accent_color:
+                self.dark_mode = new_dark_mode
+                self.accent_color = new_accent_color
+                self.setup_macos_style()  # Re-apply styling
+    
+    def get_primary_button_style(self):
+        """Primary button styling với modern design"""
+        return """
+            QPushButton {
+                background-color: #007AFF;
+                color: white;
+                border: none;
+                padding: 12px 20px;
+                border-radius: 10px;
+                font-weight: 600;
+                font-size: 13px;
+                min-height: 24px;
+            }
+            QPushButton:hover {
+                background-color: #0056CC;
+            }
+            QPushButton:pressed {
+                background-color: #004499;
+            }
+        """
+    
+    def get_secondary_button_style(self):
+        """Secondary button styling"""
+        return """
+            QPushButton {
+                background-color: #f1f3f4;
+                color: #1a1a1a;
+                border: 1px solid #dadce0;
+                padding: 12px 20px;
+                border-radius: 10px;
+                font-weight: 500;
+                font-size: 13px;
+                min-height: 24px;
+            }
+            QPushButton:hover {
+                background-color: #e8eaed;
+                border-color: #007AFF;
+            }
+        """
+    
+    def create_workflow_tab(self):
+        """🎬 Tab Workflow tích hợp Video + Voice Studio"""
         tab = QWidget()
         
-        # Sử dụng scroll area để tránh tràn màn hình
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        # Main layout với proper spacing
+        main_layout = QVBoxLayout()
+        main_layout.setContentsMargins(16, 16, 16, 16)
+        main_layout.setSpacing(16)
+        tab.setLayout(main_layout)
         
-        content_widget = QWidget()
+        # Header section với title và quick actions
+        header_layout = QHBoxLayout()
+        header_title = QLabel("🎬 Workflow - Video & Voice Generation")
+        header_title.setStyleSheet("""
+            font-size: 18px;
+            font-weight: 600; 
+            color: #1a1a1a;
+            margin-bottom: 8px;
+        """)
+        header_layout.addWidget(header_title)
+        header_layout.addStretch()
+        
+        # Quick action toolbar
+        quick_new_btn = QPushButton("➕ New Project")
+        quick_import_btn = QPushButton("📁 Import")
+        quick_new_btn.setStyleSheet(self.get_primary_button_style())
+        quick_import_btn.setStyleSheet(self.get_secondary_button_style())
+        
+        header_layout.addWidget(quick_import_btn)
+        header_layout.addWidget(quick_new_btn)
+        main_layout.addLayout(header_layout)
+        
+        # Content area với splitter cho video và voice
+        content_splitter = QSplitter(Qt.Horizontal)
+        main_layout.addWidget(content_splitter)
+        
+        # Left panel: Video Generation
+        video_panel = self.create_video_generation_panel()
+        content_splitter.addWidget(video_panel)
+        
+        # Right panel: Voice Studio (simplified)
+        voice_panel = self.create_voice_studio_panel()
+        content_splitter.addWidget(voice_panel)
+        
+        # Set splitter proportions (60% video, 40% voice)
+        content_splitter.setSizes([600, 400])
+        
+        # Bottom action bar
+        action_bar = self.create_workflow_action_bar()
+        main_layout.addWidget(action_bar)
+        
+        # Add tab
+        self.tabs.addTab(tab, self.language_manager.get_text('tab_workflow'))
+        
+    def create_video_generation_panel(self):
+        """Panel tạo video với layout cải thiện"""
+        panel = QFrame()
+        panel.setFrameStyle(QFrame.StyledPanel)
+        panel.setStyleSheet("""
+            QFrame {
+                background-color: #f8f9fa;
+                border: 1px solid #e9ecef;
+                border-radius: 12px;
+                padding: 16px;
+            }
+        """)
+        
         layout = QVBoxLayout()
+        layout.setSpacing(16)
+        panel.setLayout(layout)
+        
+        # Section header
+        video_header = QLabel("🎬 Video Generation")
+        video_header.setStyleSheet("font-size: 16px; font-weight: 600; margin-bottom: 8px;")
+        layout.addWidget(video_header)
+        
+        # Placeholder cho existing video content
+        placeholder = QLabel("Video generation content sẽ được tích hợp vào đây...")
+        placeholder.setStyleSheet("color: #666; font-style: italic; padding: 20px;")
+        layout.addWidget(placeholder)
+        
+        return panel
+        
+    def create_voice_studio_panel(self):
+        """Panel voice studio simplified"""
+        panel = QFrame()
+        panel.setFrameStyle(QFrame.StyledPanel)
+        panel.setStyleSheet("""
+            QFrame {
+                background-color: #f8f9fa;
+                border: 1px solid #e9ecef;
+                border-radius: 12px;
+                padding: 16px;
+            }
+        """)
+        
+        layout = QVBoxLayout()
+        layout.setSpacing(16)
+        panel.setLayout(layout)
+        
+        # Section header
+        voice_header = QLabel("🎙️ Voice Studio")
+        voice_header.setStyleSheet("font-size: 16px; font-weight: 600; margin-bottom: 8px;")
+        layout.addWidget(voice_header)
+        
+        # Placeholder cho voice content
+        placeholder = QLabel("Voice studio content sẽ được tích hợp vào đây...")
+        placeholder.setStyleSheet("color: #666; font-style: italic; padding: 20px;")
+        layout.addWidget(placeholder)
+        
+        return panel
+        
+    def create_workflow_action_bar(self):
+        """Action bar cho workflow tab"""
+        action_frame = QFrame()
+        action_frame.setStyleSheet("""
+            QFrame {
+                background-color: #f8f9fa;
+                border-top: 1px solid #e9ecef;
+                border-radius: 0 0 12px 12px;
+            }
+        """)
+        
+        layout = QHBoxLayout()
+        layout.setContentsMargins(16, 12, 16, 12)
+        action_frame.setLayout(layout)
+        
+        # Status info
+        status_label = QLabel("Ready to generate content")
+        status_label.setStyleSheet("color: #666; font-size: 13px;")
+        layout.addWidget(status_label)
+        
+        layout.addStretch()
+        
+        # Action buttons
+        clear_btn = QPushButton("🗑️ Clear")
+        generate_btn = QPushButton("🚀 Generate")
+        
+        clear_btn.setStyleSheet(self.get_secondary_button_style())
+        generate_btn.setStyleSheet(self.get_primary_button_style())
+        
+        layout.addWidget(clear_btn)
+        layout.addWidget(generate_btn)
+        
+        return action_frame
+        
+    def create_voice_tools_tab(self):
+        """⚙️ Voice Tools tab - advanced voice features"""
+        tab = QLabel("⚙️ Voice Tools tab - đang được phát triển...")
+        tab.setStyleSheet("padding: 20px; color: #666; font-size: 14px;")
+        self.tabs.addTab(tab, self.language_manager.get_text('tab_voice_tools'))
+        
+    def create_system_tab(self):
+        """ℹ️ System tab - license and info"""
+        tab = QLabel("ℹ️ System tab - đang được phát triển...")
+        tab.setStyleSheet("padding: 20px; color: #666; font-size: 14px;")
+        self.tabs.addTab(tab, self.language_manager.get_text('tab_system'))
         layout.setSpacing(8)  # Giảm spacing
         content_widget.setLayout(layout)
         
@@ -671,17 +946,493 @@ class AdvancedMainWindow(QMainWindow):
         self.tabs.addTab(tab, self.language_manager.get('tab_video'))
     
     def create_voice_studio_tab(self):
-        """Create modern Voice Studio tab using new implementation"""
-        # Import the modern Voice Studio tab
-        from .modern_voice_studio_tab import ModernVoiceStudioTab
+        """Tạo tab Voice Studio với enhanced features"""
+        voice_studio_widget = QWidget()
+        layout = QVBoxLayout()
         
-        # Create the modern tab instance
-        voice_studio_tab = ModernVoiceStudioTab()
+        # === TTS Provider (moved) ===
+        provider_layout = QHBoxLayout()
+        provider_layout.addWidget(QLabel("TTS Provider:"))
+        provider_info = QLabel("[BOT] Chatterbox TTS (AI Voice Cloning)")
+        provider_info.setStyleSheet("font-weight: bold; color: #007AFF; padding: 4px;")
+        provider_layout.addWidget(provider_info)
+        provider_layout.addStretch()
+        layout.addLayout(provider_layout)
+
+        # === ENHANCED: Multi-file Import Section ===
+        import_group = QGroupBox("[EMOJI] Import Script Data")
+        import_layout = QVBoxLayout()
         
-        # Add to tabs
-        self.tabs.addTab(voice_studio_tab, self.language_manager.get('tab_voice_studio'))
+        # Data source selection - Cải thiện layout giống tab Tạo Video
+        source_layout = QHBoxLayout()
+        source_layout.addWidget(QLabel("Nguồn dữ liệu:"))
+        source_layout.addStretch(1)  # Thêm stretch để đẩy dropdown về bên phải
+        self.data_source_combo = QComboBox()
+        self.data_source_combo.addItem("[FOLDER] Mode JSON - Import từ file", "file")
+        #self.data_source_combo.addItem("[FOLDER] Mode JSON - Import nhiều file (Multi-merge)", "multi_file")
+        self.data_source_combo.addItem("[REFRESH] Mode JSON - Sử dụng data từ tab Tạo Video", "generated")
+        self.data_source_combo.addItem("[EDIT] Mode JSON - Nhập thủ công script", "manual")
+        self.data_source_combo.addItem("[EDIT] Mode thủ công (bảng nhập liệu)", "manual_table")  # NEW
+        self.data_source_combo.currentTextChanged.connect(self.switch_data_source)
         
-        return voice_studio_tab
+        source_layout.addWidget(self.data_source_combo)
+        # Nút import JSON ([EMOJI]) cạnh dropdown
+        self.import_file_btn = QPushButton("[EMOJI] Import JSON từ file")
+        self.import_file_btn.setToolTip("[FOLDER] Import JSON từ file")
+        self.import_file_btn.clicked.connect(self.import_script_file)
+         # === NEW: Multi-file import button ===
+        self.import_multi_files_btn = QPushButton("[FOLDER] Import nhiều file JSON")
+        self.import_multi_files_btn.clicked.connect(self.import_multiple_script_files)
+        self.import_multi_files_btn.setVisible(False)  # Hidden initially
+
+        self.load_generated_btn = QPushButton("[REFRESH] Load từ tab Tạo Video")
+        self.load_generated_btn.clicked.connect(self.load_generated_script_data)
+        self.load_generated_btn.setVisible(False)
+
+        source_layout.addWidget(self.import_file_btn)
+        source_layout.addWidget(self.import_multi_files_btn)
+        source_layout.addWidget(self.load_generated_btn)
+        source_layout.addStretch()  # Thêm stretch ở cuối để các widget không dính sát mép phải
+        import_layout.addLayout(source_layout)
+         
+        # File status
+        file_status_layout = QHBoxLayout()
+        file_status_layout.addWidget(QLabel("Imported file:"))
+        self.imported_file_label = QLabel("Chưa import file nào")
+        self.imported_file_label.setStyleSheet("color: #8E8E93;")
+        file_status_layout.addWidget(self.imported_file_label)
+        file_status_layout.addStretch()
+        import_layout.addLayout(file_status_layout)
+        
+        # Generated data section
+        self.generated_data_widget = QWidget()
+        generated_layout = QVBoxLayout()
+        generated_layout.setContentsMargins(0, 0, 0, 0)
+        
+        generated_info = QLabel("[REFRESH] Sử dụng script data đã được tạo từ tab 'Tạo Video'")
+        generated_info.setStyleSheet("color: #007AFF; font-weight: bold;")
+        generated_layout.addWidget(generated_info)
+        
+        self.use_generated_btn = QPushButton("[REFRESH] Load Data từ tab Tạo Video")
+        self.use_generated_btn.clicked.connect(self.load_generated_script_data)
+        generated_layout.addWidget(self.use_generated_btn)
+        
+        self.generated_data_widget.setLayout(generated_layout)
+        self.generated_data_widget.setVisible(False)
+        import_layout.addWidget(self.generated_data_widget)
+        
+        # Manual input section
+        self.manual_input_widget = QWidget()
+        manual_layout = QVBoxLayout()
+        manual_layout.setContentsMargins(0, 0, 0, 0)
+        
+        manual_layout.addWidget(QLabel("[EDIT] Nhập JSON script:"))
+        self.manual_script_input = QTextEdit()
+        self.manual_script_input.setPlaceholderText("Paste JSON script vào đây...")
+        self.manual_script_input.setMaximumHeight(120)
+        manual_layout.addWidget(self.manual_script_input)
+        
+        self.parse_manual_btn = QPushButton("[OK] Parse JSON")
+        self.parse_manual_btn.clicked.connect(self.parse_manual_script)
+        manual_layout.addWidget(self.parse_manual_btn)
+        
+        self.manual_input_widget.setLayout(manual_layout)
+        self.manual_input_widget.setVisible(False)
+        import_layout.addWidget(self.manual_input_widget)
+        
+        # === NEW: Manual Table Input Section ===
+        self.manual_table_widget = QWidget()
+        manual_table_layout = QVBoxLayout()
+        manual_table_layout.setContentsMargins(0, 0, 0, 0)
+        
+        # Header info for manual table mode
+        manual_table_info = QLabel("[EDIT] Mode thủ công: Nhập dữ liệu trực tiếp vào bảng (chỉ Narrator)")
+        manual_table_info.setStyleSheet("color: #007AFF; font-weight: bold; margin-bottom: 8px;")
+        manual_table_layout.addWidget(manual_table_info)
+        
+        # Chunk size configuration
+        chunk_config_layout = QHBoxLayout()
+        chunk_config_layout.addWidget(QLabel("Chunk size (ký tự):"))
+        
+        self.chunk_size_input = QLineEdit()
+        self.chunk_size_input.setText("500")  # Default chunk size
+        self.chunk_size_input.setMaximumWidth(80)
+        self.chunk_size_input.setToolTip("Số ký tự tối đa cho mỗi đoạn audio (khuyến nghị: 300-800)")
+        chunk_config_layout.addWidget(self.chunk_size_input)
+        
+        chunk_config_layout.addWidget(QLabel("ký tự/đoạn"))
+        chunk_config_layout.addStretch()
+        manual_table_layout.addLayout(chunk_config_layout)
+        
+        # Data input table
+        self.manual_data_table = QTableWidget()
+        self.manual_data_table.verticalHeader().setVisible(False)
+        self.manual_data_table.setColumnCount(3)
+        self.manual_data_table.setHorizontalHeaderLabels(["Segment", "Dialogue", "Nội dung"])
+        self.manual_data_table.setMaximumHeight(200)
+        
+        # Connect item changed signal for automatic text processing
+        self.manual_data_table.itemChanged.connect(self.on_table_item_changed)
+        
+        # Table styling
+        self.manual_data_table.setAlternatingRowColors(True)
+        self.manual_data_table.setSelectionBehavior(QTableWidget.SelectRows)
+        self.manual_data_table.verticalHeader().setDefaultSectionSize(60)
+        self.manual_data_table.setStyleSheet("""
+            QTableWidget {
+                gridline-color: #e0e0e0;
+                background-color: white;
+                alternate-background-color: #f8f9fa;
+                font-size: 11px;
+            }
+            QHeaderView::section {
+                background-color: #f1f3f4;
+                padding: 6px;
+                border: 1px solid #e0e0e0;
+                font-weight: bold;
+                font-size: 11px;
+            }
+            QTableWidget::item {
+                padding: 6px;
+                border-bottom: 1px solid #e0e0e0;
+                font-size: 11px;
+            }
+        """)
+        
+        # Set column widths
+        header = self.manual_data_table.horizontalHeader()
+        header.resizeSection(0, 80)   # Segment
+        header.resizeSection(1, 80)   # Dialogue
+        header.setStretchLastSection(True)  # Content column stretches
+        
+        manual_table_layout.addWidget(self.manual_data_table)
+        
+        # Table action buttons
+        table_actions_layout = QHBoxLayout()
+        
+        self.add_row_btn = QPushButton("[EMOJI] Thêm hàng")
+        self.add_row_btn.clicked.connect(self.add_manual_table_row)
+        table_actions_layout.addWidget(self.add_row_btn)
+        
+        self.remove_row_btn = QPushButton("[DELETE] Xóa hàng đã chọn")
+        self.remove_row_btn.clicked.connect(self.remove_manual_table_row)
+        table_actions_layout.addWidget(self.remove_row_btn)
+        
+        self.auto_chunk_btn = QPushButton("[REFRESH] Tự động chia đoạn")
+        self.auto_chunk_btn.clicked.connect(self.auto_chunk_content)
+        self.auto_chunk_btn.setToolTip("Tự động chia nội dung thành các đoạn nhỏ dựa theo chunk size")
+        table_actions_layout.addWidget(self.auto_chunk_btn)
+        
+        table_actions_layout.addStretch()
+        
+        self.confirm_manual_data_btn = QPushButton("[OK] Xác nhận dữ liệu nhập")
+        self.confirm_manual_data_btn.clicked.connect(self.confirm_manual_table_data)
+        self.confirm_manual_data_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #007AFF;
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 6px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #005BB5;
+            }
+        """)
+        table_actions_layout.addWidget(self.confirm_manual_data_btn)
+        
+        manual_table_layout.addLayout(table_actions_layout)
+        
+        # Initialize with one empty row
+        self.manual_data_table.setRowCount(1)
+        self.manual_data_table.setItem(0, 0, QTableWidgetItem("1"))
+        self.manual_data_table.setItem(0, 1, QTableWidgetItem("1"))
+        self.manual_data_table.setItem(0, 2, QTableWidgetItem(""))
+        
+        self.manual_table_widget.setLayout(manual_table_layout)
+        self.manual_table_widget.setVisible(False)
+        import_layout.addWidget(self.manual_table_widget)
+        
+        import_group.setLayout(import_layout)
+        layout.addWidget(import_group)
+        
+        
+        
+        # Group 2: Script Overview
+        overview_group = QGroupBox("[CLIPBOARD] Script Overview")
+        overview_layout = QVBoxLayout()
+        overview_layout.setSpacing(8)
+        
+        # Script info
+        self.script_info_label = QLabel("Chưa load script data")
+        self.script_info_label.setStyleSheet("color: #666; font-style: italic;")
+        overview_layout.addWidget(self.script_info_label)
+        
+        # Characters list
+        characters_layout = QHBoxLayout()
+        characters_layout.addWidget(QLabel("Nhân vật:"))
+        self.characters_label = QLabel("Chưa có data")
+        self.characters_label.setStyleSheet("font-weight: bold; color: #007AFF;")
+        characters_layout.addWidget(self.characters_label)
+        characters_layout.addStretch()
+        overview_layout.addLayout(characters_layout)
+        
+        # Segments count
+        segments_layout = QHBoxLayout()
+        segments_layout.addWidget(QLabel("Số segments:"))
+        self.segments_count_label = QLabel("0")
+        self.segments_count_label.setStyleSheet("font-weight: bold; color: #007AFF;")
+        segments_layout.addWidget(self.segments_count_label)
+        segments_layout.addStretch()
+        overview_layout.addLayout(segments_layout)
+        
+        overview_group.setLayout(overview_layout)
+        layout.addWidget(overview_group)
+        
+        # Group 4: Advanced Chatterbox Controls (Manual Configuration)
+        chatterbox_group = QGroupBox("[EMOJI] Cấu hình (Nâng cao)")
+        chatterbox_layout = QVBoxLayout()
+        chatterbox_layout.setSpacing(8)
+        
+        # Enable/disable toggle - Cải thiện layout giống tab Tạo Video
+        chatterbox_controls_layout = QHBoxLayout()
+        self.enable_chatterbox_manual = QCheckBox("Sử dụng cấu hình thủ công")
+        self.enable_chatterbox_manual.toggled.connect(self.toggle_chatterbox_manual_controls)
+        chatterbox_controls_layout.addWidget(self.enable_chatterbox_manual)
+        
+        chatterbox_controls_layout.addStretch(1)  # Thêm stretch ở giữa để cách đều các checkbox
+        
+        # Auto emotion mapping toggle
+        self.enable_emotion_mapping = QCheckBox("[THEATER] Tự động điều chỉnh cảm xúc theo script")
+        self.enable_emotion_mapping.setChecked(True)  # Default enabled
+        self.enable_emotion_mapping.setToolTip("Tự động map emotion labels (happy, sad, excited...) thành emotion exaggeration values")
+        chatterbox_controls_layout.addWidget(self.enable_emotion_mapping)
+        chatterbox_controls_layout.addStretch(1)  # Thêm stretch ở cuối để các widget không dính sát mép phải
+        chatterbox_layout.addLayout(chatterbox_controls_layout)
+        
+        # Manual controls container
+        self.chatterbox_manual_widget = QWidget()
+        chatterbox_manual_layout = QVBoxLayout()
+        chatterbox_manual_layout.setContentsMargins(20, 10, 10, 10)
+        
+        # Character-specific settings ONLY (XÓA GLOBAL CONTROLS)
+        char_specific_label = QLabel("[THEATER] Cấu hình riêng cho từng nhân vật:")
+        char_specific_label.setStyleSheet("font-weight: bold; margin-top: 10px;")
+        chatterbox_manual_layout.addWidget(char_specific_label)
+        
+        # Character settings table với styling cải thiện
+        self.character_settings_table = QTableWidget()
+        self.character_settings_table.verticalHeader().setVisible(False)
+        self.character_settings_table.setColumnCount(11)  # Tăng lên 11 columns, thêm Temperature
+        self.character_settings_table.setHorizontalHeaderLabels([
+            "Nhân vật", "Emotion", "Exaggeration", "Speed", "CFG Weight", "Temperature", "Mode", "Voice/Clone", "Whisper Voice", "Status", "Preview"
+        ])
+        self.character_settings_table.horizontalHeader().setStretchLastSection(False)
+        self.character_settings_table.setMaximumHeight(200)  # Tăng height cho table
+        
+        # Cải thiện styling và font size tương tự emotion table
+        self.character_settings_table.setAlternatingRowColors(True)
+        self.character_settings_table.setSelectionBehavior(QTableWidget.SelectRows)
+        self.character_settings_table.verticalHeader().setDefaultSectionSize(40)  # Row height phù hợp
+        self.character_settings_table.setStyleSheet("""
+            QTableWidget {
+                gridline-color: #e0e0e0;
+                background-color: white;
+                alternate-background-color: #f8f9fa;
+                font-size: 11px;
+            }
+            QHeaderView::section {
+                background-color: #f1f3f4;
+                padding: 6px;
+                border: 1px solid #e0e0e0;
+                font-weight: bold;
+                font-size: 11px;
+            }
+            QTableWidget::item {
+                padding: 6px;
+                border-bottom: 1px solid #e0e0e0;
+                font-size: 11px;
+            }
+        """)
+        
+        # Set responsive column widths that adapt to window size
+        header = self.character_settings_table.horizontalHeader()
+        
+        # Use resize modes for flexible column sizing
+        header.setSectionResizeMode(0, QHeaderView.Interactive)  # Character name - resizable
+        header.setSectionResizeMode(1, QHeaderView.ResizeToContents)  # Emotion - fit content
+        header.setSectionResizeMode(2, QHeaderView.ResizeToContents)  # Exaggeration - fit content
+        header.setSectionResizeMode(3, QHeaderView.ResizeToContents)  # Speed - fit content
+        header.setSectionResizeMode(4, QHeaderView.ResizeToContents)  # CFG Weight - fit content
+        header.setSectionResizeMode(5, QHeaderView.Interactive)  # Mode - resizable
+        header.setSectionResizeMode(6, QHeaderView.Stretch)  # Voice/Clone - stretch to fill
+        header.setSectionResizeMode(7, QHeaderView.Interactive)  # Whisper Voice - resizable
+        header.setSectionResizeMode(8, QHeaderView.ResizeToContents)  # Status - fit content
+        header.setSectionResizeMode(9, QHeaderView.ResizeToContents)  # Preview - fit content
+        
+        # Set minimum widths for important columns
+        header.setMinimumSectionSize(80)
+        self.character_settings_table.setColumnWidth(0, 120)  # Character name minimum
+        self.character_settings_table.setColumnWidth(5, 130)  # Mode minimum
+        self.character_settings_table.setColumnWidth(7, 150)  # Whisper Voice minimum
+        
+        chatterbox_manual_layout.addWidget(self.character_settings_table)
+        
+        # VOICE GENERATION HELP
+        help_layout = QVBoxLayout()
+        help_layout.addWidget(QLabel("Hướng dẫn sử dụng:"))
+        
+        help_text = QLabel("""
+• <b>Cài đặt riêng cho từng nhân vật</b>: Mỗi nhân vật có thông số riêng (Emotion, Speed, CFG Weight)
+• <b>Chế độ Voice</b>: Chọn Voice Selection hoặc Voice Clone cho từng nhân vật
+• <b>Thao tác nhanh</b>: Nhấn nút Tools để tối ưu thông số tự động
+• <b>Xem trước</b>: Nhấn nút Play để nghe thử giọng với settings hiện tại
+        """)
+        help_text.setWordWrap(True)
+        help_text.setStyleSheet("color: #666; font-size: 12px; padding: 8px; background-color: #f8f8f8; border-radius: 4px;")
+        help_layout.addWidget(help_text)
+        
+        chatterbox_manual_layout.addLayout(help_layout)
+        
+        # Note: Removed "Apply to All Characters" preset buttons 
+        # since per-character settings in table provide better control
+        
+        self.chatterbox_manual_widget.setLayout(chatterbox_manual_layout)
+        self.chatterbox_manual_widget.setVisible(False)  # Hidden by default
+        chatterbox_layout.addWidget(self.chatterbox_manual_widget)
+        
+        chatterbox_group.setLayout(chatterbox_layout)
+        layout.addWidget(chatterbox_group)
+        
+        
+        # TTS Provider - CHỈ CHATTERBOX
+        provider_layout = QHBoxLayout()
+        provider_layout.addWidget(QLabel("TTS Provider:"))
+        provider_info = QLabel("[BOT] Chatterbox TTS (AI Voice Cloning)")
+        provider_info.setStyleSheet("font-weight: bold; color: #007AFF; padding: 4px;")
+        provider_layout.addWidget(provider_info)
+        provider_layout.addStretch()
+        layout.addLayout(provider_layout) 
+        
+        # Output settings
+        self.voice_output_input = QLineEdit()
+        self.voice_output_input.setPlaceholderText("./voice_studio_output/")
+        self.voice_output_input.setReadOnly(True)
+
+        self.select_voice_output_btn = QPushButton("[FOLDER]")
+        self.select_voice_output_btn.clicked.connect(self.select_voice_output_folder)
+        self.select_voice_output_btn.setMaximumWidth(40)
+
+        self.generate_selected_btn = QPushButton("[EMOJI] Tạo voice 1 nhân vật")
+        self.generate_selected_btn.clicked.connect(self.generate_selected_character_voice)
+        self.generate_selected_btn.setEnabled(False)
+
+        self.generate_all_btn = QPushButton("[THEATER] Tạo voice")
+        self.generate_all_btn.clicked.connect(self.generate_all_voices)
+        self.generate_all_btn.setEnabled(False)
+        
+        self.open_voice_folder_btn = QPushButton("[FOLDER] Mở Folder output")
+        self.open_voice_folder_btn.clicked.connect(self.open_voice_output_folder)
+        
+        self.clear_voice_results_btn = QPushButton("[CLEAN] Xóa kết quả")
+        self.clear_voice_results_btn.clicked.connect(self.clear_voice_results)
+        
+        
+        # Group 6: Progress & Results
+        progress_group = QGroupBox("[STATS] Tiến trình & Kết quả")
+        progress_layout = QVBoxLayout()
+        progress_layout.setSpacing(8)
+        
+        # Progress bar
+        self.voice_progress_bar = QProgressBar()
+        self.voice_progress_bar.setVisible(False)
+        progress_layout.addWidget(self.voice_progress_bar)
+        
+        # Progress text
+        self.voice_progress_text = QLabel("Sẵn sàng tạo voice")
+        self.voice_progress_text.setStyleSheet("color: #666; font-style: italic;")
+        progress_layout.addWidget(self.voice_progress_text)
+        
+        # Results area
+        self.voice_results_text = QTextEdit()
+        self.voice_results_text.setMaximumHeight(100)
+        self.voice_results_text.setReadOnly(True)
+        self.voice_results_text.setPlaceholderText("Kết quả tạo voice sẽ hiển thị ở đây...")
+        progress_layout.addWidget(self.voice_results_text)
+        
+        progress_group.setLayout(progress_layout)
+        layout.addWidget(progress_group)
+        
+        # Extended settings moved to Settings tab for cleaner UI
+        
+        # Group 7: Actions - Tách thành group riêng giống tab Dự án/Cài đặt
+        actions_group = QGroupBox("[EMOJI] Thao tác")
+        action_buttons_layout = QGridLayout()
+        action_buttons_layout.setSpacing(8)
+        
+        # Thêm các nút output/generate vào action bar
+        output_layout = QHBoxLayout()
+        output_layout.addWidget(QLabel("[FOLDER] Thư mục output:"))
+        output_layout.addWidget(self.voice_output_input)
+        output_layout.addWidget(self.select_voice_output_btn)
+        action_buttons_layout.addLayout(output_layout, 0, 0, 1, 2)
+        
+        # Generate buttons
+        action_buttons_layout.addWidget(self.generate_selected_btn, 1, 0)
+        action_buttons_layout.addWidget(self.generate_all_btn, 1, 1)
+        
+        # Output management buttons
+        action_buttons_layout.addWidget(self.open_voice_folder_btn, 2, 0)
+        action_buttons_layout.addWidget(self.clear_voice_results_btn, 2, 1)
+        
+        # Force Merge button - tối ưu cho trường hợp script data không match
+        self.force_merge_btn = QPushButton("Merge All")
+        self.force_merge_btn.setStyleSheet("""
+            QPushButton {
+                background-color: white;
+                color: #007ACC;
+                border: 1px solid #007ACC;
+                padding: 8px 16px;
+                border-radius: 6px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #F0F8FF;
+                border-color: #005999;
+            }
+        """)
+        self.force_merge_btn.clicked.connect(self.force_merge_all_segments)
+        self.force_merge_btn.setToolTip("Gộp tất cả file segment_*.mp3 có trong thư mục output (không cần script data)")
+        action_buttons_layout.addWidget(self.force_merge_btn, 3, 0, 1, 2)
+        
+        actions_group.setLayout(action_buttons_layout)
+        layout.addWidget(actions_group)
+        
+        # Initialize data
+        self.voice_studio_script_data = None
+        self.voice_mapping = {}
+        self.character_chatterbox_settings = {}  # Store per-character settings
+        self.voice_clone_folder = None
+        
+        # === SET UP MAIN TAB LAYOUT ===
+        voice_studio_widget.setLayout(layout)
+        
+        # Use scroll area for the full content
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        scroll.setWidget(voice_studio_widget)
+        
+        # Main tab layout
+        tab_layout = QVBoxLayout()
+        tab_layout.setContentsMargins(0, 0, 0, 0)
+        tab_layout.addWidget(scroll)
+        
+        tab = QWidget()
+        tab.setLayout(tab_layout)
+        
+        self.tabs.addTab(tab, self.language_manager.get('tab_voice_studio'))
     
     def create_preset_settings_tab(self):
         """Create preset settings tab"""
@@ -1762,6 +2513,91 @@ class AdvancedMainWindow(QMainWindow):
             
         except Exception as e:
             self.performance_metrics_text.setText(f"Error updating metrics: {str(e)}")
+        
+        # Add all tabs
+        text_processor_tab.setLayout(text_processor_layout)
+        audio_processor_tab.setLayout(audio_layout)
+        generation_tab.setLayout(generation_layout)
+        whisper_tab.setLayout(whisper_layout)
+        
+        self.extended_tabs.addTab(text_processor_tab, "[EDIT] Text")
+        self.extended_tabs.addTab(audio_processor_tab, "[MUSIC] Audio")
+        self.extended_tabs.addTab(generation_tab, "[TARGET] Generation")
+        self.extended_tabs.addTab(whisper_tab, "[MIC] Whisper")
+        self.extended_tabs.addTab(preset_tab, "[CONFIG] Presets")
+        self.extended_tabs.addTab(self.create_performance_settings_tab(), "[FAST] Performance")
+        
+        extended_layout.addWidget(self.extended_tabs)
+        extended_group.setLayout(extended_layout)
+        layout.addWidget(extended_group)
+        
+        # Group 7: Actions - Tách thành group riêng giống tab Dự án/Cài đặt
+        actions_group = QGroupBox("[EMOJI] Thao tác")
+        action_buttons_layout = QGridLayout()
+        action_buttons_layout.setSpacing(8)
+        
+        # Thêm các nút output/generate vào action bar
+        output_layout = QHBoxLayout()
+        output_layout.addWidget(QLabel("Thư mục output:"))
+        output_layout.addWidget(self.voice_output_input)
+        output_layout.addWidget(self.select_voice_output_btn)
+        action_buttons_layout.addLayout(output_layout, 0, 0, 1, 2)
+        
+        # Generate buttons
+        action_buttons_layout.addWidget(self.generate_selected_btn, 1, 0)
+        action_buttons_layout.addWidget(self.generate_all_btn, 1, 1)
+        
+        # Output management buttons
+        action_buttons_layout.addWidget(self.open_voice_folder_btn, 2, 0)
+        action_buttons_layout.addWidget(self.clear_voice_results_btn, 2, 1)
+        
+        # Force Merge button - tối ưu cho trường hợp script data không match
+        self.force_merge_btn = QPushButton("[TOOL] Merge All")
+        self.force_merge_btn.setStyleSheet("""
+            QPushButton {
+                background-color: white;
+                color: #007ACC;
+                border: 1px solid #007ACC;
+                padding: 8px 16px;
+                border-radius: 6px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #F0F8FF;
+                border-color: #005999;
+            }
+        """)
+        self.force_merge_btn.clicked.connect(self.force_merge_all_segments)
+        self.force_merge_btn.setToolTip("Gộp tất cả file segment_*.mp3 có trong thư mục output (không cần script data)")
+        action_buttons_layout.addWidget(self.force_merge_btn, 3, 0, 1, 2)
+        
+        actions_group.setLayout(action_buttons_layout)
+        layout.addWidget(actions_group)
+        
+        # Initialize data
+        self.voice_studio_script_data = None
+        self.voice_mapping = {}
+        self.character_chatterbox_settings = {}  # Store per-character settings
+        self.voice_clone_folder = None
+        
+        # === SET UP MAIN TAB LAYOUT ===
+        voice_studio_widget.setLayout(layout)
+        
+        # Use scroll area for the full content
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        scroll.setWidget(voice_studio_widget)
+        
+        # Main tab layout
+        tab_layout = QVBoxLayout()
+        tab_layout.setContentsMargins(0, 0, 0, 0)
+        tab_layout.addWidget(scroll)
+        
+        tab = QWidget()
+        tab.setLayout(tab_layout)
+        
+        self.tabs.addTab(tab, self.language_manager.get('tab_voice_studio'))
     
     def create_voice_conversion_tab(self):
         """Tạo tab Voice Conversion"""
